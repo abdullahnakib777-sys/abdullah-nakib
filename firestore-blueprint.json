@@ -1,0 +1,155 @@
+{
+  "entities": {
+    "users": {
+      "title": "users",
+      "description": "User accounts and authentication profiles across roles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["FOUNDER", "ADMIN", "RESELLER", "CUSTOMER"] },
+        "avatar": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "role", "createdAt"]
+    },
+    "resellers": {
+      "title": "resellers",
+      "description": "Reseller storefronts, commission profiles, verification, and badges",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "storeName": { "type": "string" },
+        "storeSlug": { "type": "string" },
+        "storeLogo": { "type": "string" },
+        "customDomain": { "type": "string" },
+        "tier": { "type": "string" },
+        "status": { "type": "string" },
+        "totalDeliveredOrders": { "type": "number" },
+        "totalResellerProfit": { "type": "number" },
+        "totalSalesVolume": { "type": "number" },
+        "returnRatePercent": { "type": "number" },
+        "xp": { "type": "number" },
+        "level": { "type": "number" },
+        "streakDays": { "type": "number" },
+        "badges": { "type": "array" },
+        "joinedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "storeName", "tier", "status", "joinedAt"]
+    },
+    "products": {
+      "title": "products",
+      "description": "Wholesale products in catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nameBn": { "type": "string" },
+        "slug": { "type": "string" },
+        "category": { "type": "string" },
+        "stock": { "type": "number" },
+        "baseCost": { "type": "number" },
+        "resellerPrice": { "type": "number" },
+        "suggestedSellingPrice": { "type": "number" },
+        "minSellingPrice": { "type": "number" },
+        "maxSellingPrice": { "type": "number" },
+        "isTrending": { "type": "boolean" },
+        "isBestSeller": { "type": "boolean" },
+        "rating": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "resellerPrice", "suggestedSellingPrice", "stock"]
+    },
+    "orders": {
+      "title": "orders",
+      "description": "Customer and dropshipping reseller orders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "resellerId": { "type": "string" },
+        "storeName": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "customerAddress": { "type": "string" },
+        "district": { "type": "string" },
+        "items": { "type": "array" },
+        "orderStatus": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "totalCustomerPrice": { "type": "number" },
+        "totalResellerCost": { "type": "number" },
+        "resellerProfit": { "type": "number" },
+        "platformMargin": { "type": "number" },
+        "courierName": { "type": "string" },
+        "courierTrackingCode": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "orderNumber", "customerName", "customerPhone", "totalCustomerPrice", "orderStatus", "createdAt"]
+    },
+    "wallets": {
+      "title": "wallets",
+      "description": "Reseller financial wallets for profit payouts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "resellerId": { "type": "string" },
+        "availableBalance": { "type": "number" },
+        "pendingBalance": { "type": "number" },
+        "lifetimeEarnings": { "type": "number" },
+        "totalWithdrawn": { "type": "number" },
+        "lastUpdated": { "type": "string" }
+      },
+      "required": ["id", "resellerId", "availableBalance", "pendingBalance", "lifetimeEarnings"]
+    },
+    "withdrawals": {
+      "title": "withdrawals",
+      "description": "Reseller payout withdrawal requests",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "resellerId": { "type": "string" },
+        "resellerName": { "type": "string" },
+        "storeName": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "status": { "type": "string" },
+        "requestedAt": { "type": "string" },
+        "processedAt": { "type": "string" }
+      },
+      "required": ["id", "resellerId", "amount", "method", "accountNumber", "status", "requestedAt"]
+    },
+    "transactions": {
+      "title": "transactions",
+      "description": "Wallet credit and debit ledger records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "walletId": { "type": "string" },
+        "resellerId": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "balanceAfter": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "walletId", "resellerId", "amount", "type", "createdAt"]
+    },
+    "app_state": {
+      "title": "app_state",
+      "description": "Global platform state and settings synced to Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "payload": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "updatedAt"]
+    }
+  }
+}

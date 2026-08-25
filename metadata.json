@@ -1,0 +1,6 @@
+{
+  "name": "Shadhin Reseller - Bangladesh Modern Reseller Commerce Platform",
+  "description": "A modern, mobile-first Bangladesh reseller commerce platform featuring real product sales, instant profit calculation, wallet management, gamified levels & XP, AI selling assistant, and full administrative fulfillment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
