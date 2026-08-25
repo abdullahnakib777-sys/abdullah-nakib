@@ -13,6 +13,7 @@ import {
 import { api } from '../../services/api';
 import { StatusBadge } from '../common/Badge';
 import { triggerLevelUpCelebration } from '../common/ConfettiTrigger';
+import { BulkProductUploaderModal } from './BulkProductUploaderModal';
 import {
   ShieldCheck,
   TrendingUp,
@@ -40,6 +41,8 @@ import {
   ExternalLink,
   Clock,
   Award,
+  Upload,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -69,6 +72,7 @@ export const AdminDashboard: React.FC = () => {
 
   // Add Product Modal
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [isBulkUploaderOpen, setIsBulkUploaderOpen] = useState(false);
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
     nameBn: '',
@@ -604,17 +608,34 @@ export const AdminDashboard: React.FC = () => {
         <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-xs">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Wholesale & Normal E-Commerce Catalog</h3>
-              <p className="text-xs text-slate-400">Set factory cost, reseller wholesale price, and standard retail price</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-slate-900">Wholesale & Normal E-Commerce Catalog</h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-extrabold text-[11px]">
+                  {products.length} Products
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">Set factory cost, reseller wholesale price, customer prices, and discounts</p>
             </div>
 
-            <button
-              onClick={() => setIsAddProductModalOpen(true)}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add New Product</span>
-            </button>
+            <div className="flex items-center gap-2.5 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setIsBulkUploaderOpen(true)}
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Bulk CSV Upload</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAddProductModalOpen(true)}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Product</span>
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
@@ -625,9 +646,11 @@ export const AdminDashboard: React.FC = () => {
                     <th className="p-4">Product</th>
                     <th className="p-4">Category</th>
                     <th className="p-4">Factory Cost</th>
-                    <th className="p-4">Wholesale Price (Reseller)</th>
-                    <th className="p-4">Suggested Retail (Customer)</th>
-                    <th className="p-4">Margin</th>
+                    <th className="p-4">Wholesale (Reseller)</th>
+                    <th className="p-4">Customer Catalog</th>
+                    <th className="p-4">Old Price</th>
+                    <th className="p-4">Discount</th>
+                    <th className="p-4">Reseller Margin</th>
                     <th className="p-4">Stock</th>
                   </tr>
                 </thead>
@@ -635,16 +658,30 @@ export const AdminDashboard: React.FC = () => {
                   {products.map((p) => (
                     <tr key={p.id} className="hover:bg-slate-50/50">
                       <td className="p-4 flex items-center gap-3">
-                        <img src={p.images[0]} alt="" className="w-10 h-10 object-cover rounded-lg border border-slate-200" />
-                        <div>
-                          <p className="font-bold text-slate-900">{p.name}</p>
-                          <p className="text-[11px] text-slate-400">{p.nameBn}</p>
+                        <img
+                          src={p.images[0]}
+                          alt=""
+                          className="w-10 h-10 object-cover rounded-lg border border-slate-200"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80';
+                          }}
+                        />
+                        <div className="max-w-xs">
+                          <p className="font-bold text-slate-900 truncate">{p.name}</p>
+                          <p className="text-[11px] text-slate-400 truncate">{p.nameBn || p.description}</p>
                         </div>
                       </td>
                       <td className="p-4 text-slate-600">{p.category}</td>
                       <td className="p-4 text-slate-500">৳{p.baseCost}</td>
                       <td className="p-4 font-bold text-indigo-700">৳{p.resellerPrice}</td>
                       <td className="p-4 font-bold text-slate-900">৳{p.suggestedSellingPrice}</td>
+                      <td className="p-4 text-slate-400 line-through">
+                        {p.oldPrice ? `৳${p.oldPrice}` : '-'}
+                      </td>
+                      <td className="p-4 text-rose-600 font-bold">
+                        {p.discountAmount ? `৳${p.discountAmount}` : (p.oldPrice && p.oldPrice > p.suggestedSellingPrice ? `৳${p.oldPrice - p.suggestedSellingPrice}` : '-')}
+                      </td>
                       <td className="p-4 font-bold text-emerald-700">+৳{p.suggestedSellingPrice - p.resellerPrice}</td>
                       <td className="p-4 font-mono">{p.stock} pcs</td>
                     </tr>
@@ -1346,6 +1383,16 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Bulk Product CSV Uploader Modal */}
+      <BulkProductUploaderModal
+        isOpen={isBulkUploaderOpen}
+        onClose={() => setIsBulkUploaderOpen(false)}
+        onSuccess={(count) => {
+          triggerLevelUpCelebration();
+          loadAllAdminData();
+        }}
+      />
     </div>
   );
 };

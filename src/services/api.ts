@@ -338,6 +338,12 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  bulkCreateProducts: (body: { products: Array<Partial<Product>>; replaceAll?: boolean }) =>
+    apiFetch<{ success: boolean; count: number; totalProducts: number; message: string }>('/api/v1/admin/products/bulk', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   updateProduct: (id: string, body: Partial<Product>) =>
     apiFetch<{ product: Product }>(`/api/v1/admin/products/${id}`, {
       method: 'PATCH',

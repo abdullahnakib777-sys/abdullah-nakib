@@ -2,6 +2,7 @@ import React from 'react';
 import { Product, Order, Wallet, ResellerProfile } from '../../types';
 import { RESELLER_LEVEL_TIERS } from '../../data/bangladeshGeo';
 import { StatusBadge } from '../common/Badge';
+import { ResellerSalesChart } from './ResellerSalesChart';
 import {
   TrendingUp,
   ShoppingBag,
@@ -159,6 +160,9 @@ export const ResellerDashboard: React.FC<{
           <p className="text-[11px] text-slate-400">0% hidden fees deducted</p>
         </div>
       </div>
+
+      {/* Sales Performance Line Chart */}
+      <ResellerSalesChart orders={orders} />
 
       {/* Quick Action Hub */}
       <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-4">

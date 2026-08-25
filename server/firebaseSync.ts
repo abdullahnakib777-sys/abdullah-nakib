@@ -24,6 +24,34 @@ export function getFirestoreDb() {
 
 const GLOBAL_STATE_DOC = 'global_v1';
 
+/**
+ * Deeply strips `undefined` keys and values from objects and arrays
+ * so Firestore WriteBatch / setDoc does not throw "Unsupported field value: undefined"
+ */
+export function cleanForFirestore<T>(data: T): any {
+  if (data === null || data === undefined) {
+    return null;
+  }
+
+  if (Array.isArray(data)) {
+    return data
+      .filter((item) => item !== undefined)
+      .map((item) => cleanForFirestore(item));
+  }
+
+  if (typeof data === 'object' && !(data instanceof Date)) {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        cleaned[key] = cleanForFirestore(value);
+      }
+    }
+    return cleaned;
+  }
+
+  return data;
+}
+
 export class FirebaseSyncService {
   private static isSyncing = false;
 
@@ -75,25 +103,25 @@ export class FirebaseSyncService {
       // Save top products
       data.products.slice(0, 50).forEach((prod) => {
         const ref = doc(fsDb, 'products', prod.id);
-        batch.set(ref, { ...prod }, { merge: true });
+        batch.set(ref, cleanForFirestore(prod), { merge: true });
       });
 
       // Save orders
       data.orders.slice(0, 50).forEach((order) => {
         const ref = doc(fsDb, 'orders', order.id);
-        batch.set(ref, { ...order }, { merge: true });
+        batch.set(ref, cleanForFirestore(order), { merge: true });
       });
 
       // Save wallets
       Object.values(data.wallets).forEach((wallet) => {
         const ref = doc(fsDb, 'wallets', wallet.resellerId);
-        batch.set(ref, { ...wallet }, { merge: true });
+        batch.set(ref, cleanForFirestore(wallet), { merge: true });
       });
 
       // Save withdrawals
       data.withdrawals.forEach((w) => {
         const ref = doc(fsDb, 'withdrawals', w.id);
-        batch.set(ref, { ...w }, { merge: true });
+        batch.set(ref, cleanForFirestore(w), { merge: true });
       });
 
       await batch.commit();

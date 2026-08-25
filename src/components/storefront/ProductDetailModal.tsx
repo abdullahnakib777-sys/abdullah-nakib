@@ -115,8 +115,18 @@ export const ProductDetailModal: React.FC<{
               {/* Pricing Cards */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xs text-slate-500">Retail Price (Customer)</span>
-                  <span className="text-xl font-black text-slate-900">৳{product.suggestedSellingPrice}</span>
+                  <span className="text-xs text-slate-500">Retail Customer Price</span>
+                  <div className="flex items-center gap-2">
+                    {product.oldPrice && product.oldPrice > product.suggestedSellingPrice && (
+                      <span className="text-sm text-slate-400 line-through font-medium">৳{product.oldPrice}</span>
+                    )}
+                    <span className="text-2xl font-black text-slate-900">৳{product.suggestedSellingPrice}</span>
+                    {(product.discountAmount || (product.oldPrice && product.oldPrice > product.suggestedSellingPrice)) && (
+                      <span className="text-xs font-black text-rose-600 bg-rose-100 px-2 py-0.5 rounded-md">
+                        ৳{product.discountAmount || (product.oldPrice! - product.suggestedSellingPrice)} ছাড়
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {isReseller ? (

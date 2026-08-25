@@ -826,6 +826,31 @@ async function startServer() {
     }
   });
 
+  // Admin: Bulk Create Products from CSV
+  app.post('/api/v1/admin/products/bulk', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+
+      const { products, replaceAll } = req.body;
+      if (!Array.isArray(products) || products.length === 0) {
+        return res.status(400).json({ error: 'Please provide an array of products to import' });
+      }
+
+      const result = db.bulkCreateProducts(products, user, replaceAll === true);
+      res.status(201).json({
+        success: true,
+        count: result.count,
+        totalProducts: result.products.length,
+        message: `Successfully imported ${result.count} products into catalog`,
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to bulk import products' });
+    }
+  });
+
   // Admin: Update Product
   app.patch('/api/v1/admin/products/:id', (req: Request, res: Response) => {
     try {

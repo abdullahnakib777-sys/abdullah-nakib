@@ -271,8 +271,17 @@ export const StorefrontView: React.FC<{
                     <p className="text-xs text-slate-500 font-medium line-clamp-1">{product.nameBn}</p>
 
                     <div className="flex items-baseline justify-between pt-1">
-                      <span className="text-xs text-slate-400">Customer Price:</span>
-                      <span className="text-base font-black text-slate-900">৳{product.suggestedSellingPrice}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-base font-black text-slate-900">৳{product.suggestedSellingPrice}</span>
+                        {product.oldPrice && product.oldPrice > product.suggestedSellingPrice && (
+                          <span className="text-xs text-slate-400 line-through">৳{product.oldPrice}</span>
+                        )}
+                      </div>
+                      {(product.discountAmount || (product.oldPrice && product.oldPrice > product.suggestedSellingPrice)) && (
+                        <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-sm">
+                          ৳{product.discountAmount || (product.oldPrice! - product.suggestedSellingPrice)} ছাড়
+                        </span>
+                      )}
                     </div>
 
                     {isResellerOrAdmin ? (

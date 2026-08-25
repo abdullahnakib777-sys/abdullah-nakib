@@ -1442,6 +1442,117 @@ class Database {
     return product;
   }
 
+  public bulkCreateProducts(productsList: Array<Partial<Product>>, actor: User, replaceAll = false) {
+    const inferCategory = (name: string): { category: string; slug: string } => {
+      const lower = name.toLowerCase();
+      if (lower.includes('ac ') || lower.includes('inverter') || lower.includes('refrigerator') || lower.includes('tv') || lower.includes('fan') || lower.includes('heater') || lower.includes('torch') || lower.includes('light') || lower.includes('camera') || lower.includes('headphone') || lower.includes('ear bud') || lower.includes('watch') || lower.includes('power bank') || lower.includes('speaker') || lower.includes('nebulizer') || lower.includes('usb')) {
+        return { category: 'Electronics & Gadgets', slug: 'gadgets' };
+      }
+      if (lower.includes('grinder') || lower.includes('blender') || lower.includes('cooker') || lower.includes('kettle') || lower.includes('chopper') || lower.includes('slicer') || lower.includes('kitchen') || lower.includes('rack') || lower.includes('storage') || lower.includes('bottle') || lower.includes('box') || lower.includes('pot') || lower.includes('peeler') || lower.includes('egg') || lower.includes('dispenser')) {
+        return { category: 'Kitchen & Dining', slug: 'kitchen' };
+      }
+      if (lower.includes('shaver') || lower.includes('trimmer') || lower.includes('massager') || lower.includes('hair') || lower.includes('facial') || lower.includes('face') || lower.includes('skin') || lower.includes('cream') || lower.includes('shampoo') || lower.includes('soap') || lower.includes('pedicure') || lower.includes('manicure') || lower.includes('spa') || lower.includes('oil') || lower.includes('therapy')) {
+        return { category: 'Health & Beauty', slug: 'beauty' };
+      }
+      if (lower.includes('bag') || lower.includes('backpack') || lower.includes('wallet') || lower.includes('locket') || lower.includes('bracelet') || lower.includes('necklace') || lower.includes('ring') || lower.includes('umbrella') || lower.includes('shoe') || lower.includes('towel') || lower.includes('earring')) {
+        return { category: 'Fashion & Accessories', slug: 'fashion' };
+      }
+      if (lower.includes('cleaner') || lower.includes('tape') || lower.includes('glue') || lower.includes('tool') || lower.includes('wrench') || lower.includes('screwdriver') || lower.includes('mop') || lower.includes('brush') || lower.includes('spray') || lower.includes('hook') || lower.includes('mat') || lower.includes('lock') || lower.includes('pipe') || lower.includes('patch')) {
+        return { category: 'Home Improvement & Tools', slug: 'tools' };
+      }
+      if (lower.includes('baby') || lower.includes('kids') || lower.includes('toy') || lower.includes('potty') || lower.includes('bouncer') || lower.includes('diaper') || lower.includes('stroller')) {
+        return { category: 'Baby & Kids', slug: 'kids' };
+      }
+      return { category: 'Home & Living', slug: 'home' };
+    };
+
+    const formattedProducts: Product[] = productsList.map((p, idx) => {
+      const id = p.id || `prod-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
+      const resellerPrice = Math.round(Number(p.resellerPrice) || 0);
+      const suggestedSellingPrice = Math.round(Number(p.suggestedSellingPrice) || (resellerPrice > 0 ? Math.round(resellerPrice * 1.5) : 500));
+      const baseCost = Math.round(Number(p.baseCost) || Math.round(resellerPrice * 0.85));
+      const oldPrice = p.oldPrice ? Math.round(Number(p.oldPrice)) : undefined;
+      const discountAmount = p.discountAmount
+        ? Math.round(Number(p.discountAmount))
+        : (oldPrice && oldPrice > suggestedSellingPrice ? oldPrice - suggestedSellingPrice : undefined);
+
+      const catInfo = inferCategory(p.name || '');
+      const category = p.category || catInfo.category;
+      const categorySlug = p.categorySlug || catInfo.slug;
+
+      return {
+        id,
+        name: p.name || 'Unnamed Product',
+        nameBn: p.nameBn || p.name || '',
+        category,
+        categorySlug,
+        baseCost,
+        resellerPrice,
+        suggestedSellingPrice,
+        oldPrice,
+        discountAmount,
+        minSellingPrice: p.minSellingPrice || resellerPrice + 50,
+        maxSellingPrice: p.maxSellingPrice || Math.round(suggestedSellingPrice * 1.5),
+        stock: p.stock !== undefined ? Number(p.stock) : 100,
+        images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80'],
+        description: p.description || '',
+        features: Array.isArray(p.features) && p.features.length > 0
+          ? p.features
+          : ['১০০% অরিজিনাল ও প্রিমিয়াম কোয়ালিটি', 'সারাদেশে হোম ডেলিভারি ও ক্যাশ অন ডেলিভারি', '৭ দিনের রিটার্ন ও রিপ্লেসমেন্ট গ্যারান্টি'],
+        specifications: p.specifications || {
+          'ডেলিভারি মাধ্যম': 'ক্যাশ অন ডেলিভারি (Steadfast / Pathao)',
+          'ওয়ারেন্টি': '৭ দিনের চেক ও রিপ্লেসমেন্ট ওয়ারেন্টি',
+        },
+        rating: p.rating || 5.0,
+        reviewCount: p.reviewCount || Math.floor(Math.random() * 25) + 5,
+        successfulSalesCount: p.successfulSalesCount || Math.floor(Math.random() * 50) + 12,
+        returnRatePercent: p.returnRatePercent || 1.2,
+        isTrending: p.isTrending !== undefined ? p.isTrending : Math.random() > 0.65,
+        isBestSeller: p.isBestSeller !== undefined ? p.isBestSeller : Math.random() > 0.7,
+        createdAt: p.createdAt || new Date().toISOString(),
+      };
+    });
+
+    if (replaceAll) {
+      this.data.products = formattedProducts;
+    } else {
+      this.data.products = [...formattedProducts, ...this.data.products];
+    }
+
+    // Refresh Category counts
+    const categoryMap = new Map<string, { count: number; slug: string }>();
+    this.data.products.forEach((p) => {
+      const current = categoryMap.get(p.category) || { count: 0, slug: p.categorySlug };
+      current.count += 1;
+      categoryMap.set(p.category, current);
+    });
+
+    this.data.categories = Array.from(categoryMap.entries()).map(([name, val], index) => {
+      const existing = this.data.categories.find((c) => c.name === name);
+      return {
+        id: existing?.id || `cat-${index + 1}`,
+        name,
+        nameBn: existing?.nameBn || name,
+        slug: val.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        icon: existing?.icon || 'Package',
+        productCount: val.count,
+      };
+    });
+
+    this.logAudit({
+      action: 'BULK_CREATE_PRODUCTS',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'PRODUCT',
+      targetId: `bulk-${formattedProducts.length}`,
+      details: `${replaceAll ? 'Replaced catalog with' : 'Imported'} ${formattedProducts.length} products via bulk CSV uploader`,
+    });
+
+    this.save();
+    return { count: formattedProducts.length, products: this.data.products };
+  }
+
   // --- Orders & Profit Engine ---
   public getOrders() {
     return this.data.orders;

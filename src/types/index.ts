@@ -77,6 +77,8 @@ export interface Product {
   baseCost: number; // Cost to platform
   resellerPrice: number; // Wholesale price to reseller
   suggestedSellingPrice: number; // Recommended retail price
+  oldPrice?: number; // Original strikethrough price for customers
+  discountAmount?: number; // Discount amount (oldPrice - suggestedSellingPrice)
   minSellingPrice: number;
   maxSellingPrice: number;
   isTrending?: boolean;
