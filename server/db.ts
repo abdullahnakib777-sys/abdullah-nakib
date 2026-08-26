@@ -1175,14 +1175,44 @@ class Database {
         const defaults = this.getDefaultData();
 
         // Ensure resellers dataset is complete with all 213 realistic entries
-        let finalResellers = parsed.resellers || defaults.resellers;
-        let finalUsers = parsed.users || defaults.users;
-        let finalWallets = { ...defaults.wallets, ...(parsed.wallets || {}) };
+        let finalResellers = defaults.resellers.map((defReseller) => {
+          if (defReseller.id === 'rsl-founder') {
+            // Keep existing founder store intact
+            const existingFounder = (parsed.resellers || []).find((r: ResellerProfile) => r.id === 'rsl-founder');
+            return existingFounder || defReseller;
+          }
+          // For demo resellers, incorporate the updated demo orders, profits, xp and status
+          const existing = (parsed.resellers || []).find((r: ResellerProfile) => r.id === defReseller.id);
+          if (existing) {
+            return {
+              ...defReseller,
+              ...existing,
+              deliveredOrdersCount: defReseller.deliveredOrdersCount,
+              totalOrdersCount: defReseller.totalOrdersCount,
+              totalProfitEarned: defReseller.totalProfitEarned,
+              totalProfitEarnedBdt: defReseller.totalProfitEarnedBdt,
+              level: defReseller.level,
+              xp: defReseller.xp,
+              status: defReseller.status,
+              isVerified: defReseller.isVerified,
+              verificationFeePaid: defReseller.verificationFeePaid,
+            };
+          }
+          return defReseller;
+        });
 
-        if (!finalResellers || finalResellers.length < 200) {
-          finalResellers = defaults.resellers;
-          finalUsers = defaults.users;
-          finalWallets = defaults.wallets;
+        let finalUsers = defaults.users.map((defUser) => {
+          if (defUser.id === 'usr-founder') {
+            const existingFounderUser = (parsed.users || []).find((u: User) => u.id === 'usr-founder');
+            return existingFounderUser || defUser;
+          }
+          const existing = (parsed.users || []).find((u: User) => u.id === defUser.id);
+          return existing ? { ...defUser, ...existing } : defUser;
+        });
+
+        let finalWallets = { ...defaults.wallets };
+        if (parsed.wallets && parsed.wallets['rsl-founder']) {
+          finalWallets['rsl-founder'] = parsed.wallets['rsl-founder'];
         }
 
         // Ensure products have productCode, stock status, restock estimates
@@ -1339,16 +1369,45 @@ class Database {
       const user = this.getUserById(r.userId);
       const resellerOrders = orders.filter((o) => o.resellerId === r.id);
       const delivered = resellerOrders.filter((o) => o.status === 'DELIVERED');
-      const totalProfitEarned = delivered.reduce((acc, o) => acc + (o.totalResellerProfit || 0), 0);
+      const orderCount = delivered.length > 0 ? delivered.length : (r.deliveredOrdersCount || r.totalOrdersCount || 0);
+      const totalProfitFromOrders = delivered.reduce((acc, o) => acc + (o.totalResellerProfit || 0), 0);
+      const wallet = this.data.wallets[r.id];
+      const totalProfit = totalProfitFromOrders > 0 ? totalProfitFromOrders : (r.totalProfitEarned || wallet?.totalEarned || r.totalProfitEarnedBdt || 0);
       const completedLessons = this.data.userLessonProgress[r.id] || [];
+
+      // Calculate level details
+      const levelNames: Record<number, string> = {
+        1: 'Novice',
+        2: 'Hustler',
+        3: 'Seller',
+        4: 'Pro Seller',
+        5: 'Elite Master',
+      };
+
+      const xp = r.xp || 100;
+      let nextLevelXp = 500;
+      let prevLevelXp = 0;
+      if (r.level === 2) { prevLevelXp = 500; nextLevelXp = 1500; }
+      else if (r.level === 3) { prevLevelXp = 1500; nextLevelXp = 4000; }
+      else if (r.level === 4) { prevLevelXp = 4000; nextLevelXp = 10000; }
+      else if (r.level >= 5) { prevLevelXp = 10000; nextLevelXp = 25000; }
+
+      const levelProgressPercent = Math.min(100, Math.max(5, Math.round(((xp - prevLevelXp) / (nextLevelXp - prevLevelXp)) * 100)));
+      const xpToNextLevel = Math.max(0, nextLevelXp - xp);
 
       return {
         ...r,
         user,
-        deliveredOrdersCount: delivered.length,
-        totalOrdersCount: resellerOrders.length,
-        totalProfitEarned,
-        completedLessonsCount: completedLessons.length,
+        ownerName: user?.name || r.storeName,
+        email: user?.email || '',
+        levelName: levelNames[r.level || 1] || 'Novice',
+        levelProgressPercent,
+        xpToNextLevel,
+        deliveredOrdersCount: orderCount,
+        totalOrdersCount: orderCount,
+        totalProfitEarned: totalProfit,
+        totalProfitEarnedBdt: totalProfit,
+        completedLessonsCount: completedLessons.length || (r.level >= 4 ? 3 : r.level >= 2 ? 2 : 1),
       };
     });
   }
@@ -2210,7 +2269,10 @@ class Database {
     const resellerStats: Record<string, { sales: number; profit: number; deliveries: number }> = {};
 
     for (const r of this.data.resellers) {
-      resellerStats[r.id] = { sales: 0, profit: 0, deliveries: 0 };
+      const defaultProfit = r.totalProfitEarned || this.data.wallets[r.id]?.totalEarned || 0;
+      const defaultDeliveries = r.deliveredOrdersCount || (r.level >= 4 ? 650 : r.level >= 2 ? 150 : 25);
+      const defaultSales = Math.round(defaultProfit * 3.8);
+      resellerStats[r.id] = { sales: defaultSales, profit: defaultProfit, deliveries: defaultDeliveries };
     }
 
     for (const order of deliveredOrders) {
@@ -2239,8 +2301,8 @@ class Database {
         levelTitle: levelTitles[r.level] || 'Seller',
         xp: r.xp,
         isFounder: user?.isFounder || r.id === 'rsl-founder',
-        streakDays: Math.min(14, stats.deliveries * 2 + 1),
-        badges: r.level >= 3 ? ['⚡ Top Seller', '⭐ Verified'] : ['🌱 Active Reseller'],
+        streakDays: Math.min(14, Math.max(1, Math.floor(stats.deliveries / 50) + 1)),
+        badges: r.level >= 4 ? ['⚡ Top Seller', '⭐ Verified', '🏆 500+ Orders'] : r.level >= 3 ? ['⚡ Top Seller', '⭐ Verified'] : ['🌱 Active Reseller'],
       };
     });
 
@@ -2313,6 +2375,27 @@ class Database {
     return newChallenge;
   }
 
+  public deleteChallenge(challengeId: string, actor: User) {
+    const index = this.data.weeklyChallenges.findIndex((c) => c.id === challengeId);
+    if (index === -1) {
+      throw new Error('Challenge not found');
+    }
+    const [deleted] = this.data.weeklyChallenges.splice(index, 1);
+
+    this.logAudit({
+      action: 'DELETE_CHALLENGE',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'CHALLENGE',
+      targetId: challengeId,
+      details: `Deleted challenge "${deleted.title}" (Reward: +${deleted.rewardXp} XP)`,
+    });
+
+    this.save();
+    return { success: true, message: 'Challenge deleted successfully', deletedChallenge: deleted };
+  }
+
   public getAcademyLessons(resellerId?: string) {
     const lessons = this.data.academyLessons;
     const completedIds = resellerId ? this.data.userLessonProgress[resellerId] || [] : [];
@@ -2358,6 +2441,34 @@ class Database {
 
     this.save();
     return newLesson;
+  }
+
+  public deleteAcademyLesson(lessonId: string, actor: User) {
+    const index = this.data.academyLessons.findIndex((l) => l.id === lessonId);
+    if (index === -1) {
+      throw new Error('Academy lesson not found');
+    }
+    const [deleted] = this.data.academyLessons.splice(index, 1);
+
+    // Clean user lesson progress
+    for (const resellerId in this.data.userLessonProgress) {
+      this.data.userLessonProgress[resellerId] = this.data.userLessonProgress[resellerId].filter(
+        (id) => id !== lessonId
+      );
+    }
+
+    this.logAudit({
+      action: 'DELETE_ACADEMY_LESSON',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'ACADEMY',
+      targetId: lessonId,
+      details: `Deleted Academy lesson "${deleted.title}" (${deleted.courseTitle})`,
+    });
+
+    this.save();
+    return { success: true, message: 'Academy lesson deleted successfully', deletedLesson: deleted };
   }
 
   public submitResellerFee(

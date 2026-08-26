@@ -813,6 +813,21 @@ async function startServer() {
     }
   });
 
+  // Admin: Delete Challenge
+  app.delete('/api/v1/admin/challenges/:id', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+
+      const result = db.deleteChallenge(req.params.id, user);
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   // Admin: Create Academy Video Lesson with Direct YouTube Link
   app.post('/api/v1/admin/academy/lessons', (req: Request, res: Response) => {
     try {
@@ -856,6 +871,21 @@ async function startServer() {
       }, user);
 
       res.status(201).json({ lesson });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Delete Academy Video Lesson
+  app.delete('/api/v1/admin/academy/lessons/:id', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+
+      const result = db.deleteAcademyLesson(req.params.id, user);
+      res.json(result);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }

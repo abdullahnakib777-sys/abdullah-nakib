@@ -130,6 +130,8 @@ export const AdminDashboard: React.FC = () => {
 
   // Add Challenge Modal
   const [isAddChallengeModalOpen, setIsAddChallengeModalOpen] = useState(false);
+  const [challengeToDelete, setChallengeToDelete] = useState<WeeklyChallenge | null>(null);
+  const [isDeleteChallengeModalOpen, setIsDeleteChallengeModalOpen] = useState(false);
   const [newChallenge, setNewChallenge] = useState<Partial<WeeklyChallenge>>({
     title: 'Daily Super Seller',
     description: 'Deliver 3 orders today to earn instant XP boost and cash bonus!',
@@ -142,6 +144,8 @@ export const AdminDashboard: React.FC = () => {
 
   // Add Academy Video Modal
   const [isAddAcademyModalOpen, setIsAddAcademyModalOpen] = useState(false);
+  const [lessonToDelete, setLessonToDelete] = useState<AcademyLesson | null>(null);
+  const [isDeleteLessonModalOpen, setIsDeleteLessonModalOpen] = useState(false);
   const [newLesson, setNewLesson] = useState<Partial<AcademyLesson>>({
     title: 'TikTok & Facebook Viral Video Selling Blueprint',
     titleBn: 'টিকটক ও ফেসবুক ভিডিও দিয়ে প্রতিদিন ১০+ অর্ডার পাওয়ার উপায়',
@@ -374,6 +378,24 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleOpenDeleteChallenge = (challenge: WeeklyChallenge) => {
+    setChallengeToDelete(challenge);
+    setIsDeleteChallengeModalOpen(true);
+  };
+
+  const handleDeleteChallenge = async () => {
+    if (!challengeToDelete) return;
+    try {
+      await api.adminDeleteChallenge(challengeToDelete.id);
+      setIsDeleteChallengeModalOpen(false);
+      setChallengeToDelete(null);
+      alert('Challenge deleted successfully!');
+      loadAllAdminData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete challenge');
+    }
+  };
+
   const handleCreateAcademyLesson = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -384,6 +406,24 @@ export const AdminDashboard: React.FC = () => {
       loadAllAdminData();
     } catch (err: any) {
       alert(err.message || 'Failed to add video lesson');
+    }
+  };
+
+  const handleOpenDeleteAcademyLesson = (lesson: AcademyLesson) => {
+    setLessonToDelete(lesson);
+    setIsDeleteLessonModalOpen(true);
+  };
+
+  const handleDeleteAcademyLesson = async () => {
+    if (!lessonToDelete) return;
+    try {
+      await api.adminDeleteAcademyLesson(lessonToDelete.id);
+      setIsDeleteLessonModalOpen(false);
+      setLessonToDelete(null);
+      alert('Academy lesson deleted successfully!');
+      loadAllAdminData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete academy lesson');
     }
   };
 
@@ -1288,25 +1328,37 @@ export const AdminDashboard: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {challenges.map((c) => (
-              <div key={c.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                    c.frequency === 'DAILY'
-                      ? 'bg-amber-100 text-amber-800'
-                      : c.frequency === 'MONTHLY'
-                      ? 'bg-purple-100 text-purple-800'
-                      : 'bg-emerald-100 text-emerald-800'
-                  }`}>
-                    {c.frequency || 'WEEKLY'} CHALLENGE
-                  </span>
-                  <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> +{c.rewardXp} XP
-                  </span>
-                </div>
+              <div key={c.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-3 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                      c.frequency === 'DAILY'
+                        ? 'bg-amber-100 text-amber-800'
+                        : c.frequency === 'MONTHLY'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {c.frequency || 'WEEKLY'} CHALLENGE
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> +{c.rewardXp} XP
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDeleteChallenge(c)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                        title="Delete Challenge"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
 
-                <div>
-                  <h4 className="font-bold text-sm text-slate-900">{c.title}</h4>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{c.description}</p>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900">{c.title}</h4>
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">{c.description}</p>
+                  </div>
                 </div>
 
                 <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs space-y-1">
@@ -1353,9 +1405,19 @@ export const AdminDashboard: React.FC = () => {
                     <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
                       {l.courseTitle}
                     </span>
-                    <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> +{l.xpReward} XP
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> +{l.xpReward} XP
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDeleteAcademyLesson(l)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                        title="Delete Academy Lesson"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <h4 className="font-bold text-sm text-slate-900">{l.title}</h4>
@@ -1381,7 +1443,16 @@ export const AdminDashboard: React.FC = () => {
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" /> {l.durationMinutes} mins
                   </span>
-                  <span className="font-bold text-indigo-600">Active in Academy</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-indigo-600">Active in Academy</span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDeleteAcademyLesson(l)}
+                      className="text-rose-600 hover:text-rose-800 text-[11px] font-bold underline flex items-center gap-0.5"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -2186,6 +2257,60 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Modal: Delete Challenge Confirmation */}
+      {isDeleteChallengeModalOpen && challengeToDelete && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={() => setIsDeleteChallengeModalOpen(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-8">
+            <div className="px-6 py-5 bg-rose-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-200" />
+                <h3 className="font-bold text-sm">Delete Challenge</h3>
+              </div>
+              <button onClick={() => setIsDeleteChallengeModalOpen(false)} className="text-white/80 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-3 bg-rose-50 border border-rose-100 rounded-2xl space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900">{challengeToDelete.title}</span>
+                  <span className="text-[10px] font-black text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
+                    +{challengeToDelete.rewardXp} XP
+                  </span>
+                </div>
+                <p className="text-slate-600 text-[11px]">{challengeToDelete.description}</p>
+                <p className="text-[10px] text-slate-500 font-medium pt-1">
+                  Target: {challengeToDelete.targetCount} {challengeToDelete.metric} | {challengeToDelete.frequency}
+                </p>
+              </div>
+
+              <p className="text-slate-600 leading-relaxed">
+                Are you sure you want to delete this challenge? It will be removed from all active resellers&apos; challenge boards.
+              </p>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteChallengeModalOpen(false)}
+                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteChallenge}
+                  className="px-5 py-2.5 bg-rose-600 text-white font-bold rounded-xl shadow-xs hover:bg-rose-700 flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Yes, Delete Challenge</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Add YouTube Academy Video */}
       {isAddAcademyModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
@@ -2294,6 +2419,58 @@ export const AdminDashboard: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Delete Academy Lesson Confirmation */}
+      {isDeleteLessonModalOpen && lessonToDelete && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={() => setIsDeleteLessonModalOpen(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-8">
+            <div className="px-6 py-5 bg-rose-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-200" />
+                <h3 className="font-bold text-sm">Delete Academy Video Lesson</h3>
+              </div>
+              <button onClick={() => setIsDeleteLessonModalOpen(false)} className="text-white/80 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-3 bg-rose-50 border border-rose-100 rounded-2xl space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900">{lessonToDelete.title}</span>
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-md">
+                    +{lessonToDelete.xpReward} XP
+                  </span>
+                </div>
+                <p className="text-slate-500 text-[11px]">{lessonToDelete.titleBn}</p>
+                <p className="text-[10px] text-slate-400">Course: {lessonToDelete.courseTitle}</p>
+              </div>
+
+              <p className="text-slate-600 leading-relaxed">
+                Are you sure you want to permanently delete this YouTube video lesson from <strong>MeherMart Reseller Academy</strong>?
+              </p>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteLessonModalOpen(false)}
+                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteAcademyLesson}
+                  className="px-5 py-2.5 bg-rose-600 text-white font-bold rounded-xl shadow-xs hover:bg-rose-700 flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Yes, Delete Lesson</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -49,6 +49,10 @@ export interface ResellerProfile {
   referredBy?: string;
   level: number;
   xp: number;
+  deliveredOrdersCount?: number;
+  totalOrdersCount?: number;
+  totalProfitEarned?: number;
+  totalProfitEarnedBdt?: number;
   isAnonymousOnLeaderboard: boolean;
   createdAt: string;
 }

@@ -160,7 +160,12 @@ export function generateRealisticResellersDataset(): SeedDataset {
     const codeClean = storePrefix.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 4);
     const referralCode = `MM-${codeClean}${String(100 + i)}`;
 
-    // Realistic Performance Segmentation
+    // Realistic Performance Segmentation based on Joined Duration
+    // Total 213 members: 1 Founder + 204 Active Members + 8 Pending Verification
+    const joinedDateMs = new Date(joinedAt).getTime();
+    const anchorNowMs = new Date('2026-08-26T12:00:00.000Z').getTime();
+    const daysSinceJoined = (anchorNowMs - joinedDateMs) / (1000 * 60 * 60 * 24);
+
     let level = 1;
     let xp = 100;
     let status: ResellerProfile['status'] = 'ACTIVE';
@@ -170,47 +175,47 @@ export function generateRealisticResellersDataset(): SeedDataset {
     let deliveredOrdersCount = 0;
     let totalProfitEarned = 0;
 
-    if (i <= 18) {
-      // TOP PERFORMERS: ~1,800 to 2,150 orders, 21,000+ TK profit
-      level = i <= 6 ? 5 : 4;
-      deliveredOrdersCount = Math.floor(1800 + ((i * 19) % 350));
-      totalProfitEarned = Math.floor(21000 + ((i * 850) % 24000));
-      xp = Math.floor(8500 + ((i * 550) % 10000));
-      isVerified = true;
-      verificationFeePaid = true;
-      status = 'ACTIVE';
-    } else if (i <= 65) {
-      // HIGH PERFORMERS: 400 - 1,100 orders, ৳6,500 - ৳18,000 profit
-      level = i <= 35 ? 4 : 3;
-      deliveredOrdersCount = Math.floor(400 + ((i * 15) % 700));
-      totalProfitEarned = Math.floor(6500 + ((i * 240) % 11500));
-      xp = Math.floor(3200 + ((i * 120) % 4800));
-      isVerified = true;
-      verificationFeePaid = true;
-      status = 'ACTIVE';
-    } else if (i <= 145) {
-      // MEDIUM PERFORMERS: 60 - 380 orders, ৳1,200 - ৳5,800 profit
-      level = i <= 95 ? 3 : 2;
-      deliveredOrdersCount = Math.floor(60 + ((i * 7) % 320));
-      totalProfitEarned = Math.floor(1200 + ((i * 75) % 4600));
-      xp = Math.floor(900 + ((i * 45) % 2200));
-      isVerified = true;
-      verificationFeePaid = i % 8 !== 0;
-      status = 'ACTIVE';
-    } else {
-      // LOW / NEWBIE PERFORMERS: 0 - 45 orders, ৳0 - ৳850 profit
-      level = 1;
-      deliveredOrdersCount = i % 3 === 0 ? Math.floor(i % 15) : 0;
-      totalProfitEarned = deliveredOrdersCount * 65;
-      xp = Math.floor(100 + (deliveredOrdersCount * 25));
-      
-      // Some pending fees for realistic admin verification queue
-      if (i >= 195) {
-        status = 'PENDING';
-        isVerified = false;
-        verificationFeePaid = i % 2 === 0;
-        adminApprovedFree = false;
+    const isActiveMember = i <= 204; // Exactly 204 active members excluding founder store
+
+    if (isActiveMember) {
+      if (daysSinceJoined >= 60) {
+        // 1. Joined 2 months+ (60+ days): 500 - 1,000 orders, ৳70,000 - ৳150,000 profit
+        deliveredOrdersCount = Math.floor(500 + ((i * 47 + 13) % 501)); // 500 to 1000
+        totalProfitEarned = Math.floor(70000 + ((i * 791 + 123) % 80001)); // 70,000 to 150,000 BDT
+        xp = Math.floor(6500 + ((totalProfitEarned / 10) % 9500)); // 6,500 - 16,000 XP
+        level = totalProfitEarned >= 110000 ? 5 : 4;
+        status = 'ACTIVE';
+        isVerified = true;
+        verificationFeePaid = true;
+      } else if (daysSinceJoined >= 30) {
+        // 2. Joined 1 month (30 to 59 days): 100 - 200 orders, ৳20,000 - ৳40,000 profit
+        deliveredOrdersCount = Math.floor(100 + ((i * 23 + 7) % 101)); // 100 to 200
+        totalProfitEarned = Math.floor(20000 + ((i * 383 + 47) % 20001)); // 20,000 to 40,000 BDT
+        xp = Math.floor(2000 + ((totalProfitEarned / 12) % 3200)); // 2,000 - 5,200 XP
+        level = totalProfitEarned >= 30000 ? 3 : 2;
+        status = 'ACTIVE';
+        isVerified = true;
+        verificationFeePaid = true;
+      } else {
+        // 3. Joined recently (<30 days): 20 - 80 orders, ৳3,500 - ৳15,000 profit
+        deliveredOrdersCount = Math.floor(20 + ((i * 13 + 5) % 61)); // 20 to 80
+        totalProfitEarned = Math.floor(3500 + ((i * 187 + 29) % 11501)); // 3,500 to 15,000 BDT
+        xp = Math.floor(450 + ((totalProfitEarned / 15) % 1200)); // 450 - 1,650 XP
+        level = totalProfitEarned >= 8000 ? 2 : 1;
+        status = 'ACTIVE';
+        isVerified = true;
+        verificationFeePaid = true;
       }
+    } else {
+      // Pending 8 members (i = 205 to 212) awaiting verification
+      level = 1;
+      deliveredOrdersCount = 0;
+      totalProfitEarned = 0;
+      xp = 100;
+      status = 'PENDING';
+      isVerified = false;
+      verificationFeePaid = i % 2 === 0;
+      adminApprovedFree = false;
     }
 
     // User entity
@@ -252,6 +257,10 @@ export function generateRealisticResellersDataset(): SeedDataset {
       salesIntent: i % 2 === 0 ? 'Selling trending gadgets on Facebook & TikTok' : 'Supplying home & kitchen items to local community',
       level,
       xp,
+      deliveredOrdersCount,
+      totalOrdersCount: deliveredOrdersCount,
+      totalProfitEarned,
+      totalProfitEarnedBdt: totalProfitEarned,
       isAnonymousOnLeaderboard: false,
       createdAt: joinedAt,
     };
@@ -259,7 +268,7 @@ export function generateRealisticResellersDataset(): SeedDataset {
 
     // Wallet entity
     const availableBalance = Math.round(totalProfitEarned * 0.7);
-    const pendingBalance = Math.round(totalProfitEarned * 0.15);
+    const pendingBalance = Math.round(totalProfitEarned * 0.05);
     const totalWithdrawn = Math.max(0, totalProfitEarned - availableBalance - pendingBalance);
 
     wallets[resellerId] = {

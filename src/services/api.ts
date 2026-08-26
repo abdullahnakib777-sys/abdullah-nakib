@@ -422,10 +422,20 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  adminDeleteChallenge: (id: string) =>
+    apiFetch<{ success: boolean; message: string }>(`/api/v1/admin/challenges/${id}`, {
+      method: 'DELETE',
+    }),
+
   adminCreateAcademyLesson: (body: Partial<AcademyLesson>) =>
     apiFetch<{ lesson: AcademyLesson }>('/api/v1/admin/academy/lessons', {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+
+  adminDeleteAcademyLesson: (id: string) =>
+    apiFetch<{ success: boolean; message: string }>(`/api/v1/admin/academy/lessons/${id}`, {
+      method: 'DELETE',
     }),
 
   resetSeedData: () =>
