@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Product, ProductCategory, ResellerProfile } from '../../types';
+import { useResellerCart } from '../../context/ResellerCartContext';
 import {
   Search,
   Filter,
@@ -14,6 +15,7 @@ import {
   Clock,
   Tag,
   Check,
+  ShoppingCart,
 } from 'lucide-react';
 
 export const ResellerProductsView: React.FC<{
@@ -33,6 +35,7 @@ export const ResellerProductsView: React.FC<{
   onOpenShareModal,
   onOpenAiKit,
 }) => {
+  const { addToCart, items: cartItems, itemCount, setIsCartOpen } = useResellerCart();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'profit' | 'price_low' | 'price_high' | 'popularity'>('profit');
@@ -139,6 +142,21 @@ export const ResellerProductsView: React.FC<{
               <option value="price_low" className="bg-[#110e24] text-slate-200">Wholesale Price: Low to High</option>
               <option value="price_high" className="bg-[#110e24] text-slate-200">Wholesale Price: High to Low</option>
             </select>
+
+            {/* Reseller Multi-Product Cart Button */}
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs shadow-[0_0_15px_rgba(6,182,212,0.4)] transition flex items-center gap-1.5 shrink-0"
+              title="Open Reseller Multi-Product Cart"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>Reseller Cart</span>
+              {itemCount > 0 && (
+                <span className="w-5 h-5 rounded-full bg-emerald-400 text-slate-950 text-[11px] font-black flex items-center justify-center shadow-xs">
+                  {itemCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -288,6 +306,20 @@ export const ResellerProductsView: React.FC<{
               <div className="p-4 pt-0 space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <button
+                    onClick={() => addToCart(product, 1)}
+                    disabled={isOut}
+                    className={`py-2.5 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1 ${
+                      isOut
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                        : 'bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white shadow-[0_0_12px_rgba(6,182,212,0.35)]'
+                    }`}
+                    title="Add this product to multi-item reseller order cart"
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    <span>{isOut ? 'Restocking' : 'Add to Cart'}</span>
+                  </button>
+
+                  <button
                     onClick={() => onOpenManualOrder(product)}
                     disabled={isOut}
                     className={`py-2.5 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1 ${
@@ -299,23 +331,25 @@ export const ResellerProductsView: React.FC<{
                     <ShoppingBag className="w-3.5 h-3.5" />
                     <span>{isOut ? 'Restocking' : 'Sell Now'}</span>
                   </button>
+                </div>
 
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => onOpenShareModal(product)}
-                    className="py-2.5 px-3 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-cyan-300 font-bold text-xs transition flex items-center justify-center gap-1"
+                    className="py-2 px-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-cyan-300 font-bold text-xs transition flex items-center justify-center gap-1"
                   >
                     <Share2 className="w-3.5 h-3.5" />
                     <span>Share Link</span>
                   </button>
-                </div>
 
-                <button
-                  onClick={() => onOpenAiKit(product)}
-                  className="w-full py-1.5 text-[11px] font-bold text-purple-300 hover:text-cyan-300 hover:bg-purple-950/40 rounded-lg transition flex items-center justify-center gap-1"
-                >
-                  <Sparkles className="w-3 h-3 text-cyan-400" />
-                  <span>Generate Facebook & WhatsApp Copy</span>
-                </button>
+                  <button
+                    onClick={() => onOpenAiKit(product)}
+                    className="py-2 px-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-purple-300 hover:text-cyan-300 font-bold text-xs transition flex items-center justify-center gap-1"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>AI Copy</span>
+                  </button>
+                </div>
               </div>
             </div>
           );

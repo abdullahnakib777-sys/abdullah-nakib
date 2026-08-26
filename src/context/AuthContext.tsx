@@ -8,6 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   demoAccounts: { user: User; reseller?: ResellerProfile }[];
   loginWithCredentials: (emailOrPhone: string, password?: string) => Promise<void>;
+  resetPin: (phoneOrEmail: string, newPin: string) => Promise<void>;
   loginAdmin: (adminId: string, password?: string) => Promise<void>;
   loginWithUserId: (userId: string) => Promise<void>;
   registerCustomer: (name: string, phone: string, email?: string, password?: string) => Promise<void>;
@@ -88,6 +89,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const res = await api.login({ emailOrPhone, password });
+      setUser(res.user);
+      setReseller(res.reseller || null);
+      setApiAuthToken(res.token);
+      localStorage.setItem('shadhin_user_id', res.user.id);
+      await loadDemoAccounts();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPin = async (phoneOrEmail: string, newPin: string) => {
+    setIsLoading(true);
+    try {
+      const res = await api.resetPin({ phoneOrEmail, newPin });
       setUser(res.user);
       setReseller(res.reseller || null);
       setApiAuthToken(res.token);
@@ -206,6 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         demoAccounts,
         loginWithCredentials,
+        resetPin,
         loginAdmin,
         loginWithUserId,
         registerCustomer,

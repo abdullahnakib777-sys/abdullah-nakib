@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BANGLADESH_DIVISIONS } from '../../data/bangladeshGeo';
 import { PrivacyPolicyModal } from '../legal/PrivacyPolicyModal';
+import { MeherMartLogo } from '../common/MeherMartLogo';
 import {
   X,
   UserCheck,
@@ -20,6 +21,10 @@ import {
   CreditCard,
   Building2,
   Zap,
+  Eye,
+  EyeOff,
+  KeyRound,
+  RotateCcw,
 } from 'lucide-react';
 
 export type AuthTabType =
@@ -27,7 +32,8 @@ export type AuthTabType =
   | 'customer_login'
   | 'customer_register'
   | 'reseller_register'
-  | 'admin_login';
+  | 'admin_login'
+  | 'reset_pin';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -42,7 +48,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialTab = 'reseller_login',
   onSuccess,
 }) => {
-  const { loginWithCredentials, loginAdmin, loginWithUserId, registerCustomer, registerReseller, submitResellerFee, demoAccounts } =
+  const { loginWithCredentials, resetPin, loginAdmin, loginWithUserId, registerCustomer, registerReseller, submitResellerFee, demoAccounts } =
     useAuth();
 
   const [activeTab, setActiveTab] = useState<AuthTabType>(initialTab);
@@ -50,6 +56,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Unified login field for Reseller & Customer
   const [phoneOrEmail, setPhoneOrEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Reset PIN fields
+  const [resetPhone, setResetPhone] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [showNewPin, setShowNewPin] = useState(false);
 
   // Customer registration fields
   const [customerName, setCustomerName] = useState('');
@@ -106,6 +118,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }, 500);
     } catch (err: any) {
       setErrorMsg(err.message || 'Login failed. Please check your phone number or referral code.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    const targetPhone = resetPhone.trim() || phoneOrEmail.trim();
+    if (!targetPhone) {
+      setErrorMsg('Please enter your registered mobile number or email');
+      return;
+    }
+    if (!newPin || newPin.trim().length < 3) {
+      setErrorMsg('Please enter a new PIN or password (minimum 3 characters)');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await resetPin(targetPhone, newPin.trim());
+      setSuccessMsg('Your new PIN has been set and verified! Welcome to your Reseller account.');
+      setTimeout(() => {
+        onSuccess?.();
+        onClose();
+      }, 600);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to update PIN. Please verify your phone number.');
     } finally {
       setIsLoading(false);
     }
@@ -248,19 +287,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="bg-[#0f0d22]/90 text-white px-6 pt-5 pb-3 border-b border-purple-500/25">
           <div className="flex items-center justify-between pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-tr from-cyan-400 via-indigo-600 to-purple-600 flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(6,182,212,0.6)]">
-                <span>স্বা</span>
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full animate-ping" />
-              </div>
-              <div>
-                <h3 className="font-black text-lg text-white flex items-center gap-1.5">
-                  <span>Shadhin E-Commerce</span>
-                  <span className="text-xs bg-purple-900/70 border border-purple-500/40 text-cyan-300 px-2 py-0.5 rounded-full font-bold">
-                    🌌 Portal
-                  </span>
-                </h3>
-                <p className="text-[11px] text-slate-400">Bangladesh Multi-Vendor Wholesale & Retail Portal</p>
-              </div>
+              <MeherMartLogo size="md" variant="horizontal" theme="dark" showTagline={true} />
             </div>
             <button
               onClick={onClose}
@@ -361,14 +388,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-6 max-h-[75vh] overflow-y-auto">
           {/* Alerts */}
           {errorMsg && (
-            <div className="mb-4 p-3.5 rounded-2xl bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs font-semibold flex items-center gap-2 shadow-[0_0_15px_rgba(244,63,94,0.2)]">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-              <span>{errorMsg}</span>
+            <div className="mb-4 p-3.5 rounded-2xl bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs font-semibold flex flex-col gap-2 shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{errorMsg}</span>
+              </div>
+              {(errorMsg.toLowerCase().includes('pin') || errorMsg.toLowerCase().includes('password')) && activeTab !== 'reset_pin' && (
+                <div className="pt-1 border-t border-rose-500/30 flex items-center justify-between">
+                  <span className="text-[11px] text-rose-300">Forgot or want to change your PIN?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetPhone(phoneOrEmail);
+                      setActiveTab('reset_pin');
+                      setErrorMsg(null);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/40 text-white font-bold text-[11px] transition flex items-center gap-1 border border-rose-400/30"
+                  >
+                    <KeyRound className="w-3 h-3 text-amber-300" />
+                    <span>Reset PIN Now</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
           {successMsg && (
-            <div className="mb-4 p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+            <div className="mb-4 p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center gap-2 shadow-[0_0_15px_rgba(160,185,129,0.2)]">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
               <span>{successMsg}</span>
             </div>
@@ -397,7 +443,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="e.g. 01812345678, email, or RSL-SABBIR88"
+                      placeholder="e.g. 01333855344, email, or RSL-SABBIR88"
                       value={phoneOrEmail}
                       onChange={(e) => setPhoneOrEmail(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
@@ -409,18 +455,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Password / PIN <span className="text-slate-400 font-normal">(Optional for phone/code login)</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-300">
+                      Password / PIN <span className="text-slate-400 font-normal">(Optional for instant phone login)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetPhone(phoneOrEmail);
+                        setActiveTab('reset_pin');
+                        setErrorMsg(null);
+                      }}
+                      className="text-[11px] text-cyan-400 hover:text-cyan-300 font-bold hover:underline flex items-center gap-1"
+                    >
+                      <KeyRound className="w-3 h-3" />
+                      <span>Forgot / Reset PIN?</span>
+                    </button>
+                  </div>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
                     <input
-                      type="password"
-                      placeholder="Enter password or leave blank for instant login"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter your PIN or leave blank for instant login"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-white p-0.5"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 
@@ -488,6 +555,99 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   Sign in as Customer
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* TAB: RESET PIN */}
+          {activeTab === 'reset_pin' && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/50 via-purple-950/50 to-indigo-950/50 border border-cyan-500/30">
+                <div className="flex items-center gap-2 text-cyan-300 font-black text-sm mb-1">
+                  <KeyRound className="w-4 h-4 text-cyan-400" />
+                  <span>Set / Reset Your Reseller PIN</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Enter your registered mobile number (such as <span className="font-mono text-cyan-300 font-bold">01333855344</span>) and your new PIN to instantly update your credentials and access your dashboard.
+                </p>
+              </div>
+
+              <form onSubmit={handleResetPinSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Registered Mobile Number / WhatsApp *
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 01333855344"
+                      value={resetPhone || phoneOrEmail}
+                      onChange={(e) => {
+                        setResetPhone(e.target.value);
+                        setPhoneOrEmail(e.target.value);
+                      }}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    New PIN / Password * <span className="text-slate-400 font-normal">(e.g. 4-6 digits or text)</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showNewPin ? 'text' : 'password'}
+                      required
+                      placeholder="Enter new PIN (e.g. 1234 or your secret PIN)"
+                      value={newPin}
+                      onChange={(e) => setNewPin(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPin(!showNewPin)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-white p-0.5"
+                    >
+                      {showNewPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    This will immediately become your official login PIN for this mobile number.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-black text-xs shadow-[0_0_20px_rgba(6,182,212,0.4)] transition flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <span>Saving New PIN...</span>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Save New PIN & Log In</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                <div className="pt-2 text-center border-t border-purple-500/20">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('reseller_login');
+                      setErrorMsg(null);
+                    }}
+                    className="text-xs font-bold text-slate-300 hover:text-white hover:underline flex items-center justify-center gap-1 mx-auto"
+                  >
+                    <span>&larr; Back to Reseller Login</span>
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 

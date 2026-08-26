@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Order, ResellerProfile } from '../../types';
+import { useResellerCart } from '../../context/ResellerCartContext';
 import { StatusBadge } from '../common/Badge';
-import { Search, Filter, Package, Truck, CheckCircle2, Clock, MapPin, Eye, ExternalLink, Plus } from 'lucide-react';
+import { Search, Filter, Package, Truck, CheckCircle2, Clock, MapPin, Eye, ExternalLink, Plus, ShoppingCart } from 'lucide-react';
 
 export const ResellerOrdersView: React.FC<{
   orders: Order[];
@@ -9,6 +10,7 @@ export const ResellerOrdersView: React.FC<{
   onOpenManualOrder: () => void;
   onOpenTrackingModal: (orderNumber: string) => void;
 }> = ({ orders, reseller, onOpenManualOrder, onOpenTrackingModal }) => {
+  const { itemCount, setIsCartOpen } = useResellerCart();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -44,13 +46,29 @@ export const ResellerOrdersView: React.FC<{
             />
           </div>
 
-          <button
-            onClick={onOpenManualOrder}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs shadow-[0_0_15px_rgba(16,185,129,0.4)] transition flex items-center justify-center gap-1.5 shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create New Order</span>
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs shadow-[0_0_15px_rgba(6,182,212,0.4)] transition flex items-center justify-center gap-1.5 shrink-0"
+              title="Open Reseller Multi-Item Cart"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>Reseller Cart</span>
+              {itemCount > 0 && (
+                <span className="w-5 h-5 rounded-full bg-emerald-400 text-slate-950 text-[11px] font-black flex items-center justify-center shadow-xs">
+                  {itemCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={onOpenManualOrder}
+              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs shadow-[0_0_15px_rgba(16,185,129,0.4)] transition flex items-center justify-center gap-1.5 shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Quick Order</span>
+            </button>
+          </div>
         </div>
 
         {/* Filter Pills */}
@@ -129,7 +147,7 @@ export const ResellerOrdersView: React.FC<{
                   <td className="p-4">
                     <p className="font-bold text-white">৳{order.totalAmount}</p>
                     <p className="text-[10px] text-slate-400">
-                      Incl. ৳{order.deliveryFee} delivery ({order.paymentMethod})
+                      Incl. ৳{order.deliveryFee} delivery {order.packagingFee ? `+ ৳${order.packagingFee} pack` : ''}
                     </p>
                   </td>
 

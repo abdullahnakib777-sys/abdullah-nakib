@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Product } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useResellerCart } from '../../context/ResellerCartContext';
 import {
   ShoppingBag,
+  ShoppingCart,
   Share2,
   Sparkles,
   Truck,
@@ -33,6 +35,7 @@ export const ProductDetailModal: React.FC<{
 }) => {
   const { user, reseller } = useAuth();
   const { addToCart } = useCart();
+  const { addToCart: addResellerCart } = useResellerCart();
   const [activeImageIdx, setActiveImageIdx] = useState(0);
 
   if (!isOpen || !product) return null;
@@ -165,39 +168,54 @@ export const ProductDetailModal: React.FC<{
             {/* Action Buttons */}
             <div className="space-y-2 pt-4 border-t border-purple-500/20">
               {isReseller ? (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => {
-                      onClose();
-                      if (onOpenManualOrder) onOpenManualOrder(product);
-                    }}
-                    className="py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-[0_0_15px_rgba(16,185,129,0.4)] transition flex items-center justify-center gap-1.5"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>Sell & Order Now</span>
-                  </button>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        addResellerCart(product, 1);
+                        onClose();
+                      }}
+                      className="py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-black text-xs shadow-[0_0_15px_rgba(6,182,212,0.4)] transition flex items-center justify-center gap-1.5"
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      <span>Add to Reseller Cart</span>
+                    </button>
 
-                  <button
-                    onClick={() => {
-                      onClose();
-                      if (onOpenShareModal) onOpenShareModal(product);
-                    }}
-                    className="py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-[0_0_15px_rgba(147,51,234,0.4)] transition flex items-center justify-center gap-1.5"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    <span>Share & Sell Link</span>
-                  </button>
+                    <button
+                      onClick={() => {
+                        onClose();
+                        if (onOpenManualOrder) onOpenManualOrder(product);
+                      }}
+                      className="py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-[0_0_15px_rgba(16,185,129,0.4)] transition flex items-center justify-center gap-1.5"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>Sell Single Product</span>
+                    </button>
+                  </div>
 
-                  <button
-                    onClick={() => {
-                      onClose();
-                      if (onOpenAiKit) onOpenAiKit(product);
-                    }}
-                    className="col-span-2 py-2.5 px-4 rounded-xl bg-purple-950/60 hover:bg-purple-900/70 text-cyan-300 border border-purple-500/40 font-bold text-xs transition flex items-center justify-center gap-2"
-                  >
-                    <Sparkles className="w-4 h-4 text-cyan-400 animate-spin" />
-                    <span>Generate AI Facebook / WhatsApp Copy</span>
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        onClose();
+                        if (onOpenShareModal) onOpenShareModal(product);
+                      }}
+                      className="py-2.5 px-4 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-cyan-300 font-bold text-xs transition flex items-center justify-center gap-1.5"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>Share Link</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        onClose();
+                        if (onOpenAiKit) onOpenAiKit(product);
+                      }}
+                      className="py-2.5 px-4 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-purple-300 hover:text-cyan-300 font-bold text-xs transition flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4 text-cyan-400" />
+                      <span>AI Copy</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <button

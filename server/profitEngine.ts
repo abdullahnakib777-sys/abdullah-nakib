@@ -12,6 +12,7 @@ export interface ProfitCalculationInput {
   quantity: number;
   division: string;             // Used for delivery fee calculation
   platformFeePercent?: number;  // Default from platform settings (e.g., 2%)
+  packagingFee?: number;        // Standard packaging charge per order (30 TK)
 }
 
 export interface ProfitCalculationResult {
@@ -20,6 +21,7 @@ export interface ProfitCalculationResult {
   totalResellerCost: number;
   totalCustomerPrice: number;
   deliveryFee: number;
+  packagingFee: number;
   platformFee: number;
   grossResellerProfit: number;
   netResellerProfit: number;
@@ -87,10 +89,12 @@ export class ProfitEngine {
     );
 
     const deliveryFee = this.getDeliveryFee(input.division);
+    const packagingFee = input.packagingFee ?? 30;
 
     return {
       ...itemCalc,
       deliveryFee,
+      packagingFee,
     };
   }
 }

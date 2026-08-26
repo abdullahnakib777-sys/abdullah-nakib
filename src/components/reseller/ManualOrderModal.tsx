@@ -37,6 +37,7 @@ export const ManualOrderModal: React.FC<{
     totalResellerCost: number;
     netResellerProfit: number;
     deliveryFee: number;
+    packagingFee: number;
     platformMargin: number;
   } | null>(null);
 
@@ -369,6 +370,10 @@ export const ManualOrderModal: React.FC<{
             <div className="flex justify-between text-slate-300">
               <span>Courier Delivery Fee ({division}):</span>
               <span>৳{profitPreview?.deliveryFee || 60} (Paid by customer on COD)</span>
+            </div>
+            <div className="flex justify-between text-cyan-300">
+              <span>Standard Order Packaging Charge:</span>
+              <span className="font-bold">৳{profitPreview?.packagingFee || 30}</span>
             </div>
             <div className="border-t border-slate-700 pt-2 flex justify-between font-bold text-sm">
               <span className="text-emerald-400">Your Guaranteed Profit:</span>

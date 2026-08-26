@@ -81,6 +81,12 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  resetPin: (body: { phoneOrEmail: string; newPin: string }) =>
+    apiFetch<{ user: User; reseller?: ResellerProfile; token: string; message: string }>('/api/v1/auth/reset-pin', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   registerCustomer: (body: { name: string; email?: string; phone: string; password?: string }) =>
     apiFetch<{ user: User; token: string }>('/api/v1/auth/register-customer', {
       method: 'POST',

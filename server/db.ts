@@ -1359,6 +1359,16 @@ class Database {
     return { user, reseller };
   }
 
+  public resetUserPinByPhone(phoneOrEmail: string, newPin: string) {
+    const { user, reseller } = this.findUserOrReseller(phoneOrEmail);
+    if (!user) {
+      throw new Error('No user account found matching this phone number or email.');
+    }
+    user.password = newPin;
+    this.save();
+    return { user, reseller };
+  }
+
   public getResellers() {
     return this.data.resellers;
   }

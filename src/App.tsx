@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
+import { ResellerCartProvider } from './context/ResellerCartContext';
 import { api } from './services/api';
 import { Product, ProductCategory, Order, Wallet } from './types';
 
@@ -28,6 +29,7 @@ import { ShareAndSellModal } from './components/reseller/ShareAndSellModal';
 import { AISellKitModal } from './components/ai/AISellKitModal';
 import { ResellAIAssistantDrawer } from './components/ai/ResellAIAssistantDrawer';
 import { CartDrawer } from './components/storefront/CartDrawer';
+import { ResellerCartDrawer } from './components/reseller/ResellerCartDrawer';
 import { CheckoutModal } from './components/storefront/CheckoutModal';
 import { OrderTrackingModal } from './components/storefront/OrderTrackingModal';
 import { AuthModal, AuthTabType } from './components/auth/AuthModal';
@@ -346,9 +348,37 @@ function MainAppContent() {
           )
         )}
 
-        {/* Admin Route */}
-        {currentView === 'admin' && user?.role === 'ADMIN' && (
-          <AdminDashboard />
+        {/* Admin Route with strict access protection */}
+        {currentView === 'admin' && (
+          user?.role === 'ADMIN' ? (
+            <AdminDashboard />
+          ) : (
+            <div className="py-20 px-4 max-w-lg mx-auto text-center space-y-4">
+              <div className="p-6 rounded-3xl bg-rose-950/60 border border-rose-500/40 text-rose-200 shadow-2xl space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-rose-900/50 border border-rose-500/50 text-rose-400 flex items-center justify-center mx-auto text-xl font-black">
+                  🔒
+                </div>
+                <h3 className="text-base font-black text-white">Restricted Admin Portal</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  The Admin Control Panel is strictly protected and accessible only to verified administrators. You are currently logged in as a Reseller.
+                </p>
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+                  <button
+                    onClick={() => setCurrentView('reseller_hub')}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs transition"
+                  >
+                    Go to Reseller Hub
+                  </button>
+                  <button
+                    onClick={() => handleOpenAuthModal('admin_login')}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/40 text-indigo-200 font-bold text-xs hover:bg-indigo-900/60 transition"
+                  >
+                    Admin Login
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         )}
       </main>
 
@@ -424,6 +454,14 @@ function MainAppContent() {
         }}
       />
 
+      <ResellerCartDrawer
+        reseller={reseller}
+        onOrderSuccess={() => {
+          loadUserData();
+          setCurrentView('orders');
+        }}
+      />
+
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
@@ -448,7 +486,9 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <MainAppContent />
+        <ResellerCartProvider>
+          <MainAppContent />
+        </ResellerCartProvider>
       </CartProvider>
     </AuthProvider>
   );

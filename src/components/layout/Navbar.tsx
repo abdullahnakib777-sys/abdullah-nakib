@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useResellerCart } from '../../context/ResellerCartContext';
 import { AuthTabType } from '../auth/AuthModal';
 import { MeherMartLogo } from '../common/MeherMartLogo';
 import {
   ShoppingBag,
+  ShoppingCart,
   Sparkles,
   Store,
   Truck,
@@ -35,12 +37,24 @@ export const Navbar: React.FC<{
   onOpenAuthModal,
 }) => {
   const { user, reseller, logout } = useAuth();
-  const { itemCount, setIsCartOpen } = useCart();
+  const { itemCount: customerCartCount, setIsCartOpen: setCustomerCartOpen } = useCart();
+  const { itemCount: resellerCartCount, setIsCartOpen: setResellerCartOpen } = useResellerCart();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const isReseller = user?.role === 'RESELLER';
   const isAdmin = user?.role === 'ADMIN';
   const isResellerVerified = isReseller && reseller && (reseller.isVerified || reseller.status === 'ACTIVE' || reseller.adminApprovedFree);
+
+  // In reseller hub views or for reseller user, we can show reseller cart if they have items or in reseller views
+  const isResellerHubView = ['reseller_hub', 'products', 'orders', 'wallet', 'academy', 'gamification'].includes(currentView);
+  const activeCartCount = isResellerHubView && isReseller ? resellerCartCount : customerCartCount;
+  const handleCartClick = () => {
+    if (isResellerHubView && isReseller) {
+      setResellerCartOpen(true);
+    } else {
+      setCustomerCartOpen(true);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-[#0c0d1a]/80 backdrop-blur-xl border-b border-purple-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.6)]" id="main-navbar">
@@ -154,15 +168,19 @@ export const Navbar: React.FC<{
 
             {/* Cart Button */}
             <button
-              onClick={() => setIsCartOpen(true)}
+              onClick={handleCartClick}
               className="relative p-2 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-cyan-400/50 hover:bg-purple-900/60 text-slate-200 hover:text-cyan-300 transition"
               id="nav-cart-btn"
-              title="View Shopping Cart"
+              title={isResellerHubView && isReseller ? 'View Reseller Multi-Item Cart' : 'View Shopping Cart'}
             >
-              <ShoppingBag className="w-4 h-4" />
-              {itemCount > 0 && (
+              {isResellerHubView && isReseller ? (
+                <ShoppingCart className="w-4 h-4 text-cyan-300" />
+              ) : (
+                <ShoppingBag className="w-4 h-4" />
+              )}
+              {activeCartCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500 text-white text-[10px] font-black flex items-center justify-center shadow-[0_0_8px_rgba(6,182,212,0.8)]">
-                  {itemCount}
+                  {activeCartCount}
                 </span>
               )}
             </button>

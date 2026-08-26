@@ -78,15 +78,14 @@ async function startServer() {
       return res.status(401).json({ error: 'Invalid Admin Credentials. Access Denied.' });
     }
 
-    const adminUser = db.getUserById('usr-founder') || db.getUsers().find((u) => u.role === 'ADMIN');
+    const adminUser = db.getUserById('usr-admin-master') || db.getUsers().find((u) => u.role === 'ADMIN');
     if (!adminUser) {
       return res.status(404).json({ error: 'Admin account not initialized' });
     }
 
-    const reseller = db.getResellerByUserId(adminUser.id);
     res.json({
       user: adminUser,
-      reseller,
+      reseller: undefined,
       token: adminUser.id,
       message: 'Master Admin authenticated successfully',
     });
@@ -109,13 +108,32 @@ async function startServer() {
 
     const { user, reseller, passwordMismatch } = (db.findUserOrReseller(emailOrPhone, password) as any);
     if (passwordMismatch) {
-      return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+      return res.status(401).json({ error: 'Incorrect PIN or password. If you want to reset your PIN, click "Reset PIN".' });
     }
     if (!user) {
       return res.status(401).json({ error: 'No account found matching this phone number, email, or referral code.' });
     }
 
     res.json({ user, reseller, token: user.id });
+  });
+
+  // Auth: Reset / Update PIN
+  app.post('/api/v1/auth/reset-pin', (req: Request, res: Response) => {
+    const { phoneOrEmail, newPin } = req.body;
+    if (!phoneOrEmail || !newPin) {
+      return res.status(400).json({ error: 'Phone number and new PIN are required' });
+    }
+    try {
+      const { user, reseller } = db.resetUserPinByPhone(phoneOrEmail, String(newPin).trim());
+      res.json({
+        user,
+        reseller,
+        token: user.id,
+        message: 'PIN has been updated successfully! You are now logged in.',
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to reset PIN' });
+    }
   });
 
   // Auth: Register Customer
@@ -263,6 +281,7 @@ async function startServer() {
       quantity: Number(quantity) || 1,
       division: division || 'Dhaka',
       platformFeePercent: settings.platformFeePercent,
+      packagingFee: settings.packagingChargeBdt ?? 30,
     });
 
     res.json({
