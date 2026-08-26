@@ -31,22 +31,22 @@ export const ResellerOrdersView: React.FC<{
   return (
     <div className="space-y-6" id="reseller-orders-view">
       {/* Header & Controls */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+      <div className="galaxy-glass-card-static p-5 rounded-3xl border border-purple-500/30 shadow-lg space-y-4">
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
           <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <Search className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
             <input
               type="text"
               placeholder="Search by Order #, Courier Tracking #, or Customer Phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono"
+              className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm galaxy-glass-input rounded-xl font-mono"
             />
           </div>
 
           <button
             onClick={onOpenManualOrder}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5 shrink-0"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs shadow-[0_0_15px_rgba(16,185,129,0.4)] transition flex items-center justify-center gap-1.5 shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Create New Order</span>
@@ -69,8 +69,8 @@ export const ResellerOrdersView: React.FC<{
               onClick={() => setFilterStatus(tab.id)}
               className={`px-3.5 py-1.5 rounded-full font-bold transition shrink-0 flex items-center gap-1.5 ${
                 filterStatus === tab.id
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)]'
+                  : 'galaxy-glass text-slate-300 hover:text-white border border-purple-500/30'
               }`}
             >
               <span>{tab.label}</span>
@@ -81,10 +81,10 @@ export const ResellerOrdersView: React.FC<{
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
+      <div className="galaxy-glass-card-static rounded-3xl border border-purple-500/30 overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+            <thead className="bg-[#120f26]/80 text-cyan-300 font-semibold border-b border-purple-500/30">
               <tr>
                 <th className="p-4">Order / Tracking</th>
                 <th className="p-4">Customer Details</th>
@@ -95,12 +95,12 @@ export const ResellerOrdersView: React.FC<{
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-purple-500/20">
               {filtered.map((order) => (
-                <tr key={order.id} className="hover:bg-slate-50/60 transition">
+                <tr key={order.id} className="hover:bg-purple-950/30 transition">
                   <td className="p-4">
-                    <p className="font-mono font-bold text-slate-900">{order.orderNumber}</p>
-                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    <p className="font-mono font-bold text-white">{order.orderNumber}</p>
+                    <p className="text-[11px] text-cyan-300/80 font-mono mt-0.5">
                       {order.courier}: {order.trackingNumber}
                     </p>
                     <p className="text-[10px] text-slate-400 mt-0.5">
@@ -109,8 +109,8 @@ export const ResellerOrdersView: React.FC<{
                   </td>
 
                   <td className="p-4">
-                    <p className="font-semibold text-slate-800">{order.customerName}</p>
-                    <p className="text-[11px] text-slate-500 font-mono">{order.customerPhone}</p>
+                    <p className="font-semibold text-slate-200">{order.customerName}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">{order.customerPhone}</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">
                       {order.district}, {order.division}
                     </p>
@@ -119,15 +119,15 @@ export const ResellerOrdersView: React.FC<{
                   <td className="p-4">
                     <div className="space-y-1">
                       {order.items.map((it, idx) => (
-                        <div key={idx} className="text-slate-700">
-                          <span className="font-semibold">{it.quantity}x</span> {it.productName}
+                        <div key={idx} className="text-slate-300">
+                          <span className="font-semibold text-cyan-300">{it.quantity}x</span> {it.productName}
                         </div>
                       ))}
                     </div>
                   </td>
 
                   <td className="p-4">
-                    <p className="font-bold text-slate-900">৳{order.totalAmount}</p>
+                    <p className="font-bold text-white">৳{order.totalAmount}</p>
                     <p className="text-[10px] text-slate-400">
                       Incl. ৳{order.deliveryFee} delivery ({order.paymentMethod})
                     </p>
@@ -135,7 +135,7 @@ export const ResellerOrdersView: React.FC<{
 
                   <td className="p-4">
                     <div className="space-y-1">
-                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded inline-block">
+                      <span className="font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded inline-block shadow-xs">
                         +৳{order.totalResellerProfit}
                       </span>
                       <p className="text-[10px] text-slate-400">
@@ -151,7 +151,7 @@ export const ResellerOrdersView: React.FC<{
                   <td className="p-4 text-right">
                     <button
                       onClick={() => onOpenTrackingModal(order.orderNumber)}
-                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition inline-flex items-center gap-1"
+                      className="px-3 py-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-cyan-300 font-semibold text-xs transition inline-flex items-center gap-1"
                     >
                       <Truck className="w-3.5 h-3.5" />
                       <span>Track</span>

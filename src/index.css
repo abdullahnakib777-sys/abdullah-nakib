@@ -1,1 +1,160 @@
 @import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #0b0c10;
+    color: #e2e8f0;
+    overflow-x: hidden;
+  }
+}
+
+/* Galaxy & Night Sky Theme Keyframe Animations */
+@keyframes galaxyTwinkle {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.8));
+  }
+}
+
+@keyframes galaxyShootingStar {
+  0% {
+    transform: translateX(0) translateY(0) rotate(-45deg) scale(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-600px) translateY(600px) rotate(-45deg) scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes galaxyShootingStarAlt {
+  0% {
+    transform: translateX(0) translateY(0) rotate(-35deg) scale(0);
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-800px) translateY(550px) rotate(-35deg) scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes galaxyFloatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-16px) rotate(3deg);
+  }
+}
+
+@keyframes galaxyFloatGentle {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-2.5deg) scale(1.03);
+  }
+}
+
+@keyframes galaxyNebulaPulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes galaxyGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2), inset 0 0 15px rgba(6, 182, 212, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.4), inset 0 0 20px rgba(6, 182, 212, 0.2);
+  }
+}
+
+@keyframes starSparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.3) rotate(45deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 8px #38bdf8);
+  }
+}
+
+/* Glassmorphism Classes */
+.galaxy-glass {
+  background: rgba(18, 17, 36, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(168, 85, 247, 0.22);
+}
+
+.galaxy-glass-card {
+  background: rgba(22, 20, 44, 0.7);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.galaxy-glass-card:hover {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 12px 40px 0 rgba(139, 92, 246, 0.25), 0 0 20px 0 rgba(6, 182, 212, 0.2);
+  transform: translateY(-3px);
+}
+
+.galaxy-glass-card-static {
+  background: rgba(20, 18, 40, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+.galaxy-glass-input {
+  background: rgba(13, 11, 26, 0.75);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+.galaxy-glass-input:focus {
+  background: rgba(18, 15, 36, 0.9);
+  border-color: rgba(6, 182, 212, 0.8);
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.3), inset 0 0 10px rgba(139, 92, 246, 0.2);
+  outline: none;
+}
+
+.galaxy-gradient-text {
+  background: linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #f472b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.galaxy-cyan-glow {
+  text-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
+}
+
+.galaxy-violet-glow {
+  text-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+}
+

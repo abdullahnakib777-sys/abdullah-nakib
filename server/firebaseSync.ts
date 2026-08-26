@@ -100,6 +100,18 @@ export class FirebaseSyncService {
       // 2. Also mirror primary queryable collections into Firestore collections
       const batch = writeBatch(fsDb);
 
+      // Save users (resellers & customers)
+      data.users.slice(0, 50).forEach((user) => {
+        const ref = doc(fsDb, 'users', user.id);
+        batch.set(ref, cleanForFirestore(user), { merge: true });
+      });
+
+      // Save resellers
+      data.resellers.slice(0, 50).forEach((reseller) => {
+        const ref = doc(fsDb, 'resellers', reseller.id);
+        batch.set(ref, cleanForFirestore(reseller), { merge: true });
+      });
+
       // Save top products
       data.products.slice(0, 50).forEach((prod) => {
         const ref = doc(fsDb, 'products', prod.id);

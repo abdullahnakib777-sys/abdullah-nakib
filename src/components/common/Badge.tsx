@@ -8,25 +8,25 @@ export const StatusBadge: React.FC<{ status: OrderStatus | ResellerStatus | stri
       case 'ACTIVE':
       case 'PAID':
       case 'COMPLETED':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        return 'bg-emerald-950/70 text-emerald-300 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.3)]';
       case 'SHIPPING':
       case 'PROCESSING':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-cyan-950/70 text-cyan-300 border-cyan-500/50 shadow-[0_0_12px_rgba(6,182,212,0.3)]';
       case 'CONFIRMED':
       case 'PACKAGING':
-        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+        return 'bg-purple-950/70 text-purple-300 border-purple-500/50 shadow-[0_0_12px_rgba(168,85,247,0.3)]';
       case 'PENDING':
       case 'VERIFICATION_REQUIRED':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-amber-950/70 text-amber-300 border-amber-500/50 shadow-[0_0_12px_rgba(251,191,36,0.3)]';
       case 'CANCELLED':
       case 'REJECTED':
       case 'BLOCKED':
       case 'SUSPENDED':
       case 'RETURNED':
       case 'REVERSED':
-        return 'bg-rose-100 text-rose-800 border-rose-200';
+        return 'bg-rose-950/70 text-rose-300 border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.3)]';
       default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return 'bg-slate-900/70 text-slate-300 border-slate-700';
     }
   };
 
@@ -35,11 +35,11 @@ export const StatusBadge: React.FC<{ status: OrderStatus | ResellerStatus | stri
       case 'DELIVERED':
         return 'Delivered 📦';
       case 'SHIPPING':
-        return 'On The Way 🚚';
+        return 'In Transit 🚀';
       case 'PACKAGING':
         return 'Packaging 🎁';
       case 'CONFIRMED':
-        return 'Confirmed ✅';
+        return 'Confirmed ✨';
       case 'PENDING':
         return 'Pending ⏳';
       case 'RETURNED':
@@ -47,9 +47,9 @@ export const StatusBadge: React.FC<{ status: OrderStatus | ResellerStatus | stri
       case 'CANCELLED':
         return 'Cancelled ❌';
       case 'ACTIVE':
-        return 'Active Verified ⭐';
+        return 'Verified Reseller ⭐';
       case 'PAID':
-        return 'Paid Settled 💰';
+        return 'Paid Settled 💎';
       default:
         return status;
     }
@@ -57,7 +57,7 @@ export const StatusBadge: React.FC<{ status: OrderStatus | ResellerStatus | stri
 
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStyle()}`}
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md transition-all ${getStyle()}`}
     >
       {getLabel()}
     </span>

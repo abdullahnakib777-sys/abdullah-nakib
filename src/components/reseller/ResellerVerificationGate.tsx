@@ -51,7 +51,7 @@ export const ResellerVerificationGate: React.FC<ResellerVerificationGateProps> =
               Reseller Hub Access Restricted
             </h2>
             <p className="text-sm text-slate-600">
-              The Reseller Hub, wholesale pricing catalog, and AI selling tools are exclusively available to registered & verified Shadhin Resellers.
+              The Reseller Hub, wholesale pricing catalog, and AI selling tools are exclusively available to registered & verified MeherMart Resellers.
             </p>
           </div>
 
@@ -199,7 +199,7 @@ export const ResellerVerificationGate: React.FC<ResellerVerificationGateProps> =
                 <span>Complete ৳500 Verification Fee to Unlock Wholesale & Reseller Hub</span>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                To maintain a high-trust network of genuine retail entrepreneurs and prevent automated spam, Shadhin E-Commerce requires a one-time <strong>৳500 BDT</strong> verification fee. This grants lifetime access to wholesale rates, automated COD dropshipping, and instant bKash/Nagad profit withdrawals.
+                To maintain a high-trust network of genuine retail entrepreneurs and prevent automated spam, MeherMart requires a one-time <strong>৳500 BDT</strong> verification fee. This grants lifetime access to wholesale rates, automated COD dropshipping, and instant bKash/Nagad profit withdrawals.
               </p>
             </div>
           )}

@@ -7,6 +7,8 @@ import { Product, ProductCategory, Order, Wallet } from './types';
 // Layout
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
+import { FloatingWhatsApp } from './components/layout/FloatingWhatsApp';
+import { GalaxyBackground } from './components/common/GalaxyBackground';
 
 // Views
 import { StorefrontView } from './components/storefront/StorefrontView';
@@ -31,6 +33,7 @@ import { OrderTrackingModal } from './components/storefront/OrderTrackingModal';
 import { AuthModal, AuthTabType } from './components/auth/AuthModal';
 import { ResellerVerificationModal } from './components/reseller/ResellerVerificationModal';
 import { ResellerVerificationGate } from './components/reseller/ResellerVerificationGate';
+import { PrivacyPolicyModal } from './components/legal/PrivacyPolicyModal';
 import { AlertCircle, Sparkles, Store, Shield } from 'lucide-react';
 
 function MainAppContent() {
@@ -61,6 +64,7 @@ function MainAppContent() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<AuthTabType>('reseller_login');
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [isPrivacyPolicyOpen, setIsPrivacyPolicyOpen] = useState(false);
 
   // Load products & categories on startup
   const loadPlatformData = async () => {
@@ -147,13 +151,16 @@ function MainAppContent() {
   const isResellerVerified = !!(isReseller && reseller && (reseller.isVerified || reseller.status === 'ACTIVE' || reseller.adminApprovedFree));
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-[#0b0c10] text-slate-100 font-sans flex flex-col antialiased selection:bg-cyan-500 selection:text-slate-950 relative">
+      {/* Background Animated Galaxy Stars & Nebulae */}
+      <GalaxyBackground />
+
       {/* Top Banner for Pending Resellers */}
       {isReseller && !isResellerVerified && (
-        <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-4 py-2.5 text-xs font-bold shadow-xs">
+        <div className="relative z-10 bg-gradient-to-r from-amber-500/90 via-orange-500/90 to-amber-600/90 backdrop-blur-md text-slate-950 px-4 py-2.5 text-xs font-bold border-b border-amber-400/40 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-slate-950 shrink-0" />
+              <Sparkles className="w-4 h-4 text-slate-950 shrink-0 animate-pulse" />
               <span>
                 {reseller?.verificationPayment || reseller?.verificationFeePaid
                   ? 'Reseller Account Verification Pending: Your ৳500 payment is under admin review. Wholesale catalog & order features will unlock once approved.'
@@ -162,7 +169,7 @@ function MainAppContent() {
             </div>
             <button
               onClick={() => setIsVerificationModalOpen(true)}
-              className="px-3.5 py-1 bg-slate-950 text-amber-400 hover:bg-slate-900 rounded-lg text-xs font-black transition shrink-0"
+              className="px-3.5 py-1 bg-slate-950 text-amber-300 hover:bg-slate-900 rounded-lg text-xs font-black transition shrink-0 border border-amber-400/40 shadow-xs"
             >
               {reseller?.verificationPayment || reseller?.verificationFeePaid ? 'Check / Edit Payment' : 'Submit 500 TK Fee'}
             </button>
@@ -181,7 +188,7 @@ function MainAppContent() {
 
       {/* Sub Navigation Bar for Resellers & Admin */}
       {user && (isReseller || isAdmin) && (
-        <div className="bg-white border-b border-slate-200">
+        <div className="relative z-10 bg-[#100e24]/80 backdrop-blur-xl border-b border-purple-500/20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex gap-2 overflow-x-auto py-2.5 no-scrollbar text-xs font-bold">
               {[
@@ -211,8 +218,8 @@ function MainAppContent() {
                   onClick={() => setCurrentView(tab.id)}
                   className={`px-3.5 py-1.5 rounded-xl transition whitespace-nowrap ${
                     currentView === tab.id
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-gradient-to-r from-purple-600/60 to-indigo-600/60 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-purple-950/40 border border-transparent'
                   }`}
                 >
                   {tab.label}
@@ -224,7 +231,7 @@ function MainAppContent() {
       )}
 
       {/* Main Viewport Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {currentView === 'storefront' && (
           <StorefrontView
             products={products}
@@ -350,6 +357,12 @@ function MainAppContent() {
         onNavigate={setCurrentView}
         onOpenTrackingModal={() => handleOpenTracking()}
         onOpenBecomeReseller={() => handleOpenAuthModal('reseller_register')}
+        onOpenPrivacyPolicy={() => setIsPrivacyPolicyOpen(true)}
+      />
+
+      {/* Floating Official WhatsApp Support Widget */}
+      <FloatingWhatsApp
+        onOpenPrivacyPolicy={() => setIsPrivacyPolicyOpen(true)}
       />
 
       {/* Interactive Global Modals */}
@@ -421,6 +434,11 @@ function MainAppContent() {
         isOpen={isTrackingOpen}
         onClose={() => setIsTrackingOpen(false)}
         initialOrderNumber={trackingOrderNumber}
+      />
+
+      <PrivacyPolicyModal
+        isOpen={isPrivacyPolicyOpen}
+        onClose={() => setIsPrivacyPolicyOpen(false)}
       />
     </div>
   );

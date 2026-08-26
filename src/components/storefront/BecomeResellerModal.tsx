@@ -221,7 +221,7 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
           <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-950 space-y-1.5">
             <div className="flex items-center gap-1.5 font-bold text-emerald-900">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>What You Get As A Shadhin Reseller:</span>
+              <span>What You Get As A MeherMart Reseller:</span>
             </div>
             <p>• Access to factory wholesale pricing on 500+ verified trending items</p>
             <p>• Automated courier packaging & Cash-on-Delivery nationwide</p>

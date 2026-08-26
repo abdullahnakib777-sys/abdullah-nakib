@@ -10,11 +10,12 @@ interface AuthContextType {
   loginWithCredentials: (emailOrPhone: string, password?: string) => Promise<void>;
   loginAdmin: (adminId: string, password?: string) => Promise<void>;
   loginWithUserId: (userId: string) => Promise<void>;
-  registerCustomer: (name: string, phone: string, email?: string) => Promise<void>;
+  registerCustomer: (name: string, phone: string, email?: string, password?: string) => Promise<void>;
   registerReseller: (data: {
     name: string;
     email?: string;
     phone: string;
+    password?: string;
     storeName: string;
     facebookPage?: string;
     whatsappNumber: string;
@@ -66,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(res.user);
           setReseller(res.reseller || null);
           setApiAuthToken(res.token);
+          localStorage.setItem('shadhin_user_id', res.user.id);
         } catch {
           localStorage.removeItem('shadhin_user_id');
           setUser(null);
@@ -124,10 +126,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const registerCustomer = async (name: string, phone: string, email?: string) => {
+  const registerCustomer = async (name: string, phone: string, email?: string, password?: string) => {
     setIsLoading(true);
     try {
-      const res = await api.registerCustomer({ name, phone, email });
+      const res = await api.registerCustomer({ name, phone, email, password });
       setUser(res.user);
       setReseller(null);
       setApiAuthToken(res.token);
@@ -138,7 +140,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const registerReseller = async (data: any) => {
+  const registerReseller = async (data: {
+    name: string;
+    email?: string;
+    phone: string;
+    password?: string;
+    storeName: string;
+    facebookPage?: string;
+    whatsappNumber: string;
+    division: string;
+    district: string;
+    upazila?: string;
+    address: string;
+    salesIntent: string;
+    referredBy?: string;
+  }) => {
     setIsLoading(true);
     try {
       const res = await api.registerReseller(data);

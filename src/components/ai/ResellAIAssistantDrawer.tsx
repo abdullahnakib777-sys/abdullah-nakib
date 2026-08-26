@@ -24,7 +24,7 @@ export const ResellAIAssistantDrawer: React.FC<{ isOpen: boolean; onClose: () =>
     {
       id: 'welcome',
       sender: 'ai',
-      text: 'আসসালামু আলাইকুম! 👋 I am **ResellAI**, your AI business mentor for Shadhin Reseller. Ask me about products, wholesale pricing, Facebook sales tips, courier shipping, or wallet settlements!',
+      text: 'আসসালামু আলাইকুম! 👋 I am **ResellAI**, your AI business mentor for MeherMart. Ask me about products, wholesale pricing, Facebook sales tips, courier shipping, or wallet settlements!',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);

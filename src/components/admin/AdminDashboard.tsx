@@ -3,6 +3,7 @@ import {
   Product,
   Order,
   ResellerProfile,
+  AdminResellerItem,
   WithdrawalRequest,
   PlatformSettings,
   AuditLog,
@@ -23,6 +24,7 @@ import {
   AlertTriangle,
   Plus,
   Edit,
+  Trash2,
   CheckCircle2,
   XCircle,
   Truck,
@@ -43,6 +45,13 @@ import {
   Award,
   Upload,
   FileSpreadsheet,
+  Zap,
+  Star,
+  Check,
+  ArrowUpRight,
+  BookOpen,
+  Calendar,
+  Tag,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -53,6 +62,7 @@ export const AdminDashboard: React.FC = () => {
   const [statsData, setStatsData] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [resellers, setResellers] = useState<ResellerProfile[]>([]);
+  const [allResellers, setAllResellers] = useState<AdminResellerItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [challenges, setChallenges] = useState<WeeklyChallenge[]>([]);
   const [academyLessons, setAcademyLessons] = useState<AcademyLesson[]>([]);
@@ -61,6 +71,19 @@ export const AdminDashboard: React.FC = () => {
   const [fraudAlerts, setFraudAlerts] = useState<FraudAlert[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Reseller Table Filtering & Search
+  const [resellerFilter, setResellerFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'HIGH_XP'>('ALL');
+  const [resellerSearchQuery, setResellerSearchQuery] = useState('');
+
+  // Manual Award XP Modal
+  const [isAwardXpModalOpen, setIsAwardXpModalOpen] = useState(false);
+  const [selectedResellerForXp, setSelectedResellerForXp] = useState<AdminResellerItem | null>(null);
+  const [awardXpAmount, setAwardXpAmount] = useState<number>(100);
+  const [awardXpReason, setAwardXpReason] = useState<string>('Completed Facebook & TikTok Viral Video Lesson');
+  const [customXpReason, setCustomXpReason] = useState<string>('');
+  const [isSubmittingXp, setIsSubmittingXp] = useState(false);
+  const [awardSuccessBanner, setAwardSuccessBanner] = useState<string | null>(null);
 
   // Modals / Actions
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -73,15 +96,29 @@ export const AdminDashboard: React.FC = () => {
   // Add Product Modal
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isBulkUploaderOpen, setIsBulkUploaderOpen] = useState(false);
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [productCategoryFilter, setProductCategoryFilter] = useState('all');
+  const [productStockFilter, setProductStockFilter] = useState<'ALL' | 'IN_STOCK' | 'STOCK_OUT'>('ALL');
+
+  // Edit / Delete Product Modals
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] = useState(false);
+
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
     nameBn: '',
+    productCode: 'MM-1001',
     category: 'Electronics & Gadgets',
     categorySlug: 'gadgets',
     baseCost: 500,
     resellerPrice: 700,
     suggestedSellingPrice: 1100,
     stock: 100,
+    isStockOut: false,
+    estimatedRestockDays: 3,
+    estimatedRestockDate: '',
     images: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80'],
     description: 'High demand e-commerce product for Bangladesh online stores and resellers.',
     features: ['100% Original factory QC verified', 'Fast nationwide shipping'],
@@ -131,6 +168,7 @@ export const AdminDashboard: React.FC = () => {
     try {
       const results = await Promise.allSettled([
         api.getAdminStats(),
+        api.getAdminResellers(),
         api.getOrders(),
         api.getProducts(),
         api.getGamification(),
@@ -139,12 +177,15 @@ export const AdminDashboard: React.FC = () => {
         api.getFraudAlerts(),
       ]);
 
-      const [stRes, ordRes, prRes, gamRes, acaRes, logsRes, alertsRes] = results;
+      const [stRes, rslRes, ordRes, prRes, gamRes, acaRes, logsRes, alertsRes] = results;
 
       if (stRes.status === 'fulfilled') {
         setStatsData(stRes.value);
         setResellers(stRes.value?.pendingResellers || []);
         setWithdrawals(stRes.value?.pendingWithdrawals || []);
+      }
+      if (rslRes.status === 'fulfilled') {
+        setAllResellers(rslRes.value?.resellers || []);
       }
       if (ordRes.status === 'fulfilled') {
         setOrders(ordRes.value?.orders || []);
@@ -221,6 +262,40 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleOpenAwardXpModal = (reseller: AdminResellerItem) => {
+    setSelectedResellerForXp(reseller);
+    setAwardXpAmount(100);
+    setAwardXpReason('Completed Facebook & TikTok Viral Video Lesson');
+    setCustomXpReason('');
+    setIsAwardXpModalOpen(true);
+  };
+
+  const handleAwardXpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedResellerForXp) return;
+    setIsSubmittingXp(true);
+    try {
+      const finalReason = awardXpReason === 'CUSTOM' ? (customXpReason || 'Custom Admin XP Award') : awardXpReason;
+      const res = await api.awardResellerXp(selectedResellerForXp.id, {
+        amount: Number(awardXpAmount),
+        reason: finalReason,
+      });
+
+      triggerLevelUpCelebration();
+      setAwardSuccessBanner(res.message);
+      setIsAwardXpModalOpen(false);
+      setSelectedResellerForXp(null);
+      await loadAllAdminData();
+      setTimeout(() => {
+        setAwardSuccessBanner(null);
+      }, 6000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to award XP');
+    } finally {
+      setIsSubmittingXp(false);
+    }
+  };
+
   const handleWithdrawalPayout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedWithdrawal) return;
@@ -246,6 +321,43 @@ export const AdminDashboard: React.FC = () => {
       loadAllAdminData();
     } catch (err: any) {
       alert(err.message || 'Failed to create product');
+    }
+  };
+
+  const handleOpenEditProduct = (product: Product) => {
+    setEditingProduct({ ...product });
+    setIsEditProductModalOpen(true);
+  };
+
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    try {
+      await api.updateProduct(editingProduct.id, editingProduct);
+      setIsEditProductModalOpen(false);
+      setEditingProduct(null);
+      alert('Product details, stock status, and restock estimations updated!');
+      loadAllAdminData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update product');
+    }
+  };
+
+  const handleOpenDeleteProduct = (product: Product) => {
+    setProductToDelete(product);
+    setIsDeleteProductModalOpen(true);
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!productToDelete) return;
+    try {
+      await api.deleteProduct(productToDelete.id);
+      setIsDeleteProductModalOpen(false);
+      setProductToDelete(null);
+      alert('Product deleted successfully from catalog!');
+      loadAllAdminData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete product');
     }
   };
 
@@ -330,7 +442,7 @@ export const AdminDashboard: React.FC = () => {
         {[
           { id: 'overview', label: '📊 Analytics' },
           { id: 'orders', label: `📦 Orders (${orders.length})` },
-          { id: 'resellers', label: `👥 Reseller Approvals (${resellers.length})` },
+          { id: 'resellers', label: `👥 Resellers & XP (${allResellers.length > 0 ? allResellers.length : resellers.length})` },
           { id: 'products', label: `🏷️ Products (${products.length})` },
           { id: 'challenges', label: `🏆 Challenges & XP (${challenges.length})` },
           { id: 'academy', label: `📺 Academy Videos (${academyLessons.length})` },
@@ -501,197 +613,660 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: RESELLERS & 500 TK VERIFICATION */}
-      {activeTab === 'resellers' && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="p-5 bg-amber-500/10 border border-amber-300 rounded-3xl flex items-center justify-between">
-            <div>
-              <h3 className="font-black text-sm text-slate-950">Reseller Verification Policy (৫০০৳ Fee)</h3>
-              <p className="text-xs text-slate-700">
-                Resellers register and submit 500 TK via bKash / Nagad / Rocket. As Admin, you can verify their 500 TK TrxID or <strong>freely approve them with 0 fee waiver</strong> at any time.
-              </p>
-            </div>
-          </div>
+      {/* TAB 3: RESELLERS DIRECTORY & MANUAL XP MANAGEMENT */}
+      {activeTab === 'resellers' && (() => {
+        // Derive list from allResellers or fallback to resellers
+        const rawList: AdminResellerItem[] = allResellers.length > 0
+          ? allResellers
+          : (resellers as any[]).map((r) => ({
+              id: r.id,
+              userId: r.userId,
+              storeName: r.storeName || 'Online Mart',
+              ownerName: r.userId,
+              email: r.userId.includes('@') ? r.userId : '',
+              whatsappNumber: r.whatsappNumber || '',
+              division: r.division || 'Dhaka',
+              district: r.district || 'Dhaka',
+              address: r.address || '',
+              salesIntent: r.salesIntent || 'Social Media',
+              status: r.status,
+              verificationFeePaid: r.verificationFeePaid || false,
+              adminApprovedFree: r.adminApprovedFree || false,
+              verificationPayment: r.verificationPayment,
+              balanceBdt: r.balanceBdt || 0,
+              totalProfitEarnedBdt: r.totalProfitEarnedBdt || 0,
+              level: r.level || 1,
+              levelName: r.levelName || 'Novice Reseller',
+              xp: r.xp || 0,
+              xpToNextLevel: r.xpToNextLevel || 500,
+              levelProgressPercent: r.levelProgressPercent || 0,
+              deliveredOrdersCount: 0,
+              completedLessonsCount: 0,
+              referralCode: r.referralCode || 'REF',
+              createdAt: r.createdAt || new Date().toISOString(),
+            }));
 
-          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                  <tr>
-                    <th className="p-4">Store & Reseller</th>
-                    <th className="p-4">WhatsApp & Location</th>
-                    <th className="p-4">500 TK Payment Status</th>
-                    <th className="p-4">Submitted TrxID</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {resellers.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50/50">
-                      <td className="p-4">
-                        <p className="font-bold text-slate-900">{r.storeName}</p>
-                        <p className="text-[11px] text-slate-500">{r.address || r.userId}</p>
-                        {r.adminApprovedFree && (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-sm">
-                            Admin Free Pass Granted
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <p className="font-mono text-slate-900">{r.whatsappNumber}</p>
-                        <p className="text-[11px] text-slate-400">{r.district}, {r.division}</p>
-                      </td>
-                      <td className="p-4">
-                        {r.verificationFeePaid || r.verificationPayment ? (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
-                            ৳500 Submitted ({r.verificationPayment?.method || 'bKash'})
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]">
-                            Fee Pending
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-4 font-mono font-bold text-slate-800">
-                        {r.verificationPayment?.trxId ? (
-                          <div>
-                            <span>{r.verificationPayment.trxId}</span>
-                            <p className="text-[10px] text-slate-400 font-normal">Sender: {r.verificationPayment.senderPhone}</p>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 font-normal">None</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <StatusBadge status={r.status} />
-                      </td>
-                      <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
-                        <button
-                          onClick={() => handleResellerApproveFree(r.id)}
-                          className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[11px] transition"
-                          title="Allow freely without 500 TK payment"
-                        >
-                          Approve Free
-                        </button>
-                        <button
-                          onClick={() => handleResellerVerifyPayment(r.id, true)}
-                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] transition"
-                        >
-                          Verify 500৳
-                        </button>
-                        <button
-                          onClick={() => handleResellerVerifyPayment(r.id, false)}
-                          className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-semibold text-[11px] transition"
-                        >
-                          Reject
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {resellers.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-400">
-                        No pending reseller verification applications.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+        const filteredList = rawList.filter((r) => {
+          // Search query matching
+          const q = resellerSearchQuery.toLowerCase().trim();
+          const matchesQuery =
+            !q ||
+            r.storeName?.toLowerCase().includes(q) ||
+            r.ownerName?.toLowerCase().includes(q) ||
+            r.whatsappNumber?.includes(q) ||
+            r.email?.toLowerCase().includes(q) ||
+            r.district?.toLowerCase().includes(q) ||
+            r.referralCode?.toLowerCase().includes(q);
 
-      {/* TAB 4: PRODUCTS MANAGER */}
-      {activeTab === 'products' && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-xs">
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-slate-900">Wholesale & Normal E-Commerce Catalog</h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-extrabold text-[11px]">
-                  {products.length} Products
+          if (!matchesQuery) return false;
+
+          if (resellerFilter === 'ACTIVE') {
+            return r.status === 'ACTIVE' || r.verificationFeePaid || r.adminApprovedFree;
+          }
+          if (resellerFilter === 'PENDING') {
+            return r.status === 'PENDING' && !r.adminApprovedFree && !r.verificationFeePaid;
+          }
+          if (resellerFilter === 'HIGH_XP') {
+            return (r.level || 1) >= 2 || (r.xp || 0) >= 500;
+          }
+          return true;
+        });
+
+        const activeCount = rawList.filter((r) => r.status === 'ACTIVE' || r.verificationFeePaid || r.adminApprovedFree).length;
+        const pendingCount = rawList.filter((r) => r.status === 'PENDING' && !r.adminApprovedFree && !r.verificationFeePaid).length;
+        const totalXpInSystem = rawList.reduce((sum, r) => sum + (r.xp || 0), 0);
+
+        return (
+          <div className="space-y-5 animate-in fade-in duration-150">
+            {/* Success Toast Notification */}
+            {awardSuccessBanner && (
+              <div className="p-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-2xl shadow-lg flex items-center justify-between animate-bounce">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <Sparkles className="w-5 h-5 text-amber-300" />
+                  </div>
+                  <div>
+                    <p className="font-black text-sm">Gamification XP Awarded!</p>
+                    <p className="text-xs text-emerald-100">{awardSuccessBanner}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAwardSuccessBanner(null)}
+                  className="p-1.5 hover:bg-white/20 rounded-lg text-white text-xs font-bold"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            {/* Reseller Stats Overview */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-slate-400 font-semibold">Total Resellers</span>
+                  <Users className="w-4 h-4 text-indigo-500" />
+                </div>
+                <p className="text-2xl font-black text-slate-900">{rawList.length}</p>
+                <p className="text-[11px] text-slate-500">Registered entrepreneurs</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-slate-400 font-semibold">Active & Verified</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                </div>
+                <p className="text-2xl font-black text-emerald-600">{activeCount}</p>
+                <p className="text-[11px] text-emerald-700 font-medium">Selling in marketplace</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-slate-400 font-semibold">Pending 500৳ Fee</span>
+                  <Clock className="w-4 h-4 text-amber-500" />
+                </div>
+                <p className="text-2xl font-black text-amber-600">{pendingCount}</p>
+                <p className="text-[11px] text-amber-700 font-medium">Awaiting approval / fee</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-slate-400 font-semibold">Total Ecosystem XP</span>
+                  <Zap className="w-4 h-4 text-amber-500" />
+                </div>
+                <p className="text-2xl font-black text-amber-500">{totalXpInSystem.toLocaleString()} XP</p>
+                <p className="text-[11px] text-slate-500">Earned via sales & lessons</p>
+              </div>
+            </div>
+
+            {/* Explainer Banner */}
+            <div className="p-5 bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-indigo-500/10 border border-amber-300/80 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="font-black text-sm text-slate-950 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-600" />
+                  <span>Reseller Management & Manual XP Distribution</span>
+                </h3>
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  As Admin, you can <strong>manually grant XP</strong> to resellers whenever they complete offline lessons, finish video masterclasses, or achieve weekly challenges. You can also verify their 500৳ payment or freely approve them with a 0-fee pass.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400/30 border border-amber-500/40 text-amber-950 font-black text-xs">
+                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
+                  Manual XP Level Engine
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Set factory cost, reseller wholesale price, customer prices, and discounts</p>
             </div>
 
-            <div className="flex items-center gap-2.5 self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setIsBulkUploaderOpen(true)}
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>Bulk CSV Upload</span>
-              </button>
+            {/* Filter & Search Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search by store, owner, phone, district or referral code..."
+                  value={resellerSearchQuery}
+                  onChange={(e) => setResellerSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setIsAddProductModalOpen(true)}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Product</span>
-              </button>
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                {[
+                  { key: 'ALL', label: `All Stores (${rawList.length})` },
+                  { key: 'ACTIVE', label: `Active (${activeCount})` },
+                  { key: 'PENDING', label: `Pending Fee (${pendingCount})` },
+                  { key: 'HIGH_XP', label: '⭐ Level 2+ Top Sellers' },
+                ].map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setResellerFilter(f.key as any)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                      resellerFilter === f.key
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                  <tr>
-                    <th className="p-4">Product</th>
-                    <th className="p-4">Category</th>
-                    <th className="p-4">Factory Cost</th>
-                    <th className="p-4">Wholesale (Reseller)</th>
-                    <th className="p-4">Customer Catalog</th>
-                    <th className="p-4">Old Price</th>
-                    <th className="p-4">Discount</th>
-                    <th className="p-4">Reseller Margin</th>
-                    <th className="p-4">Stock</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {products.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50/50">
-                      <td className="p-4 flex items-center gap-3">
-                        <img
-                          src={p.images[0]}
-                          alt=""
-                          className="w-10 h-10 object-cover rounded-lg border border-slate-200"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80';
-                          }}
-                        />
-                        <div className="max-w-xs">
-                          <p className="font-bold text-slate-900 truncate">{p.name}</p>
-                          <p className="text-[11px] text-slate-400 truncate">{p.nameBn || p.description}</p>
-                        </div>
-                      </td>
-                      <td className="p-4 text-slate-600">{p.category}</td>
-                      <td className="p-4 text-slate-500">৳{p.baseCost}</td>
-                      <td className="p-4 font-bold text-indigo-700">৳{p.resellerPrice}</td>
-                      <td className="p-4 font-bold text-slate-900">৳{p.suggestedSellingPrice}</td>
-                      <td className="p-4 text-slate-400 line-through">
-                        {p.oldPrice ? `৳${p.oldPrice}` : '-'}
-                      </td>
-                      <td className="p-4 text-rose-600 font-bold">
-                        {p.discountAmount ? `৳${p.discountAmount}` : (p.oldPrice && p.oldPrice > p.suggestedSellingPrice ? `৳${p.oldPrice - p.suggestedSellingPrice}` : '-')}
-                      </td>
-                      <td className="p-4 font-bold text-emerald-700">+৳{p.suggestedSellingPrice - p.resellerPrice}</td>
-                      <td className="p-4 font-mono">{p.stock} pcs</td>
+            {/* Reseller Directory Table */}
+            <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="p-4">Store & Reseller Info</th>
+                      <th className="p-4">Phone / Location</th>
+                      <th className="p-4">Joined Date</th>
+                      <th className="p-4">Level & XP Status</th>
+                      <th className="p-4">Performance</th>
+                      <th className="p-4">500 TK Verification</th>
+                      <th className="p-4 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredList.map((r) => (
+                      <tr key={r.id} className="hover:bg-slate-50/70 transition">
+                        {/* Store & Owner */}
+                        <td className="p-4">
+                          <div className="flex items-start gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                              {r.storeName?.charAt(0) || 'R'}
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                                <span>{r.storeName}</span>
+                                {r.adminApprovedFree && (
+                                  <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md">
+                                    Free Pass
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-[11px] text-slate-600 font-medium">{r.ownerName || r.userId}</p>
+                              {r.email && <p className="text-[10px] text-slate-400 font-mono">{r.email}</p>}
+                              <p className="text-[10px] text-indigo-600 font-mono mt-0.5">Code: {r.referralCode}</p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Phone & Location */}
+                        <td className="p-4">
+                          <p className="font-mono font-bold text-slate-800">{r.whatsappNumber || 'N/A'}</p>
+                          <p className="text-[11px] text-slate-400">{r.district}, {r.division}</p>
+                          {r.address && <p className="text-[10px] text-slate-400 line-clamp-1 max-w-[160px]">{r.address}</p>}
+                        </td>
+
+                        {/* Joined Date */}
+                        <td className="p-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-slate-600 font-medium text-[11px]">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <span>
+                              {r.createdAt
+                                ? new Date(r.createdAt).toLocaleDateString('en-GB', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })
+                                : '12 May 2026'}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Level & XP */}
+                        <td className="p-4">
+                          <div className="space-y-1.5 min-w-[150px]">
+                            <div className="flex items-center justify-between">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300/60">
+                                <Zap className="w-3 h-3 fill-amber-500 text-amber-600" />
+                                <span>Lvl {r.level || 1} • {r.levelName || 'Novice'}</span>
+                              </span>
+                              <span className="font-extrabold text-amber-600 font-mono text-[11px]">
+                                {(r.xp || 0).toLocaleString()} XP
+                              </span>
+                            </div>
+
+                            {/* Progress bar towards next level */}
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-amber-400 to-orange-500 h-1.5 rounded-full"
+                                style={{ width: `${Math.min(100, Math.max(5, r.levelProgressPercent || 0))}%` }}
+                              />
+                            </div>
+                            <p className="text-[9px] text-slate-400 text-right font-medium">
+                              {r.xpToNextLevel || 500} XP to next level
+                            </p>
+                          </div>
+                        </td>
+
+                        {/* Performance */}
+                        <td className="p-4">
+                          <div className="space-y-0.5 text-[11px]">
+                            <div className="flex items-center gap-1 text-slate-700">
+                              <Package className="w-3 h-3 text-slate-400" />
+                              <span><strong>{(r.totalOrdersCount || r.deliveredOrdersCount || 0).toLocaleString()}</strong> Orders</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-slate-700">
+                              <BookOpen className="w-3 h-3 text-indigo-400" />
+                              <span><strong>{r.completedLessonsCount || 0}</strong> Lessons Done</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-emerald-700 font-bold">
+                              <DollarSign className="w-3 h-3 text-emerald-500" />
+                              <span>৳{(r.totalProfitEarned || r.totalProfitEarnedBdt || 0).toLocaleString()} Profit</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 500 TK Verification */}
+                        <td className="p-4">
+                          {r.adminApprovedFree ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Free Pass Approved</span>
+                            </span>
+                          ) : r.verificationFeePaid || r.verificationPayment ? (
+                            <div>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>৳500 Verified</span>
+                              </span>
+                              {r.verificationPayment?.trxId && (
+                                <p className="text-[10px] font-mono text-slate-500 mt-1">
+                                  Trx: <strong>{r.verificationPayment.trxId}</strong>
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]">
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              <span>500৳ Pending</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="p-4 text-right space-y-1 sm:space-y-0 sm:space-x-1.5 whitespace-nowrap">
+                          {/* Award XP Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenAwardXpModal(r)}
+                            className="px-3 py-1.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black rounded-xl shadow-xs transition inline-flex items-center gap-1 text-[11px]"
+                            title="Manually award XP to this reseller"
+                          >
+                            <Zap className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+                            <span>Award XP</span>
+                          </button>
+
+                          {/* Approval Actions */}
+                          <button
+                            type="button"
+                            onClick={() => handleResellerApproveFree(r.id)}
+                            className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-[11px] transition inline-block"
+                            title="Allow freely without 500 TK payment"
+                          >
+                            Free Pass
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleResellerVerifyPayment(r.id, true)}
+                            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-[11px] transition inline-block"
+                            title="Approve 500 TK Verification"
+                          >
+                            Verify 500৳
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleResellerVerifyPayment(r.id, false)}
+                            className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-semibold text-[11px] transition inline-block"
+                          >
+                            Reject
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {filteredList.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="p-12 text-center text-slate-400">
+                          <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                          <p className="font-bold text-slate-600">No resellers match your filter criteria.</p>
+                          <p className="text-xs text-slate-400 mt-1">Try changing the search query or tab filter.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
+      {/* TAB 4: PRODUCTS MANAGER */}
+      {activeTab === 'products' && (() => {
+        const filteredProducts = products.filter((p) => {
+          // Search filter
+          const q = productSearchQuery.toLowerCase().trim();
+          const matchesQuery =
+            !q ||
+            p.name.toLowerCase().includes(q) ||
+            (p.nameBn && p.nameBn.toLowerCase().includes(q)) ||
+            (p.productCode && p.productCode.toLowerCase().includes(q)) ||
+            p.category.toLowerCase().includes(q);
+
+          if (!matchesQuery) return false;
+
+          // Category filter
+          if (productCategoryFilter !== 'all' && p.categorySlug !== productCategoryFilter && p.category !== productCategoryFilter) {
+            return false;
+          }
+
+          // Stock filter
+          if (productStockFilter === 'IN_STOCK') {
+            return !p.isStockOut && (p.stock > 0);
+          }
+          if (productStockFilter === 'STOCK_OUT') {
+            return p.isStockOut || p.stock <= 0;
+          }
+
+          return true;
+        });
+
+        const inStockCount = products.filter((p) => !p.isStockOut && p.stock > 0).length;
+        const stockOutCount = products.filter((p) => p.isStockOut || p.stock <= 0).length;
+
+        return (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            {/* Top Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-xs">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-slate-900">Wholesale & Normal E-Commerce Catalog</h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-extrabold text-[11px]">
+                    {products.length} Products
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Manage product codes, wholesale & retail prices, stock availability, and restock estimations
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkUploaderOpen(true)}
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Bulk CSV Upload</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAddProductModalOpen(true)}
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Product</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search by code (#MM-1001), name or category..."
+                  value={productSearchQuery}
+                  onChange={(e) => setProductSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Category Dropdown */}
+                <select
+                  value={productCategoryFilter}
+                  onChange={(e) => setProductCategoryFilter(e.target.value)}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="gadgets">Electronics & Gadgets</option>
+                  <option value="kitchen">Smart Kitchen & Living</option>
+                  <option value="fashion">Fashion & Lifestyle</option>
+                  <option value="beauty">Health, Beauty & Care</option>
+                  <option value="baby">Kids & Baby</option>
+                </select>
+
+                {/* Stock Status Buttons */}
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setProductStockFilter('ALL')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                      productStockFilter === 'ALL'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    All ({products.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProductStockFilter('IN_STOCK')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                      productStockFilter === 'IN_STOCK'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-emerald-700 hover:bg-emerald-50'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    In Stock ({inStockCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProductStockFilter('STOCK_OUT')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                      productStockFilter === 'STOCK_OUT'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'text-rose-700 hover:bg-rose-50'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                    Stock Out ({stockOutCount})
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Products Table */}
+            <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="p-4">Code</th>
+                      <th className="p-4">Product Info</th>
+                      <th className="p-4">Category</th>
+                      <th className="p-4">Factory Cost</th>
+                      <th className="p-4">Wholesale</th>
+                      <th className="p-4">Customer Catalog</th>
+                      <th className="p-4">Margin</th>
+                      <th className="p-4">Stock Status & Restock</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredProducts.map((p) => {
+                      const isOutOfStock = p.isStockOut || p.stock <= 0;
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-50/70 transition">
+                          {/* Product Code */}
+                          <td className="p-4 font-mono font-bold text-slate-700 whitespace-nowrap">
+                            <span className="px-2 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[11px] text-slate-800">
+                              {p.productCode || `#MM-${p.id.slice(-4).toUpperCase()}`}
+                            </span>
+                          </td>
+
+                          {/* Product Info */}
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={p.images[0]}
+                                alt=""
+                                className="w-12 h-12 object-cover rounded-xl border border-slate-200 shrink-0"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src =
+                                    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80';
+                                }}
+                              />
+                              <div className="max-w-xs">
+                                <p className="font-bold text-slate-900 truncate">{p.name}</p>
+                                <p className="text-[11px] text-slate-400 truncate">{p.nameBn || p.description}</p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Category */}
+                          <td className="p-4 text-slate-600 whitespace-nowrap">{p.category}</td>
+
+                          {/* Factory Cost */}
+                          <td className="p-4 text-slate-500 font-medium">৳{p.baseCost}</td>
+
+                          {/* Reseller Wholesale */}
+                          <td className="p-4 font-bold text-indigo-700 font-mono">৳{p.resellerPrice}</td>
+
+                          {/* Customer Catalog */}
+                          <td className="p-4">
+                            <div className="font-bold text-slate-900 font-mono">৳{p.suggestedSellingPrice}</div>
+                            {p.oldPrice && p.oldPrice > p.suggestedSellingPrice && (
+                              <div className="text-[10px] text-slate-400 line-through">৳{p.oldPrice}</div>
+                            )}
+                          </td>
+
+                          {/* Margin */}
+                          <td className="p-4 font-bold text-emerald-700 font-mono">
+                            +৳{p.suggestedSellingPrice - p.resellerPrice}
+                          </td>
+
+                          {/* Stock Status & Restock Estimation */}
+                          <td className="p-4">
+                            {isOutOfStock ? (
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 font-bold text-[10px] border border-rose-200">
+                                  <AlertTriangle className="w-3 h-3 text-rose-600" />
+                                  <span>Stock Out (0 pcs)</span>
+                                </span>
+                                <div className="text-[10px] text-amber-700 font-medium bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80">
+                                  Restock: in <strong>{p.estimatedRestockDays || 3} days</strong>
+                                  {p.estimatedRestockDate && (
+                                    <span className="block text-[9px] text-slate-500 font-mono">
+                                      Date: {p.estimatedRestockDate}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-0.5">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] border border-emerald-200">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>In Stock ({p.stock} pcs)</span>
+                                </span>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="p-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditProduct(p)}
+                                className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition flex items-center gap-1 text-xs font-bold"
+                                title="Edit Product & Stock"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                                <span>Edit</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDeleteProduct(p)}
+                                className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl transition flex items-center gap-1 text-xs font-bold"
+                                title="Delete Product"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {filteredProducts.length === 0 && (
+                      <tr>
+                        <td colSpan={9} className="p-12 text-center text-slate-400">
+                          <Package className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                          <p className="font-bold text-slate-600">No products match your search or filter.</p>
+                          <p className="text-xs text-slate-400 mt-1">Try resetting the category or stock filter.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* TAB 5: CHALLENGES & XP REWARDS */}
       {activeTab === 'challenges' && (
@@ -1039,14 +1614,28 @@ export const AdminDashboard: React.FC = () => {
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={() => setIsAddProductModalOpen(false)} />
           <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-8">
             <div className="px-6 py-5 bg-slate-900 text-white flex items-center justify-between">
-              <h3 className="font-bold text-sm">Add New Wholesale & Retail Product</h3>
+              <div>
+                <h3 className="font-bold text-sm">Add New Wholesale & Retail Product</h3>
+                <p className="text-[11px] text-slate-400">Add to MeherMart catalog with stock management</p>
+              </div>
               <button onClick={() => setIsAddProductModalOpen(false)} className="text-white/80 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleCreateProduct} className="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div>
+              <div className="grid sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-1">
+                  <label className="block font-semibold text-slate-700 mb-1">Product Code *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. MM-1001"
+                    value={newProduct.productCode || ''}
+                    onChange={(e) => setNewProduct({ ...newProduct, productCode: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono uppercase font-bold text-indigo-700"
+                  />
+                </div>
+                <div className="sm:col-span-2">
                   <label className="block font-semibold text-slate-700 mb-1">Product Title (English) *</label>
                   <input
                     type="text"
@@ -1056,16 +1645,18 @@ export const AdminDashboard: React.FC = () => {
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
                   />
                 </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Bangla Title *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newProduct.nameBn}
-                    onChange={(e) => setNewProduct({ ...newProduct, nameBn: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
-                  />
-                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Bangla Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. প্রিমিয়াম ওয়্যারলেস ইয়ারবাডস"
+                  value={newProduct.nameBn}
+                  onChange={(e) => setNewProduct({ ...newProduct, nameBn: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                />
               </div>
 
               <div className="grid sm:grid-cols-2 gap-3">
@@ -1073,7 +1664,15 @@ export const AdminDashboard: React.FC = () => {
                   <label className="block font-semibold text-slate-700 mb-1">Category</label>
                   <select
                     value={newProduct.category}
-                    onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      let slug = 'gadgets';
+                      if (val.includes('Kitchen')) slug = 'kitchen';
+                      else if (val.includes('Fashion')) slug = 'fashion';
+                      else if (val.includes('Beauty')) slug = 'beauty';
+                      else if (val.includes('Baby')) slug = 'baby';
+                      setNewProduct({ ...newProduct, category: val, categorySlug: slug });
+                    }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
                   >
                     <option value="Electronics & Gadgets">Electronics & Gadgets</option>
@@ -1084,14 +1683,68 @@ export const AdminDashboard: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Initial Stock (Units)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Stock Quantity (Units)</label>
                   <input
                     type="number"
                     value={newProduct.stock}
-                    onChange={(e) => setNewProduct({ ...newProduct, stock: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setNewProduct({
+                        ...newProduct,
+                        stock: val,
+                        isStockOut: val <= 0,
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono"
                   />
                 </div>
+              </div>
+
+              {/* Stock Status & Restock Settings */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-800 block text-xs">Stock Status</span>
+                    <span className="text-[11px] text-slate-500">Is this product available now?</span>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newProduct.isStockOut || false}
+                      onChange={(e) => setNewProduct({ ...newProduct, isStockOut: e.target.checked })}
+                      className="w-4 h-4 text-rose-600 rounded"
+                    />
+                    <span className={`font-bold text-xs ${newProduct.isStockOut ? 'text-rose-600' : 'text-slate-600'}`}>
+                      {newProduct.isStockOut ? 'Mark as Out of Stock' : 'In Stock'}
+                    </span>
+                  </label>
+                </div>
+
+                {newProduct.isStockOut && (
+                  <div className="grid sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">Estimated Restock In (Days)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        placeholder="e.g. 3"
+                        value={newProduct.estimatedRestockDays || 3}
+                        onChange={(e) => setNewProduct({ ...newProduct, estimatedRestockDays: Number(e.target.value) })}
+                        className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-xl font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">Expected Restock Date</label>
+                      <input
+                        type="date"
+                        value={newProduct.estimatedRestockDate || ''}
+                        onChange={(e) => setNewProduct({ ...newProduct, estimatedRestockDate: e.target.value })}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-2">
@@ -1101,25 +1754,25 @@ export const AdminDashboard: React.FC = () => {
                     type="number"
                     value={newProduct.baseCost}
                     onChange={(e) => setNewProduct({ ...newProduct, baseCost: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Wholesale Price (৳)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Wholesale (৳)</label>
                   <input
                     type="number"
                     value={newProduct.resellerPrice}
                     onChange={(e) => setNewProduct({ ...newProduct, resellerPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-indigo-700"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-indigo-700 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Suggested Retail (৳)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Customer Retail (৳)</label>
                   <input
                     type="number"
                     value={newProduct.suggestedSellingPrice}
                     onChange={(e) => setNewProduct({ ...newProduct, suggestedSellingPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-700"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-700 font-mono"
                   />
                 </div>
               </div>
@@ -1153,6 +1806,267 @@ export const AdminDashboard: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Product */}
+      {isEditProductModalOpen && editingProduct && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={() => setIsEditProductModalOpen(false)} />
+          <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-8">
+            <div className="px-6 py-5 bg-indigo-900 text-white flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-sm flex items-center gap-2">
+                  <Edit className="w-4 h-4 text-indigo-300" />
+                  <span>Edit Product: {editingProduct.productCode || `#MM-${editingProduct.id.slice(-4).toUpperCase()}`}</span>
+                </h3>
+                <p className="text-[11px] text-indigo-200 truncate max-w-sm">{editingProduct.name}</p>
+              </div>
+              <button onClick={() => setIsEditProductModalOpen(false)} className="text-white/80 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateProduct} className="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
+              <div className="grid sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-1">
+                  <label className="block font-semibold text-slate-700 mb-1">Product Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingProduct.productCode || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, productCode: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono uppercase font-bold text-indigo-700"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-700 mb-1">Product Title (English) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingProduct.name}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Bangla Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingProduct.nameBn || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, nameBn: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                />
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Category</label>
+                  <select
+                    value={editingProduct.category}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      let slug = 'gadgets';
+                      if (val.includes('Kitchen')) slug = 'kitchen';
+                      else if (val.includes('Fashion')) slug = 'fashion';
+                      else if (val.includes('Beauty')) slug = 'beauty';
+                      else if (val.includes('Baby')) slug = 'baby';
+                      setEditingProduct({ ...editingProduct, category: val, categorySlug: slug });
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  >
+                    <option value="Electronics & Gadgets">Electronics & Gadgets</option>
+                    <option value="Smart Kitchen & Living">Smart Kitchen & Living</option>
+                    <option value="Fashion & Lifestyle">Fashion & Lifestyle</option>
+                    <option value="Health, Beauty & Care">Health, Beauty & Care</option>
+                    <option value="Kids & Baby">Kids & Baby</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Stock Quantity (Units)</label>
+                  <input
+                    type="number"
+                    value={editingProduct.stock}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setEditingProduct({
+                        ...editingProduct,
+                        stock: val,
+                        isStockOut: val <= 0,
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Stock Status & Restock Settings */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-800 block text-xs">Stock In / Stock Out Switch</span>
+                    <span className="text-[11px] text-slate-500">Controls catalog visibility & restock warnings</span>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={editingProduct.isStockOut || false}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, isStockOut: e.target.checked })}
+                      className="w-4 h-4 text-rose-600 rounded"
+                    />
+                    <span className={`font-bold text-xs ${editingProduct.isStockOut ? 'text-rose-600' : 'text-emerald-700'}`}>
+                      {editingProduct.isStockOut ? 'Marked Stock Out' : 'Marked In Stock'}
+                    </span>
+                  </label>
+                </div>
+
+                {editingProduct.isStockOut && (
+                  <div className="grid sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">Estimated Restock In (Days)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        placeholder="e.g. 3"
+                        value={editingProduct.estimatedRestockDays || 3}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, estimatedRestockDays: Number(e.target.value) })}
+                        className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-xl font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">Expected Restock Date</label>
+                      <input
+                        type="date"
+                        value={editingProduct.estimatedRestockDate || ''}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, estimatedRestockDate: e.target.value })}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Factory Cost (৳)</label>
+                  <input
+                    type="number"
+                    value={editingProduct.baseCost}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, baseCost: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Wholesale (৳)</label>
+                  <input
+                    type="number"
+                    value={editingProduct.resellerPrice}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, resellerPrice: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-indigo-700 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Customer Retail (৳)</label>
+                  <input
+                    type="number"
+                    value={editingProduct.suggestedSellingPrice}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, suggestedSellingPrice: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-700 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Primary Image URL</label>
+                <input
+                  type="text"
+                  value={editingProduct.images?.[0] || ''}
+                  onChange={(e) => {
+                    const newImgs = [...(editingProduct.images || [])];
+                    newImgs[0] = e.target.value;
+                    setEditingProduct({ ...editingProduct, images: newImgs });
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Product Description</label>
+                <textarea
+                  rows={3}
+                  value={editingProduct.description || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setIsEditProductModalOpen(false)} className="px-4 py-2 font-semibold text-slate-600">
+                  Cancel
+                </button>
+                <button type="submit" className="px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-xs hover:bg-indigo-700">
+                  Update Product Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Delete Product Confirmation */}
+      {isDeleteProductModalOpen && productToDelete && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={() => setIsDeleteProductModalOpen(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-8">
+            <div className="px-6 py-5 bg-rose-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-200" />
+                <h3 className="font-bold text-sm">Delete Product</h3>
+              </div>
+              <button onClick={() => setIsDeleteProductModalOpen(false)} className="text-white/80 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-xs">
+              <div className="flex items-center gap-3 p-3 bg-rose-50 border border-rose-100 rounded-2xl">
+                <img
+                  src={productToDelete.images[0]}
+                  alt=""
+                  className="w-12 h-12 rounded-xl object-cover border border-slate-200"
+                />
+                <div>
+                  <p className="font-bold text-slate-900">{productToDelete.name}</p>
+                  <p className="text-[11px] text-slate-500 font-mono">Code: {productToDelete.productCode || `#MM-${productToDelete.id.slice(-4).toUpperCase()}`}</p>
+                  <p className="text-[10px] text-slate-400">Category: {productToDelete.category}</p>
+                </div>
+              </div>
+
+              <p className="text-slate-600 leading-relaxed">
+                Are you sure you want to permanently delete this product from the <strong>MeherMart</strong> catalog? Resellers will no longer be able to view or sell this item.
+              </p>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteProductModalOpen(false)}
+                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteProduct}
+                  className="px-5 py-2.5 bg-rose-600 text-white font-bold rounded-xl shadow-xs hover:bg-rose-700 flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Yes, Delete Product</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1383,6 +2297,216 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal: Award Manual XP to Reseller */}
+      {isAwardXpModalOpen && selectedResellerForXp && (() => {
+        const currentXp = selectedResellerForXp.xp || 0;
+        const currentLevel = selectedResellerForXp.level || 1;
+        const projectedXp = currentXp + Number(awardXpAmount || 0);
+
+        let projectedLevel = 1;
+        let projectedLevelName = 'Novice Reseller';
+        if (projectedXp >= 10000) {
+          projectedLevel = 5;
+          projectedLevelName = 'Legend Elite';
+        } else if (projectedXp >= 4000) {
+          projectedLevel = 4;
+          projectedLevelName = 'Leader Champion';
+        } else if (projectedXp >= 1500) {
+          projectedLevel = 3;
+          projectedLevelName = 'Pro Master';
+        } else if (projectedXp >= 500) {
+          projectedLevel = 2;
+          projectedLevelName = 'Star Reseller';
+        }
+
+        const isLevelUp = projectedLevel > currentLevel;
+
+        return (
+          <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
+              onClick={() => setIsAwardXpModalOpen(false)}
+            />
+            <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-8">
+              {/* Header */}
+              <div className="px-6 py-5 bg-gradient-to-r from-amber-500 via-orange-500 to-purple-600 text-white flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <Zap className="w-5 h-5 fill-amber-200 text-amber-200" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm">Award Gamification XP</h3>
+                    <p className="text-xs text-amber-100">Direct Admin Gamification Grant</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAwardXpModalOpen(false)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <form onSubmit={handleAwardXpSubmit} className="p-6 space-y-4 text-xs">
+                {/* Reseller Info Box */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-black text-sm text-amber-300">{selectedResellerForXp.storeName}</p>
+                      <p className="text-[11px] text-slate-300">
+                        {selectedResellerForXp.ownerName} • {selectedResellerForXp.whatsappNumber}
+                      </p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 font-extrabold text-[11px] flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      Lvl {selectedResellerForXp.level || 1}
+                    </span>
+                  </div>
+
+                  {/* Level & XP Projection Simulation */}
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400">Current XP</span>
+                      <p className="font-mono font-bold text-white text-xs">{currentXp.toLocaleString()} XP</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowUpRight className="w-4 h-4 text-amber-400 animate-pulse" />
+                      <div className="text-right">
+                        <span className="text-[10px] text-amber-300 font-bold">Projected XP</span>
+                        <p className="font-mono font-black text-amber-300 text-xs">
+                          {projectedXp.toLocaleString()} XP ({projectedLevelName})
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {isLevelUp && (
+                    <div className="p-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 text-slate-950 font-black text-[11px] text-center flex items-center justify-center gap-1.5 shadow-sm">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Instant Level Up Trigger: Level {currentLevel} ➔ Level {projectedLevel}!</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick XP Preset Selector */}
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1.5">Select XP Amount *</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { amount: 50, label: '+50 XP (Quiz / Task)' },
+                      { amount: 100, label: '+100 XP (Standard Lesson)' },
+                      { amount: 250, label: '+250 XP (Masterclass)' },
+                      { amount: 500, label: '+500 XP (Weekly Challenge)' },
+                      { amount: 1000, label: '+1000 XP (Super Bonus)' },
+                      { amount: 2000, label: '+2000 XP (Elite Award)' },
+                    ].map((preset) => (
+                      <button
+                        key={preset.amount}
+                        type="button"
+                        onClick={() => setAwardXpAmount(preset.amount)}
+                        className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center justify-center ${
+                          awardXpAmount === preset.amount
+                            ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="text-sm font-black font-mono">+{preset.amount}</span>
+                        <span className="text-[9px] font-medium opacity-90">{preset.label.split('(')[1]?.replace(')', '') || 'XP'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom Number Input */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Or Enter Exact XP Amount</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10000}
+                    step={10}
+                    required
+                    value={awardXpAmount}
+                    onChange={(e) => setAwardXpAmount(Math.max(1, Number(e.target.value)))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold text-slate-900 focus:bg-white"
+                  />
+                </div>
+
+                {/* Reason Dropdown & Presets */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Reason / Challenge / Lesson *</label>
+                  <select
+                    value={awardXpReason}
+                    onChange={(e) => setAwardXpReason(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900"
+                  >
+                    <option value="Completed Facebook & TikTok Viral Video Lesson">
+                      📺 Completed Facebook & TikTok Viral Video Lesson
+                    </option>
+                    <option value="Completed Weekly Sales Challenge (3+ Orders Delivered)">
+                      🏆 Completed Weekly Sales Challenge (3+ Orders Delivered)
+                    </option>
+                    <option value="Completed Zero-Ad-Cost WhatsApp Marketing Lesson">
+                      📱 Completed Zero-Ad-Cost WhatsApp Marketing Lesson
+                    </option>
+                    <option value="Completed Customer Service & COD Management Lesson">
+                      💬 Completed Customer Service & COD Management Lesson
+                    </option>
+                    <option value="Completed First 10 Successful Deliveries Milestone">
+                      📦 Completed First 10 Successful Deliveries Milestone
+                    </option>
+                    <option value="Special Performance & Store Motivation Boost">
+                      ⭐ Special Performance & Store Motivation Boost
+                    </option>
+                    <option value="CUSTOM">✍️ Custom Offline Lesson / Challenge Reason</option>
+                  </select>
+                </div>
+
+                {awardXpReason === 'CUSTOM' && (
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Type Custom Reason *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Attended Dhaka Reseller Workshop Masterclass"
+                      value={customXpReason}
+                      onChange={(e) => setCustomXpReason(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                    />
+                  </div>
+                )}
+
+                {/* Submit Actions */}
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsAwardXpModalOpen(false)}
+                    className="px-4 py-2.5 font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingXp}
+                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black rounded-xl shadow-md transition flex items-center gap-2"
+                  >
+                    {isSubmittingXp ? (
+                      <span>Awarding XP...</span>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 fill-slate-950 text-slate-950" />
+                        <span>Confirm & Award +{awardXpAmount} XP</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Bulk Product CSV Uploader Modal */}
       <BulkProductUploaderModal

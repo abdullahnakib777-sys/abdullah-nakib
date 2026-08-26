@@ -81,7 +81,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  registerCustomer: (body: { name: string; email?: string; phone: string }) =>
+  registerCustomer: (body: { name: string; email?: string; phone: string; password?: string }) =>
     apiFetch<{ user: User; token: string }>('/api/v1/auth/register-customer', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -91,6 +91,7 @@ export const api = {
     name: string;
     email?: string;
     phone: string;
+    password?: string;
     storeName: string;
     facebookPage?: string;
     whatsappNumber: string;
@@ -350,6 +351,11 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  deleteProduct: (id: string) =>
+    apiFetch<{ success: boolean; message: string }>(`/api/v1/admin/products/${id}`, {
+      method: 'DELETE',
+    }),
+
   updateSettings: (body: Partial<PlatformSettings>) =>
     apiFetch<{ settings: PlatformSettings }>('/api/v1/admin/settings', {
       method: 'POST',
@@ -361,6 +367,37 @@ export const api = {
 
   getFraudAlerts: () =>
     apiFetch<{ alerts: FraudAlert[] }>('/api/v1/admin/fraud-alerts'),
+
+  getAdminResellers: () =>
+    apiFetch<{
+      resellers: Array<
+        ResellerProfile & {
+          user?: User;
+          deliveredOrdersCount?: number;
+          totalOrdersCount?: number;
+          totalProfitEarned?: number;
+          completedLessonsCount?: number;
+        }
+      >;
+    }>('/api/v1/admin/resellers'),
+
+  awardResellerXp: (resellerId: string, body: { amount: number; reason: string }) =>
+    apiFetch<{
+      success: boolean;
+      reseller: ResellerProfile;
+      prevXp: number;
+      newXp: number;
+      prevLevel: number;
+      newLevel: number;
+      leveledUp: boolean;
+      message: string;
+    }>(`/api/v1/admin/resellers/${resellerId}/award-xp`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  getAdminUsers: () =>
+    apiFetch<{ users: User[] }>('/api/v1/admin/users'),
 
   submitResellerFee: (body: { method: string; senderPhone: string; trxId: string; amount?: number }) =>
     apiFetch<{ reseller: ResellerProfile; message: string }>('/api/v1/reseller/submit-fee', {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { AuthTabType } from '../auth/AuthModal';
+import { MeherMartLogo } from '../common/MeherMartLogo';
 import {
   ShoppingBag,
   Sparkles,
@@ -42,39 +43,27 @@ export const Navbar: React.FC<{
   const isResellerVerified = isReseller && reseller && (reseller.isVerified || reseller.status === 'ACTIVE' || reseller.adminApprovedFree);
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80" id="main-navbar">
+    <header className="sticky top-0 z-40 bg-[#0c0d1a]/80 backdrop-blur-xl border-b border-purple-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.6)]" id="main-navbar">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3">
           {/* Logo */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => onNavigate('storefront')}
-              className="flex items-center gap-2 text-left group"
+              className="flex items-center text-left group"
             >
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-black text-lg shadow-md group-hover:scale-105 transition-transform">
-                <span>স্বাধীন</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-black text-base text-slate-900 tracking-tight">Shadhin</span>
-                  <span className="font-bold text-base text-emerald-600">E-Commerce</span>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded">
-                    BD 🇧🇩
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-medium">Nationwide Wholesale & Reselling</p>
-              </div>
+              <MeherMartLogo size="md" variant="horizontal" theme="dark" showTagline={true} />
             </button>
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 text-xs font-bold text-slate-600">
+          <nav className="hidden md:flex items-center gap-1 text-xs font-bold text-slate-300">
             <button
               onClick={() => onNavigate('storefront')}
-              className={`px-3 py-1.5 rounded-xl transition ${
+              className={`px-3.5 py-1.5 rounded-xl transition ${
                 currentView === 'storefront'
-                  ? 'bg-slate-100 text-slate-900'
-                  : 'hover:bg-slate-50 text-slate-600'
+                  ? 'bg-purple-600/30 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                  : 'hover:bg-purple-950/40 hover:text-white text-slate-300'
               }`}
             >
               Public Catalog
@@ -84,18 +73,18 @@ export const Navbar: React.FC<{
               <>
                 <button
                   onClick={() => onNavigate('reseller_hub')}
-                  className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
                     currentView === 'reseller_hub'
                       ? isResellerVerified
-                        ? 'bg-emerald-50 text-emerald-900 font-bold'
-                        : 'bg-amber-50 text-amber-900 font-bold'
-                      : 'hover:bg-slate-50 text-slate-600'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'hover:bg-purple-950/40 hover:text-white text-slate-300'
                   }`}
                 >
-                  <Store className={`w-3.5 h-3.5 ${isResellerVerified ? 'text-emerald-600' : 'text-amber-500'}`} />
+                  <Store className={`w-3.5 h-3.5 ${isResellerVerified ? 'text-emerald-400' : 'text-amber-400'}`} />
                   <span>Reseller Hub</span>
                   {!isResellerVerified && (
-                    <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                    <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                       <Lock className="w-2.5 h-2.5" />
                       Pending
                     </span>
@@ -106,11 +95,11 @@ export const Navbar: React.FC<{
                   onClick={() => onNavigate('leaderboard')}
                   className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1 ${
                     currentView === 'leaderboard'
-                      ? 'bg-slate-100 text-slate-900'
-                      : 'hover:bg-slate-50 text-slate-600'
+                      ? 'bg-purple-600/30 text-amber-300 border border-amber-500/40'
+                      : 'hover:bg-purple-950/40 hover:text-white text-slate-300'
                   }`}
                 >
-                  <Award className="w-3.5 h-3.5 text-amber-500" />
+                  <Award className="w-3.5 h-3.5 text-amber-400" />
                   <span>Leaderboard</span>
                 </button>
 
@@ -118,11 +107,11 @@ export const Navbar: React.FC<{
                   onClick={() => onNavigate('academy')}
                   className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1 ${
                     currentView === 'academy'
-                      ? 'bg-slate-100 text-slate-900'
-                      : 'hover:bg-slate-50 text-slate-600'
+                      ? 'bg-purple-600/30 text-cyan-300 border border-cyan-500/40'
+                      : 'hover:bg-purple-950/40 hover:text-white text-slate-300'
                   }`}
                 >
-                  <BookOpen className="w-3.5 h-3.5 text-teal-600" />
+                  <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Academy</span>
                 </button>
               </>
@@ -133,8 +122,8 @@ export const Navbar: React.FC<{
                 onClick={() => onNavigate('admin')}
                 className={`px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
                   currentView === 'admin'
-                    ? 'bg-indigo-600 text-white font-black shadow-xs'
-                    : 'bg-indigo-50 text-indigo-800 hover:bg-indigo-100'
+                    ? 'bg-indigo-600 text-white font-black shadow-[0_0_15px_rgba(99,102,241,0.5)] border border-indigo-400'
+                    : 'bg-indigo-950/50 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-900/60'
                 }`}
               >
                 <Shield className="w-3.5 h-3.5 text-indigo-400" />
@@ -144,9 +133,9 @@ export const Navbar: React.FC<{
 
             <button
               onClick={onOpenTrackingModal}
-              className="px-3 py-1.5 rounded-xl hover:bg-slate-50 text-slate-600 transition flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl hover:bg-purple-950/40 text-slate-300 hover:text-cyan-300 transition flex items-center gap-1"
             >
-              <Truck className="w-3.5 h-3.5 text-slate-400" />
+              <Truck className="w-3.5 h-3.5 text-cyan-400" />
               <span>Track Order</span>
             </button>
           </nav>
@@ -156,7 +145,7 @@ export const Navbar: React.FC<{
             {/* AI Assistant */}
             <button
               onClick={onOpenAiDrawer}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs hover:shadow-md hover:scale-105 transition"
+              className="relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_22px_rgba(6,182,212,0.6)] hover:scale-105 transition"
               id="resell-ai-nav-btn"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
@@ -166,26 +155,26 @@ export const Navbar: React.FC<{
             {/* Cart Button */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+              className="relative p-2 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-cyan-400/50 hover:bg-purple-900/60 text-slate-200 hover:text-cyan-300 transition"
               id="nav-cart-btn"
               title="View Shopping Cart"
             >
               <ShoppingBag className="w-4 h-4" />
               {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500 text-white text-[10px] font-black flex items-center justify-center shadow-[0_0_8px_rgba(6,182,212,0.8)]">
                   {itemCount}
                 </span>
               )}
             </button>
 
-            {/* "Join as Reseller" Button (Prominent) */}
+            {/* "Join as Reseller" Button */}
             {!isReseller && !isAdmin && (
               <button
                 onClick={() => onOpenAuthModal('reseller_register')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 shadow-sm transition transform hover:scale-[1.02]"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 shadow-[0_0_15px_rgba(251,191,36,0.4)] transition transform hover:scale-105"
               >
                 <Store className="w-3.5 h-3.5" />
-                <span>Join as Reseller (৫০০৳)</span>
+                <span>Join Reseller (৫০০৳)</span>
               </button>
             )}
 
@@ -194,24 +183,24 @@ export const Navbar: React.FC<{
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => onOpenAuthModal('reseller_login')}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold transition flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition flex items-center gap-1 shadow-xs"
                 >
-                  <Store className="w-3.5 h-3.5 text-emerald-600" />
+                  <Store className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="hidden sm:inline">Reseller Login</span>
                   <span className="sm:hidden">Login</span>
                 </button>
 
                 <button
                   onClick={() => onOpenAuthModal('customer_login')}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1 hidden md:flex"
+                  className="px-3 py-1.5 rounded-xl bg-purple-950/40 border border-purple-500/30 hover:border-purple-400/60 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1 hidden md:flex"
                 >
-                  <UserIcon className="w-3.5 h-3.5 text-slate-500" />
+                  <UserIcon className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Customer</span>
                 </button>
 
                 <button
                   onClick={() => onOpenAuthModal('admin_login')}
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 text-xs font-bold transition"
+                  className="p-2 rounded-xl bg-purple-950/40 border border-purple-500/30 hover:border-indigo-400 hover:text-indigo-300 text-slate-400 text-xs font-bold transition"
                   title="Admin Access"
                 >
                   <Lock className="w-3.5 h-3.5" />
@@ -221,44 +210,44 @@ export const Navbar: React.FC<{
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition"
+                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-cyan-400/50 text-slate-200 text-xs font-bold transition"
                 >
-                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-black">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-xs">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="max-w-[80px] sm:max-w-[100px] truncate">{user.name}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </button>
 
                 {/* Dropdown Menu */}
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in">
-                    <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
+                  <div className="absolute right-0 mt-2 w-56 galaxy-glass-card-static rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in">
+                    <div className="px-4 py-2 border-b border-purple-500/20">
+                      <p className="text-xs font-bold text-white truncate">{user.name}</p>
                       <p className="text-[10px] text-slate-400 font-mono">{user.phone || user.email}</p>
                       <div className="mt-1">
                         <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
                           user.role === 'ADMIN'
-                            ? 'bg-indigo-100 text-indigo-800'
+                            ? 'bg-indigo-500/30 text-indigo-300 border border-indigo-500/40'
                             : user.role === 'RESELLER'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                            : 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
                         }`}>
-                          {user.role} ACCOUNT
+                          ⭐ {user.role} ACCOUNT
                         </span>
                       </div>
                     </div>
 
-                    <div className="py-1 text-xs font-semibold text-slate-700">
+                    <div className="py-1 text-xs font-semibold text-slate-300">
                       {user.role === 'ADMIN' && (
                         <button
                           onClick={() => {
                             onNavigate('admin');
                             setIsUserMenuOpen(false);
                           }}
-                          className="w-full text-left px-4 py-2 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 hover:bg-indigo-950/60 hover:text-cyan-300 flex items-center gap-2"
                         >
-                          <Shield className="w-4 h-4 text-indigo-600" />
+                          <Shield className="w-4 h-4 text-indigo-400" />
                           <span>Admin Control Center</span>
                         </button>
                       )}
@@ -270,9 +259,9 @@ export const Navbar: React.FC<{
                               onNavigate('reseller_hub');
                               setIsUserMenuOpen(false);
                             }}
-                            className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 hover:bg-purple-950/60 hover:text-cyan-300 flex items-center gap-2"
                           >
-                            <Store className="w-4 h-4 text-emerald-600" />
+                            <Store className="w-4 h-4 text-emerald-400" />
                             <span>Reseller Dashboard</span>
                           </button>
                           <button
@@ -280,9 +269,9 @@ export const Navbar: React.FC<{
                               onNavigate('wallet');
                               setIsUserMenuOpen(false);
                             }}
-                            className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 hover:bg-purple-950/60 hover:text-cyan-300 flex items-center gap-2"
                           >
-                            <Sparkles className="w-4 h-4 text-amber-500" />
+                            <Sparkles className="w-4 h-4 text-amber-400" />
                             <span>Wallet & Withdrawals</span>
                           </button>
                         </>
@@ -293,9 +282,9 @@ export const Navbar: React.FC<{
                           onOpenTrackingModal();
                           setIsUserMenuOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 hover:bg-purple-950/60 hover:text-cyan-300 flex items-center gap-2"
                       >
-                        <Truck className="w-4 h-4 text-slate-500" />
+                        <Truck className="w-4 h-4 text-cyan-400" />
                         <span>Track My Orders</span>
                       </button>
 
@@ -305,9 +294,9 @@ export const Navbar: React.FC<{
                           setIsUserMenuOpen(false);
                           onNavigate('storefront');
                         }}
-                        className="w-full text-left px-4 py-2 hover:bg-rose-50 text-rose-700 flex items-center gap-2 border-t border-slate-100 mt-1"
+                        className="w-full text-left px-4 py-2 hover:bg-rose-950/60 text-rose-400 flex items-center gap-2 border-t border-purple-500/20 mt-1"
                       >
-                        <LogOut className="w-4 h-4 text-rose-600" />
+                        <LogOut className="w-4 h-4 text-rose-400" />
                         <span>Log Out</span>
                       </button>
                     </div>
@@ -321,3 +310,4 @@ export const Navbar: React.FC<{
     </header>
   );
 };
+

@@ -20,6 +20,7 @@ import {
 } from '../src/types';
 import { ProfitEngine } from './profitEngine';
 import { FirebaseSyncService } from './firebaseSync';
+import { generateRealisticResellersDataset } from './seedResellers';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
@@ -91,6 +92,7 @@ const INITIAL_CATEGORIES: ProductCategory[] = [
 const INITIAL_PRODUCTS: Product[] = [
   {
     id: 'prod-01',
+    productCode: 'MM-1001',
     name: 'T900 Ultra 2 Max Smartwatch (Dual Strap + Wireless Charge)',
     nameBn: 'টি৯০০ আল্ট্রা ২ ম্যাক্স স্মার্টওয়াচ (ডুয়াল স্ট্র্যাপ)',
     slug: 't900-ultra-2-max-smartwatch',
@@ -117,6 +119,9 @@ const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=600&auto=format&fit=crop&q=80',
     ],
     stock: 145,
+    isStockOut: false,
+    estimatedRestockDays: 3,
+    estimatedRestockDate: 'In 3-5 days',
     baseCost: 520,
     resellerPrice: 650,
     suggestedSellingPrice: 999,
@@ -134,6 +139,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-02',
+    productCode: 'MM-1002',
     name: 'M10 TWS Dual Earbuds with 2000mAh Powerbank Case',
     nameBn: 'এম১০ টিডব্লিউএস ডুয়াল ইয়ারবাডস ও পাওয়ারব্যাঙ্ক',
     slug: 'm10-tws-dual-earbuds',
@@ -159,6 +165,9 @@ const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1572536147248-ac59a8abfa4b?w=600&auto=format&fit=crop&q=80',
     ],
     stock: 220,
+    isStockOut: false,
+    estimatedRestockDays: 2,
+    estimatedRestockDate: 'In 2-3 days',
     baseCost: 240,
     resellerPrice: 320,
     suggestedSellingPrice: 499,
@@ -176,6 +185,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-03',
+    productCode: 'MM-1003',
     name: 'High-Power Electric Meat & Vegetable Food Chopper (2L Stainless Steel)',
     nameBn: 'ইলেকট্রিক ফুড চপার ২ লিটার স্টেইনলেস স্টিল',
     slug: 'electric-food-chopper-2l',
@@ -201,6 +211,9 @@ const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80',
     ],
     stock: 90,
+    isStockOut: false,
+    estimatedRestockDays: 3,
+    estimatedRestockDate: 'In 3-5 days',
     baseCost: 780,
     resellerPrice: 950,
     suggestedSellingPrice: 1450,
@@ -218,6 +231,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-04',
+    productCode: 'MM-1004',
     name: 'Cordless Portable Garment Steamer & Hijab Iron',
     nameBn: 'পোর্টেবল হ্যান্ডহেল্ড গারমেন্ট স্টিমার',
     slug: 'portable-garment-steamer',
@@ -239,7 +253,10 @@ const INITIAL_PRODUCTS: Product[] = [
     images: [
       'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=600&auto=format&fit=crop&q=80',
     ],
-    stock: 65,
+    stock: 0,
+    isStockOut: true,
+    estimatedRestockDays: 4,
+    estimatedRestockDate: 'In 4-5 Days (30 Aug)',
     baseCost: 850,
     resellerPrice: 1050,
     suggestedSellingPrice: 1590,
@@ -257,6 +274,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-05',
+    productCode: 'MM-1005',
     name: 'KUMKUMADI Organic 24K Saffron Glow Face Oil (30ml)',
     nameBn: 'কুমকুমাদি অর্গানিক ২৪কে জাফরান গ্লো ফেস অয়েল',
     slug: 'kumkumadi-saffron-glow-oil',
@@ -280,6 +298,9 @@ const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&auto=format&fit=crop&q=80',
     ],
     stock: 310,
+    isStockOut: false,
+    estimatedRestockDays: 3,
+    estimatedRestockDate: 'In 3-5 days',
     baseCost: 280,
     resellerPrice: 380,
     suggestedSellingPrice: 650,
@@ -297,6 +318,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-06',
+    productCode: 'MM-1006',
     name: 'VGR V-030 Professional Zero-Trim Hair & Beard Trimmer',
     nameBn: 'ভিজিআর প্রফেশনাল জিরো কাট হেয়ার ও বিয়ার্ড ট্রিমার',
     slug: 'vgr-v030-beard-trimmer',
@@ -319,6 +341,9 @@ const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1621607512214-68297480165e?w=600&auto=format&fit=crop&q=80',
     ],
     stock: 130,
+    isStockOut: false,
+    estimatedRestockDays: 3,
+    estimatedRestockDate: 'In 3-5 days',
     baseCost: 650,
     resellerPrice: 800,
     suggestedSellingPrice: 1190,
@@ -336,6 +361,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-07',
+    productCode: 'MM-1007',
     name: 'Anti-Theft Waterproof Laptop Backpack with USB Charging Port',
     nameBn: 'ওয়াটারপ্রুফ অ্যান্টি-থেফট ল্যাপটপ ব্যাকপ্যাক',
     slug: 'anti-theft-laptop-backpack',
@@ -358,6 +384,9 @@ const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&auto=format&fit=crop&q=80',
     ],
     stock: 80,
+    isStockOut: false,
+    estimatedRestockDays: 4,
+    estimatedRestockDate: 'In 4-5 days',
     baseCost: 720,
     resellerPrice: 890,
     suggestedSellingPrice: 1390,
@@ -375,6 +404,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-08',
+    productCode: 'MM-1008',
     name: 'Ergonomic 360° Rotating Aluminum Laptop & Tablet Stand',
     nameBn: 'অ্যালুমিনিয়াম ৩৬০ ডিগ্রি রোটেটিং ল্যাপটপ স্ট্যান্ড',
     slug: 'rotating-aluminum-laptop-stand',
@@ -397,6 +427,9 @@ const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600&auto=format&fit=crop&q=80',
     ],
     stock: 110,
+    isStockOut: false,
+    estimatedRestockDays: 3,
+    estimatedRestockDate: 'In 3-5 days',
     baseCost: 680,
     resellerPrice: 850,
     suggestedSellingPrice: 1290,
@@ -414,6 +447,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-09',
+    productCode: 'MM-1009',
     name: '12-inch RGB LED Ring Light with 7ft Heavy Tripod Stand',
     nameBn: '১২ ইঞ্চি আরজিবি রিং লাইট ও ৭ ফুট ট্রাইপড স্ট্যান্ড',
     slug: '12-inch-rgb-ring-light-tripod',
@@ -436,6 +470,9 @@ const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600&auto=format&fit=crop&q=80',
     ],
     stock: 95,
+    isStockOut: false,
+    estimatedRestockDays: 2,
+    estimatedRestockDate: 'In 2-3 days',
     baseCost: 580,
     resellerPrice: 720,
     suggestedSellingPrice: 1099,
@@ -453,6 +490,7 @@ const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'prod-10',
+    productCode: 'MM-1010',
     name: 'Automatic Rechargeable Water Dispenser Pump for 20L Bottles',
     nameBn: 'রিচার্জেবল অটোমেটিক ওয়াটার পাম্প',
     slug: 'rechargeable-water-dispenser-pump',
@@ -475,6 +513,9 @@ const INITIAL_PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=600&auto=format&fit=crop&q=80',
     ],
     stock: 260,
+    isStockOut: false,
+    estimatedRestockDays: 3,
+    estimatedRestockDate: 'In 3-5 days',
     baseCost: 190,
     resellerPrice: 260,
     suggestedSellingPrice: 420,
@@ -1052,12 +1093,14 @@ const INITIAL_SETTINGS: PlatformSettings = {
   minWithdrawalAmountBdt: 500,
   standardDeliveryFeeDhaka: 60,
   standardDeliveryFeeOutsideDhaka: 120,
+  packagingChargeBdt: 30, // 30 TK flat packaging charge
   platformFeePercent: 0,
   referralRewardBdt: 50,
   autoApproveResellers: false,
-  supportPhone: '+880 1711-223344',
-  supportWhatsapp: '+880 1711-223344',
-  supportEmail: 'support@shadhinresell.com',
+  supportPhone: '01333855344',
+  supportWhatsapp: '01333855344',
+  supportEmail: 'support@mehermart.com',
+  supportAddress: 'Savar DOHS, Savar, Dhaka-1344',
   founderResellerId: 'rsl-founder',
 };
 
@@ -1071,13 +1114,15 @@ class Database {
   }
 
   private getDefaultData(): DatabaseSchema {
+    const seed = generateRealisticResellersDataset();
+
     return {
-      users: [...INITIAL_USERS],
-      resellers: [...INITIAL_RESELLERS],
+      users: seed.users,
+      resellers: seed.resellers,
       categories: [...INITIAL_CATEGORIES],
       products: [...INITIAL_PRODUCTS],
-      orders: [...INITIAL_ORDERS],
-      wallets: { ...INITIAL_WALLETS },
+      orders: seed.orders,
+      wallets: seed.wallets,
       transactions: [...INITIAL_TRANSACTIONS],
       withdrawals: [...INITIAL_WITHDRAWALS],
       achievements: [...INITIAL_ACHIEVEMENTS],
@@ -1106,15 +1151,15 @@ class Database {
           actorRole: 'ADMIN',
           targetType: 'SYSTEM',
           targetId: '0',
-          details: 'Initialized Shadhin Reseller platform database schema and seed data',
+          details: 'Initialized MeherMart platform database schema and 213 verified demo resellers',
           timestamp: new Date().toISOString(),
         },
       ],
       fraudAlerts: [],
       referralClicks: {
-        'RSL-SABBIR88': 142,
-        'FOUNDER-NAKIB': 210,
-        'RSL-NUSRAT99': 45,
+        'FOUNDER-MEHER': 342,
+        'MM-SMAR101': 210,
+        'MM-ELIT102': 95,
       },
     };
   }
@@ -1127,11 +1172,36 @@ class Database {
       if (fs.existsSync(DB_FILE)) {
         const fileContent = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(fileContent);
+        const defaults = this.getDefaultData();
+
+        // Ensure resellers dataset is complete with all 213 realistic entries
+        let finalResellers = parsed.resellers || defaults.resellers;
+        let finalUsers = parsed.users || defaults.users;
+        let finalWallets = { ...defaults.wallets, ...(parsed.wallets || {}) };
+
+        if (!finalResellers || finalResellers.length < 200) {
+          finalResellers = defaults.resellers;
+          finalUsers = defaults.users;
+          finalWallets = defaults.wallets;
+        }
+
+        // Ensure products have productCode, stock status, restock estimates
+        const mergedProducts = (parsed.products && parsed.products.length > 0 ? parsed.products : defaults.products).map((p: Product, idx: number) => ({
+          ...p,
+          productCode: p.productCode || `MM-${1001 + idx}`,
+          isStockOut: p.isStockOut !== undefined ? p.isStockOut : (p.stock !== undefined && p.stock <= 0),
+          estimatedRestockDays: p.estimatedRestockDays || 3,
+          estimatedRestockDate: p.estimatedRestockDate || 'In 3-5 days',
+        }));
+
         this.data = {
-          ...this.getDefaultData(),
+          ...defaults,
           ...parsed,
-          wallets: { ...this.getDefaultData().wallets, ...(parsed.wallets || {}) },
-          settings: { ...this.getDefaultData().settings, ...(parsed.settings || {}) },
+          users: finalUsers,
+          resellers: finalResellers,
+          products: mergedProducts,
+          wallets: finalWallets,
+          settings: { ...defaults.settings, ...(parsed.settings || {}) },
         };
       } else {
         this.save();
@@ -1209,7 +1279,7 @@ class Database {
     });
   }
 
-  public findUserOrReseller(query: string) {
+  public findUserOrReseller(query: string, password?: string) {
     if (!query) return { user: undefined, reseller: undefined };
     const qTrim = query.trim().toLowerCase();
     const cleanDigits = query.replace(/[^0-9]/g, '');
@@ -1244,11 +1314,43 @@ class Database {
       reseller = this.getResellerByUserId(user.id);
     }
 
+    // If password provided and user has a stored password, check if it matches
+    if (user && password && user.password && user.password.trim() !== '') {
+      if (user.password !== password) {
+        // Return null user if password mismatch
+        return { user: undefined, reseller: undefined, passwordMismatch: true };
+      }
+    } else if (user && password && (!user.password || user.password === '')) {
+      // Save password if user previously had none
+      user.password = password;
+      this.save();
+    }
+
     return { user, reseller };
   }
 
   public getResellers() {
     return this.data.resellers;
+  }
+
+  public getAllResellersWithDetails() {
+    const orders = this.data.orders || [];
+    return this.data.resellers.map((r) => {
+      const user = this.getUserById(r.userId);
+      const resellerOrders = orders.filter((o) => o.resellerId === r.id);
+      const delivered = resellerOrders.filter((o) => o.status === 'DELIVERED');
+      const totalProfitEarned = delivered.reduce((acc, o) => acc + (o.totalResellerProfit || 0), 0);
+      const completedLessons = this.data.userLessonProgress[r.id] || [];
+
+      return {
+        ...r,
+        user,
+        deliveredOrdersCount: delivered.length,
+        totalOrdersCount: resellerOrders.length,
+        totalProfitEarned,
+        completedLessonsCount: completedLessons.length,
+      };
+    });
   }
 
   public getResellerById(id: string) {
@@ -1266,12 +1368,13 @@ class Database {
     );
   }
 
-  public createCustomer(user: Omit<User, 'id' | 'role' | 'createdAt'>) {
+  public createCustomer(user: Omit<User, 'id' | 'role' | 'createdAt'> & { password?: string }) {
     const id = `usr-cust-${Date.now()}`;
     const newUser: User = {
       ...user,
       id,
       role: 'CUSTOMER',
+      password: user.password || undefined,
       createdAt: new Date().toISOString(),
     };
     this.data.users.push(newUser);
@@ -1280,7 +1383,7 @@ class Database {
   }
 
   public createReseller(data: {
-    user: Omit<User, 'id' | 'role' | 'createdAt'>;
+    user: Omit<User, 'id' | 'role' | 'createdAt'> & { password?: string };
     storeName: string;
     facebookPage?: string;
     whatsappNumber: string;
@@ -1290,15 +1393,19 @@ class Database {
     address: string;
     salesIntent: string;
     referredBy?: string;
+    password?: string;
   }) {
     const userId = `usr-rsl-${Date.now()}`;
     const resellerId = `rsl-${Date.now().toString(36)}`;
     const referralCode = `RSL-${data.storeName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6) || 'BD'}${Math.floor(100 + Math.random() * 900)}`;
 
+    const userPassword = data.password || data.user.password;
+
     const newUser: User = {
       ...data.user,
       id: userId,
       role: 'RESELLER',
+      password: userPassword,
       createdAt: new Date().toISOString(),
     };
 
@@ -1314,6 +1421,7 @@ class Database {
       status: initialStatus,
       isVerified: this.data.settings.autoApproveResellers,
       verificationFeePaid: false,
+      password: userPassword,
       division: data.division,
       district: data.district,
       upazila: data.upazila,
@@ -1397,9 +1505,14 @@ class Database {
 
   public createProduct(product: Omit<Product, 'id' | 'createdAt' | 'rating' | 'reviewCount' | 'successfulSalesCount' | 'returnRatePercent'>, actor: User) {
     const id = `prod-${Date.now()}`;
+    const productCode = product.productCode || `MM-${1001 + this.data.products.length}`;
     const newProduct: Product = {
       ...product,
       id,
+      productCode,
+      isStockOut: product.isStockOut || (product.stock !== undefined && product.stock <= 0),
+      estimatedRestockDays: product.estimatedRestockDays || 3,
+      estimatedRestockDate: product.estimatedRestockDate || 'In 3-5 days',
       rating: 5.0,
       reviewCount: 0,
       successfulSalesCount: 0,
@@ -1415,7 +1528,7 @@ class Database {
       actorRole: actor.role,
       targetType: 'PRODUCT',
       targetId: id,
-      details: `Created product "${newProduct.name}" at wholesale ৳${newProduct.resellerPrice}`,
+      details: `Created product "${newProduct.name}" (${newProduct.productCode}) at wholesale ৳${newProduct.resellerPrice}`,
     });
 
     this.save();
@@ -1428,6 +1541,10 @@ class Database {
 
     Object.assign(product, updates);
 
+    if (updates.stock !== undefined && updates.isStockOut === undefined) {
+      product.isStockOut = updates.stock <= 0;
+    }
+
     this.logAudit({
       action: 'UPDATE_PRODUCT',
       actorId: actor.id,
@@ -1435,11 +1552,31 @@ class Database {
       actorRole: actor.role,
       targetType: 'PRODUCT',
       targetId: id,
-      details: `Updated product "${product.name}" details/pricing`,
+      details: `Updated product "${product.name}" (${product.productCode || id}) details/stock/pricing`,
     });
 
     this.save();
     return product;
+  }
+
+  public deleteProduct(id: string, actor: User) {
+    const index = this.data.products.findIndex((p) => p.id === id);
+    if (index === -1) throw new Error('Product not found');
+
+    const removed = this.data.products.splice(index, 1)[0];
+
+    this.logAudit({
+      action: 'DELETE_PRODUCT',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'PRODUCT',
+      targetId: id,
+      details: `Deleted product "${removed.name}" (Code: ${removed.productCode || id})`,
+    });
+
+    this.save();
+    return { success: true, deletedId: id, product: removed };
   }
 
   public bulkCreateProducts(productsList: Array<Partial<Product>>, actor: User, replaceAll = false) {
@@ -1468,6 +1605,7 @@ class Database {
 
     const formattedProducts: Product[] = productsList.map((p, idx) => {
       const id = p.id || `prod-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
+      const productCode = p.productCode || `MM-${1001 + idx}`;
       const resellerPrice = Math.round(Number(p.resellerPrice) || 0);
       const suggestedSellingPrice = Math.round(Number(p.suggestedSellingPrice) || (resellerPrice > 0 ? Math.round(resellerPrice * 1.5) : 500));
       const baseCost = Math.round(Number(p.baseCost) || Math.round(resellerPrice * 0.85));
@@ -1480,10 +1618,20 @@ class Database {
       const category = p.category || catInfo.category;
       const categorySlug = p.categorySlug || catInfo.slug;
 
+      const slug = (p.name || 'product')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') || `prod-${Date.now()}`;
+
+      const stock = p.stock !== undefined ? Number(p.stock) : 100;
+      const isStockOut = p.isStockOut !== undefined ? p.isStockOut : stock <= 0;
+
       return {
         id,
+        productCode,
         name: p.name || 'Unnamed Product',
         nameBn: p.nameBn || p.name || '',
+        slug: p.slug || slug,
         category,
         categorySlug,
         baseCost,
@@ -1493,7 +1641,10 @@ class Database {
         discountAmount,
         minSellingPrice: p.minSellingPrice || resellerPrice + 50,
         maxSellingPrice: p.maxSellingPrice || Math.round(suggestedSellingPrice * 1.5),
-        stock: p.stock !== undefined ? Number(p.stock) : 100,
+        stock,
+        isStockOut,
+        estimatedRestockDays: p.estimatedRestockDays || 3,
+        estimatedRestockDate: p.estimatedRestockDate || 'In 3-5 days',
         images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80'],
         description: p.description || '',
         features: Array.isArray(p.features) && p.features.length > 0
@@ -1509,6 +1660,8 @@ class Database {
         returnRatePercent: p.returnRatePercent || 1.2,
         isTrending: p.isTrending !== undefined ? p.isTrending : Math.random() > 0.65,
         isBestSeller: p.isBestSeller !== undefined ? p.isBestSeller : Math.random() > 0.7,
+        deliveryDaysMin: p.deliveryDaysMin || 2,
+        deliveryDaysMax: p.deliveryDaysMax || 4,
         createdAt: p.createdAt || new Date().toISOString(),
       };
     });
@@ -1535,7 +1688,7 @@ class Database {
         nameBn: existing?.nameBn || name,
         slug: val.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         icon: existing?.icon || 'Package',
-        productCount: val.count,
+        itemCount: val.count,
       };
     });
 
@@ -1595,7 +1748,8 @@ class Database {
     courier?: Order['courier'];
   }) {
     const orderId = `ord-${Date.now()}`;
-    const orderNumber = `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const nextOrderNum = 3001 + this.data.orders.length;
+    const orderNumber = `#${nextOrderNum}`;
 
     let reseller: ResellerProfile | undefined;
     if (input.resellerId) {
@@ -1603,6 +1757,7 @@ class Database {
     }
 
     const deliveryFee = ProfitEngine.getDeliveryFee(input.division);
+    const packagingFee = this.data.settings.packagingChargeBdt ?? 30;
     const orderItems: Order['items'] = [];
     let subtotal = 0;
     let totalResellerProfit = 0;
@@ -1643,7 +1798,7 @@ class Database {
       totalPlatformMargin += calc.platformMargin;
     }
 
-    const totalAmount = subtotal + deliveryFee;
+    const totalAmount = subtotal + deliveryFee + packagingFee;
 
     const newOrder: Order = {
       id: orderId,
@@ -1666,6 +1821,7 @@ class Database {
       itemCount: orderItems.reduce((acc, it) => acc + it.quantity, 0),
       subtotal,
       deliveryFee,
+      packagingFee,
       platformFee: 0,
       totalAmount,
       totalResellerProfit,
@@ -2004,6 +2160,49 @@ class Database {
     else reseller.level = 1;
 
     this.save();
+    return reseller;
+  }
+
+  public awardResellerXpManual(resellerId: string, amount: number, reason: string, actor: User) {
+    const reseller = this.getResellerById(resellerId);
+    if (!reseller) throw new Error('Reseller not found');
+
+    const prevXp = reseller.xp;
+    const prevLevel = reseller.level;
+
+    reseller.xp += amount;
+    if (reseller.xp < 0) reseller.xp = 0;
+
+    // Calculate Level
+    if (reseller.xp >= 10000) reseller.level = 5;
+    else if (reseller.xp >= 4000) reseller.level = 4;
+    else if (reseller.xp >= 1500) reseller.level = 3;
+    else if (reseller.xp >= 500) reseller.level = 2;
+    else reseller.level = 1;
+
+    const leveledUp = reseller.level > prevLevel;
+
+    this.logAudit({
+      action: 'AWARD_MANUAL_XP',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'RESELLER',
+      targetId: resellerId,
+      details: `Awarded +${amount} XP to ${reseller.storeName} (${reason}). New XP: ${reseller.xp}, Level: ${reseller.level}`,
+    });
+
+    this.save();
+    return {
+      reseller,
+      prevXp,
+      newXp: reseller.xp,
+      prevLevel,
+      newLevel: reseller.level,
+      leveledUp,
+      amount,
+      reason,
+    };
   }
 
   public getLeaderboard(period: 'weekly' | 'monthly' | 'allTime' = 'allTime'): LeaderboardEntry[] {

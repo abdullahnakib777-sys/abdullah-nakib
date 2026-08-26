@@ -107,7 +107,10 @@ async function startServer() {
       return res.status(400).json({ error: 'Email, phone number, or referral code is required' });
     }
 
-    const { user, reseller } = db.findUserOrReseller(emailOrPhone);
+    const { user, reseller, passwordMismatch } = (db.findUserOrReseller(emailOrPhone, password) as any);
+    if (passwordMismatch) {
+      return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+    }
     if (!user) {
       return res.status(401).json({ error: 'No account found matching this phone number, email, or referral code.' });
     }
@@ -117,7 +120,7 @@ async function startServer() {
 
   // Auth: Register Customer
   app.post('/api/v1/auth/register-customer', (req: Request, res: Response) => {
-    const { name, email, phone } = req.body;
+    const { name, email, phone, password } = req.body;
     if (!name || !phone) {
       return res.status(400).json({ error: 'Name and Phone number are required' });
     }
@@ -131,6 +134,7 @@ async function startServer() {
       name,
       email: email || `${phone}@customer.shadhin.com`,
       phone,
+      password: password || undefined,
     });
 
     res.status(201).json({ user, token: user.id });
@@ -142,6 +146,7 @@ async function startServer() {
       name,
       email,
       phone,
+      password,
       storeName,
       facebookPage,
       whatsappNumber,
@@ -167,6 +172,7 @@ async function startServer() {
         name,
         email: email || `${phone}@reseller.shadhin.com`,
         phone,
+        password: password || undefined,
       },
       storeName,
       facebookPage,
@@ -177,6 +183,7 @@ async function startServer() {
       address,
       salesIntent: salesIntent || 'Facebook & WhatsApp selling',
       referredBy,
+      password: password || undefined,
     });
 
     res.status(201).json({ user, reseller, token: user.id });
@@ -685,6 +692,65 @@ async function startServer() {
     }
   });
 
+  // Admin: Get All Resellers with Full Details
+  app.get('/api/v1/admin/resellers', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const detailedResellers = db.getAllResellersWithDetails();
+      res.json({ resellers: detailedResellers });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Failed to fetch resellers list' });
+    }
+  });
+
+  // Admin: Award Manual XP to Reseller for Challenge/Lesson/Performance
+  app.post('/api/v1/admin/resellers/:id/award-xp', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const { id } = req.params;
+      const { amount, reason } = req.body;
+
+      if (!amount || isNaN(Number(amount))) {
+        return res.status(400).json({ error: 'Valid XP amount is required' });
+      }
+
+      const awardResult = db.awardResellerXpManual(
+        id,
+        Number(amount),
+        reason || 'Manual Admin XP Award',
+        user
+      );
+
+      res.json({
+        success: true,
+        ...awardResult,
+        message: `Successfully awarded +${amount} XP to ${awardResult.reseller.storeName}! (New Level: ${awardResult.newLevel})`,
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to award XP' });
+    }
+  });
+
+  // Admin: Get All Registered Users
+  app.get('/api/v1/admin/users', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const users = db.getUsers();
+      res.json({ users });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+
   // Admin: Freely Approve Reseller Without Fee
   app.post('/api/v1/admin/resellers/:id/approve-free', (req: Request, res: Response) => {
     try {
@@ -860,6 +926,33 @@ async function startServer() {
       }
       const product = db.updateProduct(req.params.id, req.body, user);
       res.json({ product });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.put('/api/v1/admin/products/:id', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const product = db.updateProduct(req.params.id, req.body, user);
+      res.json({ product });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Delete Product
+  app.delete('/api/v1/admin/products/:id', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const result = db.deleteProduct(req.params.id, user);
+      res.json(result);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }

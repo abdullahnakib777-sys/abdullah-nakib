@@ -14,6 +14,7 @@ export interface User {
   email: string;
   phone: string;
   role: UserRole;
+  password?: string;
   avatar?: string;
   createdAt: string;
   isFounder?: boolean;
@@ -29,6 +30,7 @@ export interface ResellerProfile {
   status: ResellerStatus;
   isVerified: boolean;
   verificationFeePaid: boolean;
+  password?: string;
   verificationPayment?: {
     method: 'BKASH' | 'NAGAD' | 'ROCKET';
     senderPhone: string;
@@ -51,6 +53,20 @@ export interface ResellerProfile {
   createdAt: string;
 }
 
+export interface AdminResellerItem extends ResellerProfile {
+  user?: User;
+  ownerName?: string;
+  email?: string;
+  levelName?: string;
+  levelProgressPercent?: number;
+  xpToNextLevel?: number;
+  completedLessonsCount?: number;
+  deliveredOrdersCount?: number;
+  totalOrdersCount?: number;
+  totalProfitEarned?: number;
+  totalProfitEarnedBdt?: number;
+}
+
 export interface ProductCategory {
   id: string;
   name: string;
@@ -63,6 +79,7 @@ export interface ProductCategory {
 
 export interface Product {
   id: string;
+  productCode: string; // Unique SKU/Product Code, e.g. MM-1001
   name: string;
   nameBn: string;
   slug: string;
@@ -73,6 +90,9 @@ export interface Product {
   specifications: Record<string, string>;
   images: string[];
   stock: number;
+  isStockOut?: boolean; // Stock in / Stock out toggle
+  estimatedRestockDays?: number; // Estimated days for restock (e.g. 3, 5, 7)
+  estimatedRestockDate?: string; // Estimated restock description (e.g. "In 3-5 days (30 Aug)")
   // Financial units in BDT
   baseCost: number; // Cost to platform
   resellerPrice: number; // Wholesale price to reseller
@@ -111,6 +131,7 @@ export type PaymentMethod = 'COD' | 'BKASH' | 'NAGAD' | 'BANK';
 
 export interface OrderItem {
   productId: string;
+  productCode?: string;
   productName: string;
   productImage: string;
   quantity: number;
@@ -123,7 +144,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  orderNumber: string; // e.g. ORD-2026-8891
+  orderNumber: string; // Sequential order ID, e.g. #3001, #3002
   customerId?: string;
   customerName: string;
   customerPhone: string;
@@ -141,6 +162,7 @@ export interface Order {
   items: OrderItem[];
   itemCount: number;
   subtotal: number;
+  packagingFee?: number; // Fixed packaging charge (30 TK)
   deliveryFee: number;
   platformFee: number;
   totalAmount: number;
@@ -303,12 +325,14 @@ export interface PlatformSettings {
   minWithdrawalAmountBdt: number;
   standardDeliveryFeeDhaka: number;
   standardDeliveryFeeOutsideDhaka: number;
+  packagingChargeBdt: number; // Flat 30 TK packaging charge
   platformFeePercent: number;
   referralRewardBdt: number;
   autoApproveResellers: boolean;
   supportPhone: string;
   supportWhatsapp: string;
   supportEmail: string;
+  supportAddress: string;
   founderResellerId: string;
 }
 

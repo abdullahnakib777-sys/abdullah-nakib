@@ -60,7 +60,7 @@ export const AcademyView: React.FC<{ reseller: ResellerProfile }> = ({ reseller 
               Video Masterclasses & Direct YouTube Lessons
             </span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black">Shadhin Reseller Academy</h2>
+          <h2 className="text-2xl sm:text-3xl font-black">MeherMart Reseller Academy</h2>
           <p className="text-xs sm:text-sm text-emerald-100/90 max-w-xl">
             Watch battle-tested Facebook marketing, TikTok viral selling, and customer objection handling video lessons to scale your daily COD profits.
           </p>

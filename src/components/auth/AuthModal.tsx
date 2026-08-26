@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BANGLADESH_DIVISIONS } from '../../data/bangladeshGeo';
+import { PrivacyPolicyModal } from '../legal/PrivacyPolicyModal';
 import {
   X,
   UserCheck,
@@ -54,11 +55,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPassword, setCustomerPassword] = useState('');
 
   // Reseller registration fields
   const [rName, setRName] = useState('');
   const [rPhone, setRPhone] = useState('');
   const [rEmail, setREmail] = useState('');
+  const [rPassword, setRPassword] = useState('');
   const [rStoreName, setRStoreName] = useState('');
   const [rFacebook, setRFacebook] = useState('');
   const [rDivision, setRDivision] = useState('Dhaka');
@@ -75,6 +78,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Admin login fields
   const [adminId, setAdminId] = useState('abdullahnakib777@gmail.com');
   const [adminPass, setAdminPass] = useState('admin1234');
+
+  // Privacy Policy modal state
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   // Status states
   const [isLoading, setIsLoading] = useState(false);
@@ -131,8 +137,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
     setIsLoading(true);
     try {
-      await registerCustomer(customerName, customerPhone, customerEmail);
-      setSuccessMsg('Account created successfully!');
+      await registerCustomer(customerName, customerPhone, customerEmail, customerPassword);
+      setSuccessMsg('Account created successfully and saved in Cloud Firestore!');
       setTimeout(() => {
         onSuccess?.();
         onClose();
@@ -157,6 +163,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         name: rName,
         phone: rPhone,
         email: rEmail,
+        password: rPassword,
         storeName: rStoreName,
         facebookPage: rFacebook,
         whatsappNumber: rPhone,
@@ -232,33 +239,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity" onClick={onClose} />
+      {/* Backdrop with cosmic blur */}
+      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity" onClick={onClose} />
 
-      {/* Dialog Card */}
-      <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-8 transition-all">
+      {/* Floating Central Glass Card with Glowing Violet/Cyan Border */}
+      <div className="relative w-full max-w-xl galaxy-glass-card-static rounded-3xl shadow-[0_0_50px_rgba(139,92,246,0.35)] overflow-hidden border border-purple-500/40 my-8 transition-all">
         {/* Header Tabs */}
-        <div className="bg-slate-900 text-white px-6 pt-5 pb-3">
+        <div className="bg-[#0f0d22]/90 text-white px-6 pt-5 pb-3 border-b border-purple-500/25">
           <div className="flex items-center justify-between pb-3">
-            <div className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-slate-950 text-base">
-                স্বাধীন
-              </span>
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-tr from-cyan-400 via-indigo-600 to-purple-600 flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(6,182,212,0.6)]">
+                <span>স্বা</span>
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full animate-ping" />
+              </div>
               <div>
-                <h3 className="font-black text-lg text-white">Shadhin E-Commerce & Reselling</h3>
+                <h3 className="font-black text-lg text-white flex items-center gap-1.5">
+                  <span>Shadhin E-Commerce</span>
+                  <span className="text-xs bg-purple-900/70 border border-purple-500/40 text-cyan-300 px-2 py-0.5 rounded-full font-bold">
+                    🌌 Portal
+                  </span>
+                </h3>
                 <p className="text-[11px] text-slate-400">Bangladesh Multi-Vendor Wholesale & Retail Portal</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition"
+              className="p-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900/80 border border-purple-500/30 text-slate-300 hover:text-white transition"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Navigation Sub-tabs */}
-          <div className="flex items-center gap-1.5 pt-2 border-t border-slate-800 overflow-x-auto text-xs font-bold scrollbar-none">
+          <div className="flex items-center gap-1.5 pt-2 border-t border-purple-500/20 overflow-x-auto text-xs font-bold scrollbar-none">
             {/* 1. Reseller Login */}
             <button
               onClick={() => {
@@ -268,8 +281,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               }}
               className={`px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'reseller_login'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs'
-                  : 'text-emerald-300 hover:text-emerald-100 hover:bg-emerald-950/40'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                  : 'text-emerald-300 hover:text-white hover:bg-purple-950/40'
               }`}
             >
               <Store className="w-3.5 h-3.5" />
@@ -285,8 +298,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               }}
               className={`px-3.5 py-2 rounded-xl transition whitespace-nowrap ${
                 activeTab === 'customer_login'
-                  ? 'bg-slate-700 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  ? 'bg-purple-600/40 text-cyan-300 border border-cyan-400/40 shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-purple-950/40'
               }`}
             >
               Customer Login
@@ -301,12 +314,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               }}
               className={`px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'reseller_register'
-                  ? 'bg-amber-400 text-slate-950 shadow-xs'
-                  : 'text-amber-300 hover:text-amber-200 hover:bg-amber-400/10'
+                  ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 shadow-[0_0_15px_rgba(251,191,36,0.5)] font-black'
+                  : 'text-amber-300 hover:text-amber-100 hover:bg-amber-400/10'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Join as Reseller (৫০০৳)</span>
+              <span>Join Reseller (৫০০৳)</span>
             </button>
 
             {/* 4. Customer Registration */}
@@ -318,8 +331,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               }}
               className={`px-3 py-2 rounded-xl transition whitespace-nowrap ${
                 activeTab === 'customer_register'
-                  ? 'bg-slate-700 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  ? 'bg-purple-600/40 text-cyan-300 border border-cyan-400/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-purple-950/40'
               }`}
             >
               New Customer
@@ -334,8 +347,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               }}
               className={`px-2.5 py-2 rounded-xl transition flex items-center gap-1 whitespace-nowrap ml-auto ${
                 activeTab === 'admin_login'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-indigo-300 hover:text-indigo-200 hover:bg-indigo-900/30'
+                  ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.5)]'
+                  : 'text-indigo-300 hover:text-white hover:bg-indigo-900/40'
               }`}
             >
               <Lock className="w-3 h-3" />
@@ -348,46 +361,46 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-6 max-h-[75vh] overflow-y-auto">
           {/* Alerts */}
           {errorMsg && (
-            <div className="mb-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            <div className="mb-4 p-3.5 rounded-2xl bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs font-semibold flex items-center gap-2 shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="mb-4 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+            <div className="mb-4 p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
               <span>{successMsg}</span>
             </div>
           )}
 
-          {/* TAB 1: RESELLER LOGIN (FIRST CLASS) */}
+          {/* TAB 1: RESELLER LOGIN */}
           {activeTab === 'reseller_login' && (
             <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-amber-50 border border-emerald-200/80">
-                <div className="flex items-center gap-2 text-emerald-900 font-black text-sm mb-1">
-                  <Store className="w-4 h-4 text-emerald-600" />
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-purple-950/40 to-cyan-950/40 border border-emerald-500/30">
+                <div className="flex items-center gap-2 text-emerald-300 font-black text-sm mb-1">
+                  <Store className="w-4 h-4 text-emerald-400" />
                   <span>Reseller Hub & Wholesale Login</span>
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   Log in to access your wholesale factory rates, ResellAI selling kits, customer order management, and bKash/Nagad wallet withdrawals.
                 </p>
               </div>
 
               <form onSubmit={(e) => handleLoginSubmit(e, 'RESELLER')} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
                     Registered Mobile / WhatsApp / Email / Referral Code *
                   </label>
                   <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <Phone className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
                     <input
                       type="text"
                       required
                       placeholder="e.g. 01812345678, email, or RSL-SABBIR88"
                       value={phoneOrEmail}
                       onChange={(e) => setPhoneOrEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden bg-slate-50/50"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
@@ -396,17 +409,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
                     Password / PIN <span className="text-slate-400 font-normal">(Optional for phone/code login)</span>
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <Lock className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
                     <input
                       type="password"
                       placeholder="Enter password or leave blank for instant login"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden bg-slate-50/50"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                     />
                   </div>
                 </div>
@@ -414,7 +427,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] transition flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
                     <span>Verifying Reseller Account...</span>
@@ -430,9 +443,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               {/* Verified Demo Reseller Quick Logins */}
               {verifiedResellerDemos.length > 0 && (
-                <div className="pt-3 border-t border-slate-100">
-                  <p className="text-[11px] font-bold text-slate-500 mb-2 flex items-center gap-1">
-                    <Zap className="w-3 h-3 text-amber-500" />
+                <div className="pt-3 border-t border-purple-500/20">
+                  <p className="text-[11px] font-bold text-slate-400 mb-2 flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-amber-400" />
                     <span>Quick Login as Active Verified Reseller:</span>
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -441,15 +454,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         key={acc.user.id}
                         type="button"
                         onClick={() => handleQuickDemoLogin(acc.user.id, acc.user.name)}
-                        className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 text-left transition flex items-center justify-between"
+                        className="p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-950/40 hover:bg-emerald-900/50 text-left transition flex items-center justify-between shadow-xs"
                       >
                         <div>
-                          <p className="text-xs font-bold text-slate-900">{acc.reseller?.storeName || acc.user.name}</p>
-                          <p className="text-[10px] text-emerald-800 font-mono">
-                            {acc.user.phone} &bull; <span className="font-bold text-emerald-600">Verified ✓</span>
+                          <p className="text-xs font-bold text-white">{acc.reseller?.storeName || acc.user.name}</p>
+                          <p className="text-[10px] text-emerald-300 font-mono">
+                            {acc.user.phone} &bull; <span className="font-bold text-cyan-300">Verified ✓</span>
                           </p>
                         </div>
-                        <ArrowRight className="w-3.5 h-3.5 text-emerald-700" />
+                        <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
                       </button>
                     ))}
                   </div>
@@ -457,20 +470,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               )}
 
               {/* Action Footers */}
-              <div className="pt-2 text-center border-t border-slate-100 flex flex-wrap items-center justify-center gap-3 text-xs">
+              <div className="pt-2 text-center border-t border-purple-500/20 flex flex-wrap items-center justify-center gap-3 text-xs">
                 <button
                   type="button"
                   onClick={() => setActiveTab('reseller_register')}
-                  className="font-bold text-amber-600 hover:underline flex items-center gap-1"
+                  className="font-bold text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   <span>Not a reseller yet? Join (৫০০৳)</span>
                 </button>
-                <span className="text-slate-300">•</span>
+                <span className="text-purple-500/40">•</span>
                 <button
                   type="button"
                   onClick={() => setActiveTab('customer_login')}
-                  className="font-bold text-slate-600 hover:text-slate-900 hover:underline"
+                  className="font-bold text-cyan-300 hover:text-white hover:underline"
                 >
                   Sign in as Customer
                 </button>
@@ -482,37 +495,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {activeTab === 'customer_login' && (
             <form onSubmit={(e) => handleLoginSubmit(e, 'CUSTOMER')} className="space-y-4">
               <div className="text-center pb-2">
-                <h4 className="text-base font-black text-slate-900">Welcome Customer</h4>
-                <p className="text-xs text-slate-500">Log in to track your retail orders and shopping cart</p>
+                <h4 className="text-base font-black text-white">Welcome Customer</h4>
+                <p className="text-xs text-slate-400">Log in to track your retail orders and shopping cart</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
                   Mobile Number / Email *
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <Phone className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
                   <input
                     type="text"
                     required
                     placeholder="01XXXXXXXXX or email"
                     value={phoneOrEmail}
                     onChange={(e) => setPhoneOrEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden bg-slate-50/50"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Password / PIN (Optional)</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Password / PIN (Optional)</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <Lock className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
                   <input
                     type="password"
                     placeholder="Enter password or leave blank for instant login"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden bg-slate-50/50"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                   />
                 </div>
               </div>
@@ -520,7 +533,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-[0_0_15px_rgba(168,85,247,0.4)] transition flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <span>Logging in...</span>
@@ -532,20 +545,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 )}
               </button>
 
-              <div className="pt-3 text-center border-t border-slate-100 flex items-center justify-center gap-4 text-xs">
+              <div className="pt-3 text-center border-t border-purple-500/20 flex items-center justify-center gap-4 text-xs">
                 <button
                   type="button"
                   onClick={() => setActiveTab('reseller_login')}
-                  className="font-bold text-emerald-600 hover:underline flex items-center gap-1"
+                  className="font-bold text-emerald-400 hover:underline flex items-center gap-1"
                 >
                   <Store className="w-3.5 h-3.5" />
                   <span>Are you a Reseller? Sign In Here</span>
                 </button>
-                <span className="text-slate-300">•</span>
+                <span className="text-purple-500/40">•</span>
                 <button
                   type="button"
                   onClick={() => setActiveTab('customer_register')}
-                  className="font-bold text-slate-600 hover:underline"
+                  className="font-bold text-cyan-300 hover:underline"
                 >
                   New Customer
                 </button>
@@ -557,67 +570,96 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {activeTab === 'customer_register' && (
             <form onSubmit={handleCustomerRegister} className="space-y-4">
               <div className="text-center pb-2">
-                <h4 className="text-base font-black text-slate-900">Create Customer Account</h4>
-                <p className="text-xs text-slate-500">Quick sign-up to enjoy Cash on Delivery e-commerce shopping</p>
+                <h4 className="text-base font-black text-white">Create Customer Account</h4>
+                <p className="text-xs text-slate-400">Quick sign-up to enjoy Cash on Delivery e-commerce shopping</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Full Name *</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Full Name *</label>
                 <div className="relative">
-                  <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <UserIcon className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
                   <input
                     type="text"
                     required
                     placeholder="e.g. Tanvir Ahmed"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Mobile Phone (Bangladeshi) *</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Mobile Phone (Bangladeshi) *</label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <Phone className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
                   <input
                     type="tel"
                     required
                     placeholder="01XXXXXXXXX"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Email Address (Optional)</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Email Address (Optional)</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <Mail className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
                   <input
                     type="email"
                     placeholder="name@example.com"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Create Password / PIN *</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Set a password (e.g. 123456)"
+                    value={customerPassword}
+                    onChange={(e) => setCustomerPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                  />
+                </div>
+                <p className="text-[10px] text-emerald-300 mt-1">
+                  ☁️ Securely remembered in database — log back in anytime with your Phone & Password!
+                </p>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold text-xs shadow-[0_0_15px_rgba(6,182,212,0.4)] transition flex items-center justify-center gap-2"
               >
                 {isLoading ? <span>Creating Account...</span> : <span>Create Account & Continue</span>}
               </button>
 
-              <div className="pt-2 text-center text-xs">
+              <p className="text-[10px] text-center text-slate-400">
+                By registering, you agree to MeherMart's{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsPrivacyModalOpen(true)}
+                  className="text-cyan-300 underline font-semibold hover:text-cyan-200"
+                >
+                  Privacy & Terms Policy
+                </button>
+              </p>
+
+              <div className="pt-1 text-center text-xs">
                 <button
                   type="button"
                   onClick={() => setActiveTab('customer_login')}
-                  className="font-bold text-slate-600 hover:underline"
+                  className="font-bold text-cyan-300 hover:underline"
                 >
                   Already have an account? Sign In
                 </button>
@@ -625,85 +667,85 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </form>
           )}
 
-          {/* TAB 4: JOIN AS RESELLER (500 TK FEE FLOW) */}
+          {/* TAB 4: JOIN AS RESELLER */}
           {activeTab === 'reseller_register' && (
             <div>
               {resellerStep === 'form' ? (
                 <form onSubmit={handleResellerRegisterSubmit} className="space-y-4">
                   {/* Reseller Perks Banner */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-teal-500/10 border border-amber-300/40 space-y-2">
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-cyan-500/15 border border-amber-400/40 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
                         <span>Reseller Program & Verification</span>
                       </span>
-                      <span className="text-[11px] font-extrabold text-amber-900 bg-amber-200/80 px-2.5 py-0.5 rounded-full">
+                      <span className="text-[11px] font-extrabold text-amber-950 bg-gradient-to-r from-amber-300 to-amber-400 px-2.5 py-0.5 rounded-full shadow-xs">
                         Fee: ৫০০৳ TK
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
                       Join 1,200+ active online entrepreneurs. Sell 500+ factory wholesale items with ৳200–৳1,000 profit margin per order. Nationwide COD, courier packaging, and instant wallet payouts included.
                     </p>
-                    <div className="text-[10px] text-emerald-800 font-semibold bg-emerald-100/60 p-2 rounded-xl flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <div className="text-[10px] text-emerald-300 font-semibold bg-emerald-950/60 border border-emerald-500/30 p-2 rounded-xl flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                       <span>Note: You can pay 500 TK via bKash/Nagad or request free approval by platform admin!</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Your Full Name *</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Your Full Name *</label>
                       <input
                         type="text"
                         required
                         placeholder="e.g. Abdullah Nakib"
                         value={rName}
                         onChange={(e) => setRName(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Phone / WhatsApp *</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Phone / WhatsApp *</label>
                       <input
                         type="tel"
                         required
                         placeholder="01XXXXXXXXX"
                         value={rPhone}
                         onChange={(e) => setRPhone(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Store / Page Name *</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Store / Page Name *</label>
                       <input
                         type="text"
                         required
                         placeholder="e.g. Trendy BD Mart"
                         value={rStoreName}
                         onChange={(e) => setRStoreName(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Facebook Page / Link (Optional)</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Facebook Page / Link (Optional)</label>
                       <input
                         type="text"
                         placeholder="facebook.com/yourpage"
                         value={rFacebook}
                         onChange={(e) => setRFacebook(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Division *</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Division *</label>
                       <select
                         value={rDivision}
                         onChange={(e) => {
@@ -715,10 +757,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             setRDistrict(firstDist);
                           }
                         }}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden bg-white"
+                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium bg-[#141226]"
                       >
                         {Object.keys(BANGLADESH_DIVISIONS).map((divKey) => (
-                          <option key={divKey} value={divKey}>
+                          <option key={divKey} value={divKey} className="bg-[#141226] text-white">
                             {BANGLADESH_DIVISIONS[divKey].name} ({BANGLADESH_DIVISIONS[divKey].nameBn})
                           </option>
                         ))}
@@ -726,14 +768,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">District *</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">District *</label>
                       <select
                         value={rDistrict}
                         onChange={(e) => setRDistrict(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden bg-white"
+                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium bg-[#141226]"
                       >
                         {Object.keys(BANGLADESH_DIVISIONS[rDivision]?.districts || {}).map((distKey) => (
-                          <option key={distKey} value={distKey}>
+                          <option key={distKey} value={distKey} className="bg-[#141226] text-white">
                             {BANGLADESH_DIVISIONS[rDivision].districts[distKey].name} ({BANGLADESH_DIVISIONS[rDivision].districts[distKey].nameBn})
                           </option>
                         ))}
@@ -741,32 +783,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Full Present Address *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Road / House / Area, Upazila"
-                      value={rAddress}
-                      onChange={(e) => setRAddress(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Full Present Address *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Road / House / Area, Upazila"
+                        value={rAddress}
+                        onChange={(e) => setRAddress(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Create Password / PIN *</label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="Set password for your store"
+                        value={rPassword}
+                        onChange={(e) => setRPassword(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium border-emerald-500/40"
+                      />
+                    </div>
                   </div>
 
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-md transition flex items-center justify-center gap-2"
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-[0_0_20px_rgba(251,191,36,0.4)] transition flex items-center justify-center gap-2"
                   >
                     <span>Register & Proceed to Verification (৫০০৳)</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
-                  <div className="pt-2 text-center text-xs">
+                  <p className="text-[10px] text-center text-slate-400">
+                    By registering as a Reseller, you agree to MeherMart's{' '}
+                    <button
+                      type="button"
+                      onClick={() => setIsPrivacyModalOpen(true)}
+                      className="text-amber-300 underline font-semibold hover:text-amber-200"
+                    >
+                      Reseller Terms & Privacy Policy
+                    </button>
+                  </p>
+
+                  <div className="pt-1 text-center text-xs">
                     <button
                       type="button"
                       onClick={() => setActiveTab('reseller_login')}
-                      className="font-bold text-emerald-700 hover:underline"
+                      className="font-bold text-emerald-400 hover:underline"
                     >
                       Already registered as a Reseller? Click here to Log In
                     </button>
@@ -775,32 +842,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               ) : (
                 /* Payment Verification Step */
                 <form onSubmit={handleResellerPaymentSubmit} className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs space-y-2">
-                    <div className="flex items-center justify-between font-bold text-emerald-900">
+                  <div className="p-4 rounded-2xl bg-purple-950/50 border border-purple-500/30 text-xs space-y-2">
+                    <div className="flex items-center justify-between font-bold text-white">
                       <span>500 TK Verification Fee Payment</span>
-                      <span className="text-base font-black text-emerald-700">৳500 BDT</span>
+                      <span className="text-base font-black text-amber-400">৳500 BDT</span>
                     </div>
-                    <p className="text-slate-600 text-[11px] leading-relaxed">
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
                       Send <strong>৳500</strong> to any of our official merchant / personal numbers below using <strong>Send Money</strong>:
                     </p>
-                    <div className="space-y-1 bg-white p-3 rounded-xl border border-emerald-200 text-[11px]">
+                    <div className="space-y-1.5 bg-[#0e0c1f] p-3 rounded-xl border border-purple-500/30 text-[11px]">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-pink-600">bKash (Personal):</span>
-                        <span className="font-mono font-bold text-slate-900">01712-345678</span>
+                        <span className="font-bold text-pink-400">bKash (Personal):</span>
+                        <span className="font-mono font-bold text-cyan-300">01712-345678</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-orange-600">Nagad (Personal):</span>
-                        <span className="font-mono font-bold text-slate-900">01812-345678</span>
+                        <span className="font-bold text-orange-400">Nagad (Personal):</span>
+                        <span className="font-mono font-bold text-cyan-300">01812-345678</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-purple-600">Rocket:</span>
-                        <span className="font-mono font-bold text-slate-900">01912-345678-9</span>
+                        <span className="font-bold text-purple-400">Rocket:</span>
+                        <span className="font-mono font-bold text-cyan-300">01912-345678-9</span>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Payment Method *</label>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">Payment Method *</label>
                     <div className="grid grid-cols-3 gap-2">
                       {(['BKASH', 'NAGAD', 'ROCKET'] as const).map((m) => (
                         <button
@@ -809,8 +876,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           onClick={() => setPayMethod(m)}
                           className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
                             payMethod === m
-                              ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                              : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                              ? 'border-cyan-400 bg-cyan-950/60 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                              : 'border-purple-500/30 bg-purple-950/30 hover:bg-purple-900/40 text-slate-300'
                           }`}
                         >
                           {m === 'BKASH' ? 'bKash' : m === 'NAGAD' ? 'Nagad' : 'Rocket'}
@@ -820,33 +887,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Your Sender Mobile Number *</label>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Your Sender Mobile Number *</label>
                     <input
                       type="tel"
                       required
                       placeholder="01XXXXXXXXX"
                       value={paySenderPhone}
                       onChange={(e) => setPaySenderPhone(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                      className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Transaction ID (TrxID) *</label>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Transaction ID (TrxID) *</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. 9K72LM8Q"
                       value={payTrxId}
                       onChange={(e) => setPayTrxId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500 outline-hidden uppercase"
+                      className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-mono font-bold uppercase tracking-wider"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs shadow-[0_0_15px_rgba(16,185,129,0.4)] transition flex items-center justify-center gap-2"
                   >
                     {isLoading ? <span>Submitting...</span> : <span>Submit 500 TK Verification</span>}
                   </button>
@@ -862,42 +929,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {/* TAB 5: MASTER ADMIN LOGIN */}
           {activeTab === 'admin_login' && (
             <form onSubmit={handleAdminLogin} className="space-y-4">
-              <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-950 text-xs space-y-1">
-                <div className="flex items-center gap-2 font-bold text-indigo-900">
-                  <ShieldCheck className="w-4 h-4 text-indigo-600" />
+              <div className="p-4 rounded-2xl bg-indigo-950/50 border border-indigo-500/40 text-indigo-200 text-xs space-y-1">
+                <div className="flex items-center gap-2 font-bold text-indigo-300">
+                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
                   <span>Restricted Founder / Admin Access</span>
                 </div>
-                <p className="text-[11px] text-indigo-800/80 leading-relaxed">
+                <p className="text-[11px] text-slate-300 leading-relaxed">
                   Only authorized admin ID & password can access the central operations control panel, manage wholesale products, create challenges, and upload academy lessons.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Admin ID / Email *</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Admin ID / Email *</label>
                 <div className="relative">
-                  <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <UserIcon className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
                   <input
                     type="text"
                     required
                     placeholder="admin or abdullahnakib777@gmail.com"
                     value={adminId}
                     onChange={(e) => setAdminId(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Secret Master Password *</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">Secret Master Password *</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <Lock className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
                   <input
                     type="password"
                     required
                     placeholder="Enter Admin Password (e.g. admin1234)"
                     value={adminPass}
                     onChange={(e) => setAdminPass(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-hidden"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
                   />
                 </div>
               </div>
@@ -905,7 +972,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(99,102,241,0.5)] transition flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <span>Authenticating...</span>
@@ -920,6 +987,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
         </div>
       </div>
+
+      <PrivacyPolicyModal
+        isOpen={isPrivacyModalOpen}
+        onClose={() => setIsPrivacyModalOpen(false)}
+      />
     </div>
   );
 };
