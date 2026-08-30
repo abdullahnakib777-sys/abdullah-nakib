@@ -264,16 +264,25 @@ export interface LeaderboardEntry {
   resellerId: string;
   displayName: string;
   storeName: string;
+  userName?: string;
+  ownerName?: string;
   avatar?: string;
   salesCount: number;
   profitAmount: number;
   successfulDeliveries: number;
+  deliveredOrders: number;
+  deliveredOrdersCount?: number;
+  totalRevenue: number;
+  totalProfit: number;
+  totalSalesBdt?: number;
+  totalOrders?: number;
   level: number;
   levelTitle: string;
   xp: number;
   isFounder?: boolean;
   streakDays: number;
   badges: string[];
+  status?: string;
 }
 
 export interface Achievement {

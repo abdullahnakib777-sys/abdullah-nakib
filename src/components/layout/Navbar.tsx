@@ -45,7 +45,7 @@ export const Navbar: React.FC<{
   const { itemCount: customerCartCount, setIsCartOpen: setCustomerCartOpen } = useCart();
   const { itemCount: resellerCartCount, setIsCartOpen: setResellerCartOpen } = useResellerCart();
   const { theme, isDay, toggleTheme } = useTheme();
-  const { isBn, toggleLanguage } = useLanguage();
+  const { isBn, setLanguage, toggleLanguage, t } = useLanguage();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const isReseller = user?.role === 'RESELLER';
@@ -87,7 +87,7 @@ export const Navbar: React.FC<{
                   : 'hover:bg-purple-950/40 hover:text-white text-slate-300'
               }`}
             >
-              Public Catalog
+              {t('public_catalog', 'Public Catalog')}
             </button>
 
             {isReseller && (
@@ -103,11 +103,11 @@ export const Navbar: React.FC<{
                   }`}
                 >
                   <Store className={`w-3.5 h-3.5 ${isResellerVerified ? 'text-emerald-400' : 'text-amber-400'}`} />
-                  <span>Reseller Hub</span>
+                  <span>{t('reseller_hub', 'Reseller Hub')}</span>
                   {!isResellerVerified && (
                     <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                       <Lock className="w-2.5 h-2.5" />
-                      Pending
+                      {t('pending_approval', 'Pending')}
                     </span>
                   )}
                 </button>
@@ -121,7 +121,7 @@ export const Navbar: React.FC<{
                   }`}
                 >
                   <Award className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Leaderboard</span>
+                  <span>{t('leaderboard', 'Leaderboard')}</span>
                 </button>
 
                 <button
@@ -133,7 +133,7 @@ export const Navbar: React.FC<{
                   }`}
                 >
                   <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Academy</span>
+                  <span>{t('academy', 'Academy')}</span>
                 </button>
               </>
             )}
@@ -148,7 +148,7 @@ export const Navbar: React.FC<{
                 }`}
               >
                 <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Admin Operations</span>
+                <span>{t('admin_operations', 'Admin Operations')}</span>
               </button>
             )}
 
@@ -157,7 +157,7 @@ export const Navbar: React.FC<{
               className="px-3 py-1.5 rounded-xl hover:bg-purple-950/40 text-slate-300 hover:text-cyan-300 transition flex items-center gap-1"
             >
               <Truck className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Track Order</span>
+              <span>{t('track_order', 'Track Order')}</span>
             </button>
           </nav>
 
@@ -170,25 +170,44 @@ export const Navbar: React.FC<{
               id="resell-ai-nav-btn"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              <span className="hidden sm:inline">ResellAI</span>
+              <span className="hidden sm:inline">{t('resell_ai', 'ResellAI')}</span>
             </button>
 
-            {/* Language Toggle: English vs বাংলা */}
-            <button
-              onClick={toggleLanguage}
-              className="px-2.5 py-1.5 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-amber-400/50 hover:bg-purple-900/60 text-slate-200 hover:text-amber-300 transition flex items-center gap-1.5 text-xs font-bold shadow-xs"
-              title={isBn ? 'Switch to English' : 'বাংলা ভাষায় পরিবর্তন করুন'}
-              aria-label="Toggle Language"
-              id="language-toggle-btn"
+            {/* Language Toggle: English vs বাংলা Segmented Switch */}
+            <div
+              className="p-0.5 rounded-xl bg-purple-950/80 border border-purple-500/40 shadow-xs flex items-center gap-0.5"
+              id="language-toggle-wrapper"
             >
-              <Languages className="w-3.5 h-3.5 text-amber-400" />
-              <span>{isBn ? 'বাংলা' : 'EN'}</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('bn')}
+                className={`px-2 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                  isBn
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="বাংলায় দেখুন"
+              >
+                <span>বাংলা</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`px-2 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                  !isBn
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_10px_rgba(6,182,212,0.5)]'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="View in English"
+              >
+                <span>EN</span>
+              </button>
+            </div>
 
             {/* Theme Toggle Button: Cosmic Night vs Crystalline Day */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-cyan-400/50 hover:bg-purple-900/60 text-slate-200 hover:text-cyan-300 transition flex items-center justify-center group"
+              className="p-2 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-cyan-400/50 hover:bg-purple-900/60 text-slate-200 hover:text-cyan-300 transition flex items-center justify-center group cursor-pointer"
               title={isDay ? 'Switch to Cosmic Night theme' : 'Switch to Crystalline Day theme'}
               aria-label="Toggle Cosmic Theme"
               id="theme-toggle-btn"
@@ -203,7 +222,7 @@ export const Navbar: React.FC<{
             {/* Cart Button */}
             <button
               onClick={handleCartClick}
-              className="relative p-2 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-cyan-400/50 hover:bg-purple-900/60 text-slate-200 hover:text-cyan-300 transition"
+              className="relative p-2 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-cyan-400/50 hover:bg-purple-900/60 text-slate-200 hover:text-cyan-300 transition cursor-pointer"
               id="nav-cart-btn"
               title={isResellerHubView && isReseller ? 'View Reseller Multi-Item Cart' : 'View Shopping Cart'}
             >
@@ -223,10 +242,10 @@ export const Navbar: React.FC<{
             {!isReseller && !isAdmin && (
               <button
                 onClick={() => onOpenAuthModal('reseller_register')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 shadow-[0_0_15px_rgba(251,191,36,0.4)] transition transform hover:scale-105"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 shadow-[0_0_15px_rgba(251,191,36,0.4)] transition transform hover:scale-105 cursor-pointer"
               >
                 <Store className="w-3.5 h-3.5" />
-                <span>Join Reseller (৫০০৳)</span>
+                <span>{t('join_reseller_btn', 'Join Reseller (৳500)')}</span>
               </button>
             )}
 
@@ -235,24 +254,24 @@ export const Navbar: React.FC<{
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => onOpenAuthModal('reseller_login')}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
                 >
                   <Store className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="hidden sm:inline">Reseller Login</span>
-                  <span className="sm:hidden">Login</span>
+                  <span className="hidden sm:inline">{t('reseller_login', 'Reseller Login')}</span>
+                  <span className="sm:hidden">{t('login', 'Login')}</span>
                 </button>
 
                 <button
                   onClick={() => onOpenAuthModal('customer_login')}
-                  className="px-3 py-1.5 rounded-xl bg-purple-950/40 border border-purple-500/30 hover:border-purple-400/60 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1 hidden md:flex"
+                  className="px-3 py-1.5 rounded-xl bg-purple-950/40 border border-purple-500/30 hover:border-purple-400/60 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1 hidden md:flex cursor-pointer"
                 >
                   <UserIcon className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Customer</span>
+                  <span>{t('customer_login', 'Customer')}</span>
                 </button>
 
                 <button
                   onClick={() => onOpenAuthModal('admin_login')}
-                  className="p-2 rounded-xl bg-purple-950/40 border border-purple-500/30 hover:border-indigo-400 hover:text-indigo-300 text-slate-400 text-xs font-bold transition"
+                  className="p-2 rounded-xl bg-purple-950/40 border border-purple-500/30 hover:border-indigo-400 hover:text-indigo-300 text-slate-400 text-xs font-bold transition cursor-pointer"
                   title="Admin Access"
                 >
                   <Lock className="w-3.5 h-3.5" />
@@ -262,7 +281,7 @@ export const Navbar: React.FC<{
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-cyan-400/50 text-slate-200 text-xs font-bold transition"
+                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-cyan-400/50 text-slate-200 text-xs font-bold transition cursor-pointer"
                 >
                   <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-xs">
                     {user.name.charAt(0).toUpperCase()}
@@ -285,7 +304,7 @@ export const Navbar: React.FC<{
                             ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
                             : 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
                         }`}>
-                          ⭐ {user.role} ACCOUNT
+                          ⭐ {user.role} {t('account', 'ACCOUNT')}
                         </span>
                       </div>
                     </div>
@@ -297,10 +316,10 @@ export const Navbar: React.FC<{
                             onNavigate('admin');
                             setIsUserMenuOpen(false);
                           }}
-                          className="w-full text-left px-4 py-2 hover:bg-indigo-950/60 hover:text-cyan-300 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 hover:bg-indigo-950/60 hover:text-cyan-300 flex items-center gap-2 cursor-pointer"
                         >
                           <Shield className="w-4 h-4 text-indigo-400" />
-                          <span>Admin Control Center</span>
+                          <span>{t('admin_operations', 'Admin Control Center')}</span>
                         </button>
                       )}
 
@@ -311,20 +330,20 @@ export const Navbar: React.FC<{
                               onNavigate('reseller_hub');
                               setIsUserMenuOpen(false);
                             }}
-                            className="w-full text-left px-4 py-2 hover:bg-purple-950/60 hover:text-cyan-300 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 hover:bg-purple-950/60 hover:text-cyan-300 flex items-center gap-2 cursor-pointer"
                           >
                             <Store className="w-4 h-4 text-emerald-400" />
-                            <span>Reseller Dashboard</span>
+                            <span>{t('reseller_dashboard', 'Reseller Dashboard')}</span>
                           </button>
                           <button
                             onClick={() => {
                               onNavigate('wallet');
                               setIsUserMenuOpen(false);
                             }}
-                            className="w-full text-left px-4 py-2 hover:bg-purple-950/60 hover:text-cyan-300 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 hover:bg-purple-950/60 hover:text-cyan-300 flex items-center gap-2 cursor-pointer"
                           >
                             <Sparkles className="w-4 h-4 text-amber-400" />
-                            <span>Wallet & Withdrawals</span>
+                            <span>{t('withdraw_btn', 'Wallet & Withdrawals')}</span>
                           </button>
                         </>
                       )}
@@ -334,10 +353,10 @@ export const Navbar: React.FC<{
                           onOpenTrackingModal();
                           setIsUserMenuOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2 hover:bg-purple-950/60 hover:text-cyan-300 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 hover:bg-purple-950/60 hover:text-cyan-300 flex items-center gap-2 cursor-pointer"
                       >
                         <Truck className="w-4 h-4 text-cyan-400" />
-                        <span>Track My Orders</span>
+                        <span>{t('track_order', 'Track My Orders')}</span>
                       </button>
 
                       <button
@@ -346,10 +365,10 @@ export const Navbar: React.FC<{
                           setIsUserMenuOpen(false);
                           onNavigate('storefront');
                         }}
-                        className="w-full text-left px-4 py-2 hover:bg-rose-950/60 text-rose-400 flex items-center gap-2 border-t border-purple-500/20 mt-1"
+                        className="w-full text-left px-4 py-2 hover:bg-rose-950/60 text-rose-400 flex items-center gap-2 border-t border-purple-500/20 mt-1 cursor-pointer"
                       >
                         <LogOut className="w-4 h-4 text-rose-400" />
-                        <span>Log Out</span>
+                        <span>{t('logout', 'Log Out')}</span>
                       </button>
                     </div>
                   </div>

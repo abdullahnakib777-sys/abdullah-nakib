@@ -12,6 +12,7 @@ import {
   AcademyLesson,
 } from '../../types';
 import { api } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 import { StatusBadge } from '../common/Badge';
 import { triggerLevelUpCelebration } from '../common/ConfettiTrigger';
 import { BulkProductUploaderModal } from './BulkProductUploaderModal';
@@ -63,6 +64,7 @@ import {
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
+  const { isBn, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<
     'overview' | 'orders' | 'resellers' | 'products' | 'notifications' | 'badges' | 'challenges' | 'academy' | 'withdrawals' | 'fraud' | 'settings'
   >('overview');
@@ -493,25 +495,29 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
             <span className="text-xs uppercase tracking-wider font-bold text-slate-300">
-              Master Admin Control Plane (Protected)
+              {isBn ? 'মাস্টার এডমিন কন্ট্রোল প্যানেল (সুরক্ষিত)' : 'Master Admin Control Plane (Protected)'}
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Live Operations
+              {isBn ? 'লাইভ সিস্টেম' : 'Live Operations'}
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black">Platform Operations Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-black">
+            {isBn ? 'প্ল্যাটফর্ম অপারেশনস ড্যাশবোর্ড' : 'Platform Operations Dashboard'}
+          </h1>
           <p className="text-xs text-slate-300">
-            Wholesale & Retail Products, Reseller 500 TK Verification, Daily/Weekly/Monthly Challenges & Academy Videos.
+            {isBn
+              ? 'হোলসেল ও রিটেইল প্রোডাক্ট, রিসেলার ভেরিফিকেশন, চ্যালেঞ্জ ও একাডেমি ভিডিও পরিচালনা।'
+              : 'Wholesale & Retail Products, Reseller Verification, Daily/Weekly/Monthly Challenges & Academy Videos.'}
           </p>
         </div>
 
         <button
           onClick={loadAllAdminData}
-          className="self-start md:self-auto px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold transition flex items-center gap-2"
+          className="self-start md:self-auto px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh Data</span>
+          <span>{isBn ? 'ডাটা রিফ্রেশ করুন' : 'Refresh Data'}</span>
         </button>
       </div>
 
@@ -521,14 +527,14 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
             <p>
-              <strong className="font-bold">Sync Notice:</strong> {loadError}. Cached demo records active.
+              <strong className="font-bold">{isBn ? 'সিঙ্ক নোটিশ:' : 'Sync Notice:'}</strong> {loadError}.
             </p>
           </div>
           <button
             onClick={loadAllAdminData}
-            className="px-3 py-1.5 bg-amber-200 hover:bg-amber-300 font-bold rounded-lg transition"
+            className="px-3 py-1.5 bg-amber-200 hover:bg-amber-300 font-bold rounded-lg transition cursor-pointer"
           >
-            Retry Sync
+            {isBn ? 'পুনরায় চেষ্টা করুন' : 'Retry Sync'}
           </button>
         </div>
       )}
@@ -536,22 +542,22 @@ export const AdminDashboard: React.FC = () => {
       {/* Admin Tab Switcher */}
       <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-xs flex gap-1 overflow-x-auto no-scrollbar text-xs font-bold">
         {[
-          { id: 'overview', label: '📊 Analytics' },
-          { id: 'orders', label: `📦 Orders (${orders.length})` },
-          { id: 'resellers', label: `👥 Resellers & XP (${allResellers.length > 0 ? allResellers.length : resellers.length})` },
-          { id: 'products', label: `🏷️ Products (${products.length})` },
-          { id: 'notifications', label: '📢 Notifications & Posters' },
-          { id: 'badges', label: '⭐ Badges & Accolades' },
-          { id: 'challenges', label: `🏆 Challenges & XP (${challenges.length})` },
-          { id: 'academy', label: `📺 Academy Videos (${academyLessons.length})` },
-          { id: 'withdrawals', label: `💰 Withdrawals (${withdrawals.length})` },
-          { id: 'fraud', label: `🛡️ Anti-Fraud (${fraudAlerts.length})` },
-          { id: 'settings', label: '⚙️ Settings & Logs' },
+          { id: 'overview', label: isBn ? '📊 অ্যানালিটিক্স' : '📊 Analytics' },
+          { id: 'orders', label: isBn ? `📦 অর্ডার (${orders.length})` : `📦 Orders (${orders.length})` },
+          { id: 'resellers', label: isBn ? `👥 রিসেলার ও এক্সপি (${allResellers.length > 0 ? allResellers.length : resellers.length})` : `👥 Resellers & XP (${allResellers.length > 0 ? allResellers.length : resellers.length})` },
+          { id: 'products', label: isBn ? `🏷️ প্রোডাক্টস (${products.length})` : `🏷️ Products (${products.length})` },
+          { id: 'notifications', label: isBn ? '📢 নোটিফিকেশন ও ব্যানার' : '📢 Notifications & Posters' },
+          { id: 'badges', label: isBn ? '⭐ ব্যাজ ও সম্মাননা' : '⭐ Badges & Accolades' },
+          { id: 'challenges', label: isBn ? `🏆 চ্যালেঞ্জ ও এক্সপি (${challenges.length})` : `🏆 Challenges & XP (${challenges.length})` },
+          { id: 'academy', label: isBn ? `📺 একাডেমি ভিডিও (${academyLessons.length})` : `📺 Academy Videos (${academyLessons.length})` },
+          { id: 'withdrawals', label: isBn ? `💰 উইথড্রয়াল (${withdrawals.length})` : `💰 Withdrawals (${withdrawals.length})` },
+          { id: 'fraud', label: isBn ? `🛡️ অ্যান্টি-ফ্রড (${fraudAlerts.length})` : `🛡️ Anti-Fraud (${fraudAlerts.length})` },
+          { id: 'settings', label: isBn ? '⚙️ সেটিংস ও লগ' : '⚙️ Settings & Logs' },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2.5 rounded-xl transition whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl transition whitespace-nowrap cursor-pointer ${
               activeTab === tab.id
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'

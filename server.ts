@@ -853,6 +853,21 @@ async function startServer() {
     }
   });
 
+  // Admin: Update Reseller Details, Metrics & Profit
+  app.patch('/api/v1/admin/resellers/:id', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const { id } = req.params;
+      const updated = db.updateResellerAdmin(id, req.body, user);
+      res.json({ reseller: updated, message: 'Reseller profile and metrics updated successfully!' });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to update reseller' });
+    }
+  });
+
   // Admin: Award Manual XP to Reseller for Challenge/Lesson/Performance
   app.post('/api/v1/admin/resellers/:id/award-xp', (req: Request, res: Response) => {
     try {

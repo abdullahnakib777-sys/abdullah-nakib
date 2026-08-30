@@ -203,8 +203,8 @@ export const ResellerDashboard: React.FC<{
             </div>
             <p className="text-[11px] text-slate-300">
               {nextLevelInfo
-                ? `${nextLevelInfo.minOrders - reseller.totalDeliveredOrders} more delivered orders to Level ${reseller.level + 1}`
-                : 'Maximum tier achieved! 👑'}
+                ? `${Math.max(0, nextLevelInfo.minOrders - (reseller.deliveredOrdersCount || (reseller as any).totalDeliveredOrders || deliveredOrders.length || 0))} ${isBn ? 'টি ডেলিভারি বাকি লেভেল' : 'more delivered orders to Level'} ${reseller.level + 1}`
+                : isBn ? 'সর্বোচ্চ র‍্যাংক অর্জিত! 👑' : 'Maximum tier achieved! 👑'}
             </p>
           </div>
         </div>
@@ -274,15 +274,19 @@ export const ResellerDashboard: React.FC<{
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900">
-            {reseller?.totalDeliveredOrders ?? 0}{' '}
+            {reseller?.deliveredOrdersCount ?? (reseller as any)?.totalDeliveredOrders ?? deliveredOrders.length ?? 0}{' '}
             <span className="text-xs font-normal text-slate-400">
-              / {orders.length} {isBn ? 'মোট' : 'total'}
+              / {reseller?.totalOrdersCount ?? (reseller as any)?.totalOrders ?? Math.max(orders.length, reseller?.deliveredOrdersCount || 0)} {isBn ? 'মোট' : 'total'}
             </span>
           </p>
           <p className="text-[11px] text-indigo-600 font-bold">
             {isBn ? 'সফলতার হার:' : 'Success Rate:'}{' '}
-            {orders.length > 0
-              ? (((reseller?.totalDeliveredOrders ?? 0) / orders.length) * 100).toFixed(0)
+            {((reseller?.totalOrdersCount || orders.length) > 0)
+              ? (
+                  ((reseller?.deliveredOrdersCount ?? deliveredOrders.length ?? 0) /
+                    Math.max(1, reseller?.totalOrdersCount ?? orders.length)) *
+                  100
+                ).toFixed(0)
               : 100}
             %
           </p>
@@ -299,7 +303,7 @@ export const ResellerDashboard: React.FC<{
             </div>
           </div>
           <p className="text-2xl font-black text-purple-900">
-            ৳{(wallet?.lifetimeEarnings ?? totalResellerProfit ?? 0).toLocaleString()}
+            ৳{(wallet?.totalEarned ?? (wallet as any)?.lifetimeEarnings ?? reseller?.totalProfitEarned ?? reseller?.totalProfitEarnedBdt ?? totalResellerProfit ?? 0).toLocaleString()}
           </p>
           <p className="text-[11px] text-slate-400">
             {isBn ? '০% হিডেন ফি' : '0% hidden fees deducted'}
@@ -308,7 +312,7 @@ export const ResellerDashboard: React.FC<{
       </div>
 
       {/* Sales Performance Line Chart */}
-      <ResellerSalesChart orders={orders} />
+      <ResellerSalesChart orders={orders} reseller={reseller} wallet={wallet} />
 
       {/* Quick Action Hub */}
       <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-4">

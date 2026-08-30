@@ -1388,6 +1388,9 @@ class Database {
             const existingFounder = (parsed.resellers || []).find((r: ResellerProfile) => r.id === 'rsl-founder');
             return existingFounder || defReseller;
           }
+          if (defReseller.id === 'rsl-001' || defReseller.id === 'rsl-002') {
+            return defReseller;
+          }
           // For demo resellers, incorporate the updated demo orders, profits, xp and status
           const existing = (parsed.resellers || []).find((r: ResellerProfile) => r.id === defReseller.id);
           if (existing) {
@@ -1413,14 +1416,23 @@ class Database {
             const existingFounderUser = (parsed.users || []).find((u: User) => u.id === 'usr-founder');
             return existingFounderUser || defUser;
           }
+          if (defUser.id === 'usr-rsl-001' || defUser.id === 'usr-rsl-002') {
+            return defUser;
+          }
           const existing = (parsed.users || []).find((u: User) => u.id === defUser.id);
           return existing ? { ...defUser, ...existing } : defUser;
         });
 
-        let finalWallets = { ...defaults.wallets };
-        if (parsed.wallets && parsed.wallets['rsl-founder']) {
-          finalWallets['rsl-founder'] = parsed.wallets['rsl-founder'];
-        }
+        let finalWallets = { ...defaults.wallets, ...(parsed.wallets || {}) };
+        if (defaults.wallets['rsl-001']) finalWallets['rsl-001'] = defaults.wallets['rsl-001'];
+        if (defaults.wallets['rsl-002']) finalWallets['rsl-002'] = defaults.wallets['rsl-002'];
+        if (defaults.wallets['rsl-founder']) finalWallets['rsl-founder'] = defaults.wallets['rsl-founder'];
+
+        // Merge custom user orders with defaults rich order dataset
+        const customUserOrders = (parsed.orders || []).filter((o: Order) => 
+          o.resellerId !== 'rsl-001' && o.resellerId !== 'rsl-002' && o.resellerId !== 'rsl-founder' && !o.id.startsWith('ord-3')
+        );
+        const mergedOrders = [...defaults.orders, ...customUserOrders];
 
         // Ensure products have productCode, stock status, restock estimates
         const mergedProducts = (parsed.products && parsed.products.length > 0 ? parsed.products : defaults.products).map((p: Product, idx: number) => ({
@@ -1437,11 +1449,12 @@ class Database {
           users: finalUsers,
           resellers: finalResellers,
           products: mergedProducts,
-          orders: (parsed.orders && parsed.orders.length >= defaults.orders.length) ? parsed.orders : defaults.orders,
+          orders: mergedOrders,
           wallets: finalWallets,
           settings: { ...defaults.settings, ...(parsed.settings || {}) },
           notifications: (parsed.notifications && parsed.notifications.length > 0) ? parsed.notifications : defaults.notifications,
         };
+        this.saveLocal();
       } else {
         this.save();
       }
@@ -1591,60 +1604,46 @@ class Database {
       const delivered = resellerOrders.filter((o) => o.status === 'DELIVERED');
       
       const xp = r.xp || 100;
-      const level = r.level || 1;
+      const level = r.level || this.calculateResellerLevel(xp);
 
-      // Deterministic realistic seed generation based on index and xp
-      let baseDelivered = r.deliveredOrdersCount || 0;
-      let baseProfit = r.totalProfitEarned || (r as any).totalProfitEarnedBdt || 0;
+      // Real or recorded delivered orders count
+      const deliveredCountFromDb = delivered.length;
+      const profitFromDbOrders = delivered.reduce((acc, o) => acc + (o.totalResellerProfit || 0), 0);
+      const salesFromDbOrders = delivered.reduce((acc, o) => acc + (o.subtotal || 0), 0);
 
-      if (r.status === 'ACTIVE') {
-        if (baseDelivered <= 1) {
-          if (level >= 7) {
-            baseDelivered = 480 + ((index * 37) % 320);
-          } else if (level >= 6) {
-            baseDelivered = 240 + ((index * 23) % 180);
-          } else if (level >= 5) {
-            baseDelivered = 115 + ((index * 17) % 95);
-          } else if (level >= 4) {
-            baseDelivered = 48 + ((index * 9) % 52);
-          } else if (level >= 3) {
-            baseDelivered = 18 + ((index * 4) % 24);
-          } else if (level >= 2) {
-            baseDelivered = 7 + ((index * 2) % 9);
-          } else {
-            baseDelivered = 2 + (index % 4);
-          }
+      // Base metrics: prioritize explicit records on reseller profile, then database orders
+      let baseDelivered = r.deliveredOrdersCount ?? 0;
+      let baseProfit = r.totalProfitEarned ?? (r as any).totalProfitEarnedBdt ?? 0;
+      let baseSales = (r as any).totalSalesBdt ?? 0;
+
+      if (r.status === 'ACTIVE' && baseDelivered === 0 && deliveredCountFromDb === 0) {
+        // Fallback baseline for active seed accounts
+        if (level >= 7) baseDelivered = 480 + ((index * 37) % 150);
+        else if (level >= 6) baseDelivered = 240 + ((index * 23) % 80);
+        else if (level >= 5) baseDelivered = 115 + ((index * 17) % 50);
+        else if (level >= 4) baseDelivered = 48 + ((index * 9) % 25);
+        else if (level >= 3) baseDelivered = 18 + ((index * 4) % 12);
+        else if (level >= 2) baseDelivered = 7 + ((index * 2) % 5);
+        else baseDelivered = 2 + (index % 3);
+
+        if (baseProfit === 0) {
+          baseProfit = Math.round(baseDelivered * 220 + ((index * 137) % 500));
         }
-
-        if (baseProfit <= 300) {
-          baseProfit = Math.round(baseDelivered * (195 + ((index * 7) % 45)) + ((index * 137) % 1200));
-        }
-      } else {
-        baseDelivered = 0;
-        baseProfit = 0;
       }
 
-      const finalDelivered = Math.max(baseDelivered, delivered.length);
-      const finalTotalOrders = r.status === 'ACTIVE'
-        ? Math.max(finalDelivered, r.totalOrdersCount || 0, resellerOrders.length, finalDelivered + ((index % 6) + 1))
-        : 0;
-
-      const totalProfitFromOrders = delivered.reduce((acc, o) => acc + (o.totalResellerProfit || 0), 0);
-      const totalProfit = Math.max(baseProfit, totalProfitFromOrders);
-
-      const totalSalesFromOrders = delivered.reduce((acc, o) => acc + (o.subtotal || 0), 0);
-      const totalSales = Math.max(
-        totalSalesFromOrders,
-        (r as any).totalSalesBdt || 0,
-        Math.round(totalProfit * (3.4 + ((index % 5) * 0.12)))
+      const finalDelivered = Math.max(baseDelivered, deliveredCountFromDb);
+      const finalProfit = Math.max(baseProfit, profitFromDbOrders);
+      const finalSales = Math.max(baseSales, salesFromDbOrders, Math.round(finalProfit * 3.5));
+      const finalTotalOrders = Math.max(
+        r.totalOrdersCount || 0,
+        resellerOrders.length,
+        finalDelivered,
+        r.status === 'ACTIVE' ? finalDelivered + (index % 4) : 0
       );
 
       const wallet = this.data.wallets[r.id];
-      const pendingProfit = r.status === 'ACTIVE'
-        ? Math.max(300, Math.round(totalProfit * 0.05) + ((index * 40) % 250))
-        : 0;
-      const availableBalance = wallet?.availableBalance ?? (totalProfit > 0 ? Math.round(totalProfit * 0.65) : 0);
-      const totalWithdrawn = wallet?.totalWithdrawn ?? Math.max(0, totalProfit - availableBalance);
+      const availableBalance = wallet?.availableBalance ?? (finalProfit > 0 ? Math.round(finalProfit * 0.65) : 0);
+      const totalWithdrawn = wallet?.totalWithdrawn ?? Math.max(0, finalProfit - availableBalance);
       const completedLessons = this.data.userLessonProgress[r.id] || [];
 
       // Calculate 7-rank level details
@@ -1660,17 +1659,17 @@ class Database {
 
       let nextLevelXp = 300;
       let prevLevelXp = 0;
-      if (r.level === 2) { prevLevelXp = 301; nextLevelXp = 700; }
-      else if (r.level === 3) { prevLevelXp = 701; nextLevelXp = 2000; }
-      else if (r.level === 4) { prevLevelXp = 2001; nextLevelXp = 5000; }
-      else if (r.level === 5) { prevLevelXp = 5001; nextLevelXp = 10000; }
-      else if (r.level === 6) { prevLevelXp = 10001; nextLevelXp = 20000; }
-      else if (r.level >= 7) { prevLevelXp = 20001; nextLevelXp = 50000; }
+      if (level === 2) { prevLevelXp = 301; nextLevelXp = 700; }
+      else if (level === 3) { prevLevelXp = 701; nextLevelXp = 2000; }
+      else if (level === 4) { prevLevelXp = 2001; nextLevelXp = 5000; }
+      else if (level === 5) { prevLevelXp = 5001; nextLevelXp = 10000; }
+      else if (level === 6) { prevLevelXp = 10001; nextLevelXp = 20000; }
+      else if (level >= 7) { prevLevelXp = 20001; nextLevelXp = 50000; }
 
       const levelProgressPercent = Math.min(100, Math.max(5, Math.round(((xp - prevLevelXp) / Math.max(1, (nextLevelXp - prevLevelXp))) * 100)));
       const xpToNextLevel = Math.max(0, nextLevelXp - xp);
 
-      // Generate dynamic recent orders for inspection if few or none in database
+      // Dynamic recent orders
       let sampleRecentOrders = resellerOrders;
       if (sampleRecentOrders.length < 3 && r.status === 'ACTIVE') {
         const sampleCustomers = [
@@ -1682,7 +1681,7 @@ class Database {
         ];
 
         const products = this.data.products.slice(0, 5);
-        sampleRecentOrders = sampleCustomers.slice(0, Math.min(finalDelivered, 5)).map((c, cIdx) => {
+        sampleRecentOrders = sampleCustomers.slice(0, Math.min(Math.max(1, finalDelivered), 5)).map((c, cIdx) => {
           const prod = products[cIdx % products.length] || products[0];
           const profit = prod ? (prod.suggestedSellingPrice - prod.resellerPrice) : 250;
           const totalAmt = prod ? prod.suggestedSellingPrice + 120 : 950;
@@ -1727,21 +1726,34 @@ class Database {
         user,
         ownerName: user?.name || r.storeName,
         email: user?.email || '',
-        levelName: levelNames[r.level || 1] || 'Rookie 🐣',
-        levelProgressPercent,
+        whatsappNumber: r.whatsappNumber || user?.phone || '',
+        division: r.division || 'Dhaka',
+        district: r.district || 'Dhaka',
+        upazila: r.upazila || r.district || 'Dhaka',
+        address: r.address || '',
+        salesIntent: r.salesIntent || 'Social Media & WhatsApp',
+        status: r.status,
+        verificationFeePaid: r.verificationFeePaid || false,
+        adminApprovedFree: (r as any).adminApprovedFree || false,
+        verificationPayment: (r as any).verificationPayment,
+        balanceBdt: availableBalance,
+        totalProfitEarnedBdt: finalProfit,
+        totalProfitEarned: finalProfit,
+        totalSalesBdt: finalSales,
+        moneyMadeBdt: finalSales,
+        moneyProfitedBdt: finalProfit,
+        level,
+        levelName: levelNames[level] || 'Rookie 🐣',
+        xp,
         xpToNextLevel,
+        levelProgressPercent,
         deliveredOrdersCount: finalDelivered,
         totalOrdersCount: finalTotalOrders,
-        totalSalesBdt: totalSales,
-        moneyMadeBdt: totalSales,
-        totalProfitEarned: totalProfit,
-        totalProfitEarnedBdt: totalProfit,
-        moneyProfitedBdt: totalProfit,
-        pendingProfitBdt: pendingProfit,
-        availableBalanceBdt: availableBalance,
-        totalWithdrawnBdt: totalWithdrawn,
-        completedLessonsCount: completedLessons.length || (r.level >= 4 ? 4 : r.level >= 2 ? 2 : 1),
+        completedLessonsCount: completedLessons.length,
+        referralCode: r.referralCode,
+        createdAt: r.createdAt,
         recentOrders: sampleRecentOrders,
+        isAnonymousOnLeaderboard: r.isAnonymousOnLeaderboard || false,
       };
     });
   }
@@ -2634,60 +2646,182 @@ class Database {
     };
   }
 
-  public getLeaderboard(period: 'weekly' | 'monthly' | 'allTime' = 'allTime'): LeaderboardEntry[] {
-    const deliveredOrders = this.data.orders.filter((o) => o.status === 'DELIVERED' && o.resellerId);
-    const resellerStats: Record<string, { sales: number; profit: number; deliveries: number }> = {};
+  public updateResellerAdmin(
+    resellerId: string,
+    updates: Partial<ResellerProfile> & {
+      ownerName?: string;
+      email?: string;
+      deliveredOrdersCount?: number;
+      totalOrdersCount?: number;
+      totalProfitEarned?: number;
+      totalSalesBdt?: number;
+    },
+    actor: User
+  ) {
+    const reseller = this.getResellerById(resellerId);
+    if (!reseller) throw new Error('Reseller not found');
 
-    for (const r of this.data.resellers) {
-      const defaultProfit = r.totalProfitEarned || this.data.wallets[r.id]?.totalEarned || 0;
-      const defaultDeliveries = r.deliveredOrdersCount || (r.level >= 4 ? 650 : r.level >= 2 ? 150 : 25);
-      const defaultSales = Math.round(defaultProfit * 3.8);
-      resellerStats[r.id] = { sales: defaultSales, profit: defaultProfit, deliveries: defaultDeliveries };
+    if (updates.storeName) reseller.storeName = updates.storeName;
+    if (updates.facebookPage !== undefined) reseller.facebookPage = updates.facebookPage;
+    if (updates.whatsappNumber !== undefined) reseller.whatsappNumber = updates.whatsappNumber;
+    if (updates.division) reseller.division = updates.division;
+    if (updates.district) reseller.district = updates.district;
+    if (updates.upazila !== undefined) reseller.upazila = updates.upazila;
+    if (updates.address !== undefined) reseller.address = updates.address;
+    if (updates.salesIntent !== undefined) reseller.salesIntent = updates.salesIntent;
+    if (updates.status) reseller.status = updates.status;
+    if (updates.isVerified !== undefined) reseller.isVerified = updates.isVerified;
+    if (updates.xp !== undefined) {
+      reseller.xp = Number(updates.xp);
+      reseller.level = this.calculateResellerLevel(reseller.xp);
+    }
+    if (updates.level !== undefined) {
+      reseller.level = Number(updates.level);
+    }
+    if (updates.deliveredOrdersCount !== undefined) {
+      reseller.deliveredOrdersCount = Number(updates.deliveredOrdersCount);
+    }
+    if (updates.totalOrdersCount !== undefined) {
+      reseller.totalOrdersCount = Number(updates.totalOrdersCount);
+    }
+    if (updates.totalProfitEarned !== undefined) {
+      reseller.totalProfitEarned = Number(updates.totalProfitEarned);
+      (reseller as any).totalProfitEarnedBdt = Number(updates.totalProfitEarned);
+    }
+    if (updates.totalSalesBdt !== undefined) {
+      (reseller as any).totalSalesBdt = Number(updates.totalSalesBdt);
     }
 
-    for (const order of deliveredOrders) {
-      if (order.resellerId && resellerStats[order.resellerId]) {
-        resellerStats[order.resellerId].sales += order.subtotal;
-        resellerStats[order.resellerId].profit += order.totalResellerProfit;
-        resellerStats[order.resellerId].deliveries += 1;
+    if (updates.ownerName || updates.email) {
+      const user = this.getUserById(reseller.userId);
+      if (user) {
+        if (updates.ownerName) user.name = updates.ownerName;
+        if (updates.email) user.email = updates.email;
       }
     }
 
-    const entries: LeaderboardEntry[] = this.data.resellers.map((r) => {
-      const user = this.getUserById(r.userId);
-      const stats = resellerStats[r.id] || { sales: 0, profit: 0, deliveries: 0 };
-      const currentRankLvl = this.calculateResellerLevel(r.xp);
-      const levelTitles = [
-        '',
-        'Rookie 🐣',
-        'Better ⚡',
-        'Ultra Better 🔥',
-        'The GOAT 🐐',
-        'Monster 👹',
-        'Ultra Monster 👾',
-        'Legend 👑',
-      ];
+    this.logAudit({
+      action: 'UPDATE_RESELLER',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'RESELLER',
+      targetId: resellerId,
+      details: `Updated reseller ${reseller.storeName}`,
+    });
+
+    this.save();
+    return reseller;
+  }
+
+  public getLeaderboard(period: 'weekly' | 'monthly' | 'allTime' = 'allTime'): LeaderboardEntry[] {
+    const detailedResellers = this.getAllResellersWithDetails();
+    const orders = this.data.orders || [];
+
+    const now = Date.now();
+    const oneWeekAgo = now - 7 * 86400000;
+    const oneMonthAgo = now - 30 * 86400000;
+
+    const levelTitles = [
+      '',
+      'Rookie 🐣',
+      'Better ⚡',
+      'Ultra Better 🔥',
+      'The GOAT 🐐',
+      'Monster 👹',
+      'Ultra Monster 👾',
+      'Legend 👑',
+    ];
+
+    // Filter to active resellers or those with delivered orders or profit
+    const activeResellers = detailedResellers.filter((r) => r.status === 'ACTIVE' || (r.deliveredOrdersCount || 0) > 0);
+
+    const entries: LeaderboardEntry[] = activeResellers.map((r, index) => {
+      const resellerDeliveredOrders = orders.filter(
+        (o) => o.resellerId === r.id && o.status === 'DELIVERED'
+      );
+
+      let deliveredCount = r.deliveredOrdersCount || 0;
+      let profit = r.totalProfitEarned || 0;
+      let sales = r.totalSalesBdt || 0;
+
+      if (period === 'weekly') {
+        const weeklyOrders = resellerDeliveredOrders.filter(
+          (o) => new Date(o.createdAt).getTime() >= oneWeekAgo
+        );
+        if (weeklyOrders.length > 0) {
+          deliveredCount = weeklyOrders.length;
+          profit = weeklyOrders.reduce((acc, o) => acc + (o.totalResellerProfit || 0), 0);
+          sales = weeklyOrders.reduce((acc, o) => acc + (o.subtotal || 0), 0);
+        } else {
+          // Direct proportion (22% of all-time activity)
+          const weeklyRatio = 0.22;
+          deliveredCount = Math.max(0, Math.round(deliveredCount * weeklyRatio));
+          profit = Math.max(0, Math.round(profit * weeklyRatio));
+          sales = Math.max(0, Math.round(sales * weeklyRatio));
+        }
+      } else if (period === 'monthly') {
+        const monthlyOrders = resellerDeliveredOrders.filter(
+          (o) => new Date(o.createdAt).getTime() >= oneMonthAgo
+        );
+        if (monthlyOrders.length > 0) {
+          deliveredCount = monthlyOrders.length;
+          profit = monthlyOrders.reduce((acc, o) => acc + (o.totalResellerProfit || 0), 0);
+          sales = monthlyOrders.reduce((acc, o) => acc + (o.subtotal || 0), 0);
+        } else {
+          // Direct proportion (55% of all-time activity)
+          const monthlyRatio = 0.55;
+          deliveredCount = Math.max(0, Math.round(deliveredCount * monthlyRatio));
+          profit = Math.max(0, Math.round(profit * monthlyRatio));
+          sales = Math.max(0, Math.round(sales * monthlyRatio));
+        }
+      }
+
+      const currentRankLvl = r.level || this.calculateResellerLevel(r.xp || 100);
+      const badgesList =
+        currentRankLvl >= 7
+          ? ['👑 Legend', '⭐ Verified', '🏆 Top Seller', '⚡ Elite']
+          : currentRankLvl >= 5
+          ? ['👹 Monster', '⭐ Verified', '🏆 Top Seller']
+          : currentRankLvl >= 4
+          ? ['🐐 The GOAT', '⭐ Verified', '⚡ Top Seller']
+          : currentRankLvl >= 3
+          ? ['🔥 Ultra Better', '⭐ Verified']
+          : currentRankLvl >= 2
+          ? ['⚡ Better', '⭐ Verified']
+          : ['🐣 Rookie'];
+
+      const userName = r.ownerName || r.user?.name || r.storeName;
 
       return {
         rank: 1,
         resellerId: r.id,
         displayName: r.isAnonymousOnLeaderboard ? 'Anonymous Seller' : r.storeName,
         storeName: r.storeName,
-        avatar: user?.avatar,
-        salesCount: stats.deliveries,
-        profitAmount: stats.profit,
-        successfulDeliveries: stats.deliveries,
+        userName,
+        ownerName: userName,
+        avatar: r.user?.avatar,
+        salesCount: deliveredCount,
+        deliveredOrders: deliveredCount,
+        deliveredOrdersCount: deliveredCount,
+        successfulDeliveries: deliveredCount,
+        profitAmount: profit,
+        totalProfit: profit,
+        totalRevenue: sales,
+        totalSalesBdt: sales,
+        totalOrders: r.totalOrdersCount || deliveredCount,
         level: currentRankLvl,
-        levelTitle: levelTitles[currentRankLvl] || 'Rookie 🐣',
-        xp: r.xp,
-        isFounder: user?.isFounder || r.id === 'rsl-founder',
-        streakDays: Math.min(14, Math.max(1, Math.floor(stats.deliveries / 50) + 1)),
-        badges: currentRankLvl >= 4 ? ['🐐 The GOAT', '⚡ Top Seller', '⭐ Verified'] : currentRankLvl >= 3 ? ['🔥 Ultra Better', '⭐ Verified'] : ['🐣 Rookie'],
+        levelTitle: r.levelName || levelTitles[currentRankLvl] || 'Rookie 🐣',
+        xp: r.xp || 100,
+        isFounder: Boolean(r.user?.isFounder || r.id === 'rsl-founder' || (r as any).isFounder),
+        streakDays: Math.min(30, Math.max(1, Math.floor(deliveredCount / 12) + (currentRankLvl >= 3 ? 3 : 1))),
+        badges: badgesList,
+        status: r.status,
       };
     });
 
-    // Sort strictly by profit then sales
-    entries.sort((a, b) => b.profitAmount - a.profitAmount || b.salesCount - a.salesCount || b.xp - a.xp);
+    // Sort strictly by profit desc, then deliveries desc, then xp desc
+    entries.sort((a, b) => b.totalProfit - a.totalProfit || b.deliveredOrders - a.deliveredOrders || b.xp - a.xp);
 
     entries.forEach((e, idx) => {
       e.rank = idx + 1;

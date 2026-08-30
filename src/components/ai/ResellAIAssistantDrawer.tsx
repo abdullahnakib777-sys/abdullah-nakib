@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 import { Sparkles, Send, X, Bot, User, RefreshCw, Lightbulb, MessageSquare } from 'lucide-react';
 
 interface ChatMessage {
@@ -9,25 +10,41 @@ interface ChatMessage {
   timestamp: string;
 }
 
-const SUGGESTED_PROMPTS = [
-  'How does product profit calculation and wallet payout work?',
-  'What are the highest profit trending products right now?',
-  'How to get 5 orders a day from Facebook Marketplace in Bangladesh?',
-  'Explain Steadfast and Pathao courier delivery & COD steps.',
-];
-
 export const ResellAIAssistantDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   isOpen,
   onClose,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      sender: 'ai',
-      text: 'আসসালামু আলাইকুম! 👋 I am **ResellAI**, your AI business mentor for MeherMart. Ask me about products, wholesale pricing, Facebook sales tips, courier shipping, or wallet settlements!',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ]);
+  const { isBn } = useLanguage();
+
+  const suggestedPrompts = isBn
+    ? [
+        'প্রোডাক্ট প্রফিট হিসাব ও ওয়ালেট পেআউট কীভাবে কাজ করে?',
+        'এখন কোন প্রোডাক্টগুলো সবচেয়ে বেশি ট্রেন্ডিং ও লাভজনক?',
+        'ফেসবুক মার্কেটপ্লেস থেকে প্রতিদিন ৫টি অর্ডার পাওয়ার উপায়?',
+        'স্টেডফাস্ট ও পাঠাও কুরিয়ার ডেলিভারি ও সিওডি ধাপগুলো কী?',
+      ]
+    : [
+        'How does product profit calculation and wallet payout work?',
+        'What are the highest profit trending products right now?',
+        'How to get 5 orders a day from Facebook Marketplace in Bangladesh?',
+        'Explain Steadfast and Pathao courier delivery & COD steps.',
+      ];
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  useEffect(() => {
+    setMessages([
+      {
+        id: 'welcome',
+        sender: 'ai',
+        text: isBn
+          ? 'আসসালামু আলাইকুম! 👋 আমি **ResellAI**, আপনার সার্বক্ষণিক ই-কমার্স বিজনেস মেন্টর। প্রোডাক্ট নির্বাচন, প্রফিট মার্জিন, ফেসবুক বিক্রির টিপস, কুরিয়ার শিপিং কিংবা ওয়ালেট পেআউট নিয়ে যেকোনো প্রশ্ন করুন!'
+          : 'Welcome! 👋 I am **ResellAI**, your AI business mentor for MeherMart. Ask me about products, wholesale pricing, Facebook sales tips, courier shipping, or wallet settlements!',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ]);
+  }, [isBn]);
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -60,6 +77,7 @@ export const ResellAIAssistantDrawer: React.FC<{ isOpen: boolean; onClose: () =>
     try {
       const res = await api.chatResellAI({
         message: text,
+        language: isBn ? 'bn' : 'en',
       });
 
       const aiMsg: ChatMessage = {
@@ -75,7 +93,9 @@ export const ResellAIAssistantDrawer: React.FC<{ isOpen: boolean; onClose: () =>
         {
           id: `ai-err-${Date.now()}`,
           sender: 'ai',
-          text: 'I am temporarily optimizing my connection. You can discover products with guaranteed profit margins and place orders anytime!',
+          text: isBn
+            ? 'আমি সাময়িকভাবে সংযোগটি প্রস্তুত করছি। আপনি যেকোনো সময় গ্যারান্টিড প্রফিট মার্জিনে প্রোডাক্ট খুঁজে নিয়ে অর্ডার করতে পারবেন!'
+            : 'I am temporarily optimizing my connection. You can discover products with guaranteed profit margins and place orders anytime!',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -101,15 +121,17 @@ export const ResellAIAssistantDrawer: React.FC<{ isOpen: boolean; onClose: () =>
                 <div className="flex items-center gap-2">
                   <h2 className="font-bold text-base">ResellAI</h2>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-400/30 font-semibold border border-emerald-300/30">
-                    Live Assistant
+                    {isBn ? 'লাইভ এআই' : 'Live Assistant'}
                   </span>
                 </div>
-                <p className="text-xs text-emerald-100/90">Your 24/7 E-commerce & Profit Guide</p>
+                <p className="text-xs text-emerald-100/90">
+                  {isBn ? 'আপনার ২৪/৭ ই-কমার্স ও প্রফিট গাইড' : 'Your 24/7 E-commerce & Profit Guide'}
+                </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition"
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -117,13 +139,13 @@ export const ResellAIAssistantDrawer: React.FC<{ isOpen: boolean; onClose: () =>
 
           {/* Quick Prompts */}
           <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex gap-2 overflow-x-auto no-scrollbar">
-            {SUGGESTED_PROMPTS.map((prompt, idx) => (
+            {suggestedPrompts.map((prompt, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSendMessage(prompt)}
-                className="whitespace-nowrap px-3 py-1 bg-white hover:bg-emerald-50 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-xs rounded-full border border-slate-200 shadow-xs transition flex items-center gap-1.5"
+                className="whitespace-nowrap px-3 py-1 bg-white hover:bg-emerald-50 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-xs rounded-full border border-slate-200 shadow-xs transition flex items-center gap-1.5 cursor-pointer"
               >
-                <Lightbulb className="w-3 h-3 text-amber-500" />
+                <Lightbulb className="w-3 h-3 text-amber-500 shrink-0" />
                 <span>{prompt.slice(0, 32)}...</span>
               </button>
             ))}
@@ -167,7 +189,7 @@ export const ResellAIAssistantDrawer: React.FC<{ isOpen: boolean; onClose: () =>
             {isLoading && (
               <div className="flex gap-2.5 items-center text-slate-500 text-xs italic bg-white p-3 rounded-2xl w-fit border border-slate-200">
                 <Sparkles className="w-4 h-4 text-emerald-600 animate-spin" />
-                ResellAI is analyzing platform catalog & thinking...
+                {isBn ? 'ResellAI ক্যাটালগ বিশ্লেষণ করে উত্তর তৈরি করছে...' : 'ResellAI is analyzing platform catalog & thinking...'}
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -185,13 +207,17 @@ export const ResellAIAssistantDrawer: React.FC<{ isOpen: boolean; onClose: () =>
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about products, profit, Facebook ads, courier..."
+              placeholder={
+                isBn
+                  ? 'প্রোডাক্ট, প্রফিট, ফেসবুক অ্যাডস, কুরিয়ার নিয়ে প্রশ্ন লিখুন...'
+                  : 'Ask about products, profit, Facebook ads, courier...'
+              }
               className="flex-1 px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className="p-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 transition shadow-sm"
+              className="p-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 transition shadow-sm cursor-pointer"
             >
               <Send className="w-4 h-4" />
             </button>

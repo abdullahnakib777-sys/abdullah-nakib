@@ -24,6 +24,14 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [referredBy, setReferredBy] = useState(() => {
+    try {
+      return localStorage.getItem('mehermart_referral_code') || '';
+    } catch {
+      return '';
+    }
+  });
+
   if (!isOpen) return null;
 
   const currentDistricts = BANGLADESH_DIVISIONS[division]?.districts || {};
@@ -70,6 +78,7 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
         upazila,
         address,
         salesIntent,
+        referredBy: referredBy.trim() || undefined,
       });
 
       triggerLevelUpCelebration();
@@ -216,6 +225,24 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
               onChange={(e) => setAddress(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Referral / Sponsor Code <span className="text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. RSL-BD100"
+              value={referredBy}
+              onChange={(e) => setReferredBy(e.target.value.toUpperCase())}
+              className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl font-mono uppercase"
+            />
+            {referredBy && (
+              <p className="text-[11px] text-emerald-600 font-medium mt-1">
+                ✓ Sponsor referral code detected: +250 XP bonus unlocked!
+              </p>
+            )}
           </div>
 
           <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-950 space-y-1.5">

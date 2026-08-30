@@ -427,6 +427,22 @@ export const api = {
       >;
     }>('/api/v1/admin/resellers'),
 
+  adminUpdateReseller: (
+    resellerId: string,
+    body: Partial<ResellerProfile> & {
+      ownerName?: string;
+      email?: string;
+      deliveredOrdersCount?: number;
+      totalOrdersCount?: number;
+      totalProfitEarned?: number;
+      totalSalesBdt?: number;
+    }
+  ) =>
+    apiFetch<{ reseller: ResellerProfile; message: string }>(`/api/v1/admin/resellers/${resellerId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
   awardResellerXp: (resellerId: string, body: { amount: number; reason: string }) =>
     apiFetch<{
       success: boolean;

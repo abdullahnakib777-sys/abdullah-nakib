@@ -161,7 +161,7 @@ export function generateRealisticResellersDataset(): SeedDataset {
 
     const storePrefix = STORE_PREFIXES[(i * 2 + 3) % STORE_PREFIXES.length];
     const storeSuffix = STORE_SUFFIXES[(i * 5 + 1) % STORE_SUFFIXES.length];
-    const storeName = `${storePrefix} ${storeSuffix} ${i <= 30 ? 'BD' : ''}`.trim();
+    let storeName = `${storePrefix} ${storeSuffix} ${i <= 30 ? 'BD' : ''}`.trim();
 
     const loc = BANGLADESH_LOCATIONS[i % BANGLADESH_LOCATIONS.length];
     const phonePrefixes = ['017', '018', '019', '013', '016', '015'];
@@ -185,7 +185,27 @@ export function generateRealisticResellersDataset(): SeedDataset {
 
     const isActiveMember = i <= 204; // Exactly 204 active members excluding founder store
 
-    if (isActiveMember) {
+    if (i === 1) {
+      // Specifically Configure Trendz Bazar BD (rsl-001) as requested by user
+      storeName = 'Trendz Bazar BD';
+      xp = 11720;
+      deliveredOrdersCount = 305;
+      totalProfitEarned = 64900;
+      status = 'ACTIVE';
+      isVerified = true;
+      verificationFeePaid = true;
+      adminApprovedFree = true;
+    } else if (i === 2) {
+      // Specifically Configure Urban Shop BD (rsl-002) as requested by user
+      storeName = 'Urban Shop BD';
+      xp = 12440;
+      deliveredOrdersCount = 330;
+      totalProfitEarned = 71000;
+      status = 'ACTIVE';
+      isVerified = true;
+      verificationFeePaid = true;
+      adminApprovedFree = true;
+    } else if (isActiveMember) {
       // Create rich, tiered distribution across the 7 ranks
       if (i <= 5) {
         // Rank 7: Legend 👑 (20,001+ XP)
@@ -251,6 +271,8 @@ export function generateRealisticResellersDataset(): SeedDataset {
     };
     users.push(user);
 
+    const calculatedSalesBdt = i === 1 ? 227150 : i === 2 ? 248500 : Math.round(totalProfitEarned * 3.5);
+
     // Reseller profile entity
     const profile: ResellerProfile = {
       id: resellerId,
@@ -279,18 +301,33 @@ export function generateRealisticResellersDataset(): SeedDataset {
       level,
       xp,
       deliveredOrdersCount,
-      totalOrdersCount: deliveredOrdersCount + (status === 'ACTIVE' ? Math.floor(i % 4) : 0),
+      totalOrdersCount: deliveredOrdersCount + (status === 'ACTIVE' ? Math.floor(i % 4) + 2 : 0),
       totalProfitEarned,
       totalProfitEarnedBdt: totalProfitEarned,
       isAnonymousOnLeaderboard: false,
       createdAt: joinedAt,
     };
+    (profile as any).totalSalesBdt = calculatedSalesBdt;
+    (profile as any).moneyMadeBdt = calculatedSalesBdt;
+    (profile as any).moneyProfitedBdt = totalProfitEarned;
     resellers.push(profile);
 
     // Wallet entity
-    const availableBalance = Math.round(totalProfitEarned * 0.65);
-    const pendingBalance = status === 'ACTIVE' ? Math.round(totalProfitEarned * 0.08) + 350 : 0;
-    const totalWithdrawn = Math.max(0, totalProfitEarned - availableBalance);
+    let availableBalance = Math.round(totalProfitEarned * 0.65);
+    let pendingBalance = status === 'ACTIVE' ? Math.round(totalProfitEarned * 0.08) + 350 : 0;
+    let totalWithdrawn = Math.max(0, totalProfitEarned - availableBalance);
+
+    if (i === 1) {
+      // Exact wallet matching Admin input for Trendz Bazar BD
+      availableBalance = 42185;
+      pendingBalance = 5542;
+      totalWithdrawn = 22715;
+    } else if (i === 2) {
+      // Exact wallet matching Admin input for Urban Shop BD
+      availableBalance = 46150;
+      pendingBalance = 6030;
+      totalWithdrawn = 24850;
+    }
 
     wallets[resellerId] = {
       resellerId,
@@ -298,11 +335,11 @@ export function generateRealisticResellersDataset(): SeedDataset {
       pendingBalance,
       totalEarned: totalProfitEarned,
       totalWithdrawn,
-      updatedAt: '2026-08-20T16:00:00.000Z',
+      updatedAt: new Date().toISOString(),
     };
   }
 
-  // 3. Seed Comprehensive Realistic Orders Mapped Across Active Resellers
+  // 3. Seed Comprehensive Realistic Orders Mapped Across Active Resellers with Real Dynamic Dates
   const CATALOG_PRODUCTS = [
     { id: 'prod-01', code: 'MM-1001', name: 'T900 Ultra 2 Max Smartwatch (Dual Strap)', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80', cost: 520, resPrice: 650, sellPrice: 999, profit: 349, margin: 130 },
     { id: 'prod-02', code: 'MM-1002', name: 'M10 TWS Dual Earbuds with 2000mAh Powerbank', img: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&q=80', cost: 240, resPrice: 320, sellPrice: 499, profit: 179, margin: 80 },
@@ -314,35 +351,42 @@ export function generateRealisticResellersDataset(): SeedDataset {
     { id: 'prod-10', code: 'MM-1010', name: 'Automatic Rechargeable Water Dispenser Pump', img: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=600&q=80', cost: 190, resPrice: 260, sellPrice: 420, profit: 160, margin: 70 },
   ];
 
-  const orderCount = 85;
-  const statuses: Order['status'][] = [
-    'DELIVERED', 'DELIVERED', 'DELIVERED', 'SHIPPING', 'PACKAGING', 'CONFIRMED', 'DELIVERED', 'PENDING'
-  ];
   const couriers: Order['courier'][] = ['STEADFAST', 'PATHAO', 'REDX', 'STEADFAST'];
+  let currentOrderSequence = 3001;
 
-  for (let idx = 0; idx < orderCount; idx++) {
-    const orderNumInt = 3001 + idx; // #3001, #3002, #3003...
+  // Helper to create order objects with customizable dates and statuses
+  const createOrderObject = (
+    rsl: ResellerProfile,
+    daysAgo: number,
+    statusOverride?: Order['status'],
+    prodIndex = 0,
+    qty = 1
+  ): Order => {
+    const orderNumInt = currentOrderSequence++;
     const orderNumber = `#${orderNumInt}`;
     const orderId = `ord-${orderNumInt}`;
-    const rsl = resellers[idx % Math.min(resellers.length, 60)]; // Spread orders across 60 top active resellers
-    const loc = BANGLADESH_LOCATIONS[(idx * 3 + 2) % BANGLADESH_LOCATIONS.length];
-    const customerName = `${FIRST_NAMES[(idx * 2) % FIRST_NAMES.length]} ${LAST_NAMES[(idx * 4) % LAST_NAMES.length]}`;
-    const customerPhone = `017${String(10000000 + idx * 76543).slice(0, 8)}`;
-    const status = statuses[idx % statuses.length];
-    const courier = couriers[idx % couriers.length];
+    const loc = BANGLADESH_LOCATIONS[(orderNumInt * 3 + 2) % BANGLADESH_LOCATIONS.length];
+    const customerName = `${FIRST_NAMES[(orderNumInt * 2) % FIRST_NAMES.length]} ${LAST_NAMES[(orderNumInt * 4) % LAST_NAMES.length]}`;
+    const customerPhone = `017${String(10000000 + orderNumInt * 76543).slice(0, 8)}`;
+    
+    let status: Order['status'] = statusOverride || (daysAgo === 0 ? 'PENDING' : daysAgo <= 2 ? 'SHIPPING' : 'DELIVERED');
+    const courier = couriers[orderNumInt % couriers.length];
     const isDhaka = loc.division.toLowerCase() === 'dhaka';
     const deliveryFee = isDhaka ? 60 : 120;
     const packagingFee = 30; // 30 TK standard packaging fee
 
-    const prod = CATALOG_PRODUCTS[idx % CATALOG_PRODUCTS.length];
-    const qty = (idx % 7 === 0) ? 2 : 1;
+    const prod = CATALOG_PRODUCTS[prodIndex % CATALOG_PRODUCTS.length];
     const unitSellingPrice = prod.sellPrice;
     const subtotal = unitSellingPrice * qty;
     const totalResellerProfit = prod.profit * qty;
     const totalPlatformMargin = prod.margin * qty;
     const totalAmount = subtotal + deliveryFee + packagingFee;
 
-    orders.push({
+    const createdAtDate = new Date(Date.now() - (daysAgo * 86400000) - ((orderNumInt % 12) * 3600000));
+    const createdAt = createdAtDate.toISOString();
+    const deliveredAt = status === 'DELIVERED' ? new Date(createdAtDate.getTime() + (2 * 86400000)).toISOString() : undefined;
+
+    return {
       id: orderId,
       orderNumber,
       customerName,
@@ -381,40 +425,89 @@ export function generateRealisticResellersDataset(): SeedDataset {
       paymentMethod: 'COD',
       paymentStatus: status === 'DELIVERED' ? 'PAID' : 'UNPAID',
       courier,
-      trackingNumber: `${courier.slice(0, 4)}-${880000 + idx * 137}`,
+      trackingNumber: `${courier.slice(0, 4)}-${880000 + orderNumInt * 137}`,
       status,
       statusHistory: [
         {
           status: 'PENDING',
-          timestamp: '2026-08-15T10:00:00.000Z',
+          timestamp: createdAt,
           note: `Order placed via ${rsl.storeName}`,
           updatedBy: rsl.storeName,
         },
         {
           status: 'CONFIRMED',
-          timestamp: '2026-08-15T11:30:00.000Z',
-          note: 'Customer confirmed via automated IVR/call center',
+          timestamp: new Date(createdAtDate.getTime() + 1800000).toISOString(),
+          note: 'Customer confirmed via automated call center',
           updatedBy: 'Admin Ops',
         },
         ...(status === 'DELIVERED' || status === 'SHIPPING' ? [{
           status: 'SHIPPING' as const,
-          timestamp: '2026-08-16T14:00:00.000Z',
+          timestamp: new Date(createdAtDate.getTime() + 43200000).toISOString(),
           note: `Dispatched to ${courier} Courier Hub`,
           updatedBy: 'Warehouse Hub',
         }] : []),
         ...(status === 'DELIVERED' ? [{
           status: 'DELIVERED' as const,
-          timestamp: '2026-08-18T16:30:00.000Z',
-          note: 'Customer accepted parcel and paid full COD cash',
+          timestamp: deliveredAt || new Date().toISOString(),
+          note: 'Customer received parcel and paid COD in full',
           updatedBy: `${courier} Courier Sync`,
         }] : [])
       ],
-      createdAt: '2026-08-15T10:00:00.000Z',
-      deliveredAt: status === 'DELIVERED' ? '2026-08-18T16:30:00.000Z' : undefined,
-      settledAt: status === 'DELIVERED' ? '2026-08-18T16:30:00.000Z' : undefined,
+      createdAt,
+      deliveredAt,
+      settledAt: deliveredAt,
       isDirectCustomerOrder: false,
-    });
-  }
+    };
+  };
+
+  // 3A. Dedicated Orders for Urban Shop BD (rsl-002) - 40 realistic orders across 0 to 90 days
+  const urbanShopReseller = resellers.find((r) => r.id === 'rsl-002') || resellers[2];
+  const urbanShopDaysAgo = [
+    0, 0, 1, 1, 2, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 17, 19, 21, 23, 25, 28, 30, 34, 38, 42, 47, 52, 58, 65, 72, 80, 88, 95, 105, 115, 130
+  ];
+  urbanShopDaysAgo.forEach((daysAgo, i) => {
+    let st: Order['status'] = 'DELIVERED';
+    if (daysAgo === 0) st = i % 2 === 0 ? 'CONFIRMED' : 'PENDING';
+    else if (daysAgo === 1) st = 'SHIPPING';
+    else if (daysAgo === 2 && i % 2 === 0) st = 'PACKAGING';
+    orders.push(createOrderObject(urbanShopReseller, daysAgo, st, i % CATALOG_PRODUCTS.length, (i % 5 === 0) ? 2 : 1));
+  });
+
+  // 3B. Dedicated Orders for Trendz Bazar BD (rsl-001) - 38 realistic orders across 0 to 90 days
+  const trendzBazarReseller = resellers.find((r) => r.id === 'rsl-001') || resellers[1];
+  const trendzBazarDaysAgo = [
+    0, 1, 1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 18, 20, 22, 24, 27, 29, 32, 36, 40, 45, 50, 56, 62, 70, 78, 85, 92, 100, 110, 120, 135
+  ];
+  trendzBazarDaysAgo.forEach((daysAgo, i) => {
+    let st: Order['status'] = 'DELIVERED';
+    if (daysAgo === 0) st = 'PENDING';
+    else if (daysAgo === 1) st = 'SHIPPING';
+    else if (daysAgo === 2) st = 'PACKAGING';
+    orders.push(createOrderObject(trendzBazarReseller, daysAgo, st, (i + 2) % CATALOG_PRODUCTS.length, (i % 6 === 0) ? 2 : 1));
+  });
+
+  // 3C. Dedicated Orders for Founder Store (rsl-founder) - 45 realistic orders
+  const founderResellerObj = resellers.find((r) => r.id === 'rsl-founder') || founderReseller;
+  const founderDaysAgo = [
+    0, 0, 1, 1, 2, 2, 3, 4, 5, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 17, 19, 21, 23, 26, 28, 31, 35, 39, 43, 48, 54, 60, 67, 74, 82, 90, 98, 108, 118, 128, 140, 150, 160, 170, 180
+  ];
+  founderDaysAgo.forEach((daysAgo, i) => {
+    let st: Order['status'] = 'DELIVERED';
+    if (daysAgo === 0) st = 'CONFIRMED';
+    else if (daysAgo === 1) st = 'SHIPPING';
+    orders.push(createOrderObject(founderResellerObj, daysAgo, st, (i + 4) % CATALOG_PRODUCTS.length, (i % 4 === 0) ? 2 : 1));
+  });
+
+  // 3D. Spread additional realistic orders across other top 40 active resellers
+  const otherActiveResellers = resellers.filter((r) => r.id !== 'rsl-001' && r.id !== 'rsl-002' && r.id !== 'rsl-founder' && r.status === 'ACTIVE').slice(0, 40);
+  otherActiveResellers.forEach((rsl, rIdx) => {
+    const count = 3 + (rIdx % 5);
+    for (let c = 0; c < count; c++) {
+      const daysAgo = (c * 3 + (rIdx % 10)) % 60;
+      const st: Order['status'] = daysAgo <= 1 ? 'SHIPPING' : 'DELIVERED';
+      orders.push(createOrderObject(rsl, daysAgo, st, (rIdx + c) % CATALOG_PRODUCTS.length, 1));
+    }
+  });
 
   return { users, resellers, wallets, orders };
 }
