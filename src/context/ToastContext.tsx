@@ -17,6 +17,7 @@ export interface ToastItem {
 interface ToastContextType {
   toasts: ToastItem[];
   showToast: (toast: Omit<ToastItem, 'id'>) => string;
+  show: (message: string, type?: ToastType, title?: string, duration?: number) => string;
   success: (message: string, title?: string, duration?: number) => string;
   error: (message: string, title?: string, duration?: number) => string;
   info: (message: string, title?: string, duration?: number) => string;
@@ -58,6 +59,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [dismissToast]
   );
 
+  const show = useCallback(
+    (message: string, type: ToastType = 'info', title?: string, duration?: number) =>
+      showToast({ type, message, title, duration }),
+    [showToast]
+  );
+
   const success = useCallback(
     (message: string, title?: string, duration?: number) =>
       showToast({ type: 'success', message, title, duration }),
@@ -93,6 +100,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         toasts,
         showToast,
+        show,
         success,
         error,
         info,

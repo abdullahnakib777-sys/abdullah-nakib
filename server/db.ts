@@ -1861,11 +1861,17 @@ class Database {
           this.data.wallets[referrer.id].totalEarned = (this.data.wallets[referrer.id].totalEarned || 0) + 100;
         }
 
-        this.addNotification({
-          userId: referrer.userId,
+        this.createNotification({
+          targetType: 'INDIVIDUAL',
+          targetResellerIds: [referrer.id],
           title: '🎉 New Referral Joined & Bonus Credited!',
+          titleBn: '🎉 নতুন রেফারেল যোগ হয়েছে এবং বোনাস জমা হয়েছে!',
           message: `${data.storeName} (${newUser.name}) registered with your code ${referrer.referralCode}. +250 XP & ৳100 referral bonus credited!`,
-          type: 'SYSTEM',
+          messageBn: `${data.storeName} (${newUser.name}) আপনার কোড ${referrer.referralCode} দিয়ে রেজিস্টার করেছে। +250 XP ও ৳100 রেফারেল বোনাস ক্রেডিট হয়েছে!`,
+          badge: '🎁 REFERRAL BONUS',
+          badgeBn: '🎁 রেফারেল বোনাস',
+          displayType: 'TOP_CAROUSEL',
+          priority: 'HIGH',
         });
       }
     }
