@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Wallet, WalletTransaction, WithdrawalRequest, ResellerProfile } from '../../types';
 import { api } from '../../services/api';
 import { StatusBadge } from '../common/Badge';
+import { getRankForXp, canWithdrawXpBonus, getXpBonusBdt } from '../../data/bangladeshGeo';
 import {
   Wallet as WalletIcon,
   TrendingUp,
@@ -17,6 +18,9 @@ import {
   CreditCard,
   Building,
   Smartphone,
+  Sparkles,
+  Coins,
+  Lock,
 } from 'lucide-react';
 
 export const WalletView: React.FC<{
@@ -114,23 +118,23 @@ export const WalletView: React.FC<{
       )}
 
       {/* Balance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Available Balance Card */}
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-xs uppercase tracking-wider text-emerald-100 font-bold">
-              Available For Withdrawal
-            </span>
-            <div className="p-2 bg-white/15 rounded-xl backdrop-blur-md">
-              <WalletIcon className="w-4 h-4 text-white" />
-            </div>
-          </div>
+        <div className="bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-5 rounded-3xl shadow-lg relative overflow-hidden flex flex-col justify-between space-y-3">
           <div>
-            <p className="text-3xl sm:text-4xl font-black">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[11px] uppercase tracking-wider text-emerald-100 font-bold">
+                Available Cashout
+              </span>
+              <div className="p-1.5 bg-white/15 rounded-xl backdrop-blur-md">
+                <WalletIcon className="w-3.5 h-3.5 text-white" />
+              </div>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black">
               ৳{(wallet?.availableBalance ?? 0).toLocaleString()}
             </p>
-            <p className="text-xs text-emerald-100/90 mt-1">
-              Guaranteed settled profits from delivered customer orders
+            <p className="text-[11px] text-emerald-100/90 mt-0.5">
+              Settled profits from delivered orders
             </p>
           </div>
           <button
@@ -139,49 +143,93 @@ export const WalletView: React.FC<{
               setIsWithdrawModalOpen(true);
             }}
             disabled={!wallet || wallet.availableBalance < 100}
-            className="w-full py-3 px-4 rounded-xl bg-white text-emerald-950 hover:bg-emerald-50 font-black text-xs transition shadow-md disabled:opacity-40 flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-3 rounded-xl bg-white text-emerald-950 hover:bg-emerald-50 font-black text-xs transition shadow-md disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <ArrowDownLeft className="w-4 h-4" />
-            <span>Withdraw to bKash / Nagad / Bank</span>
+            <ArrowDownLeft className="w-3.5 h-3.5" />
+            <span>Withdraw to bKash / Nagad</span>
           </button>
         </div>
 
         {/* Pending Balance */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">
-              Pending Profit
-            </span>
-            <div className="p-2 bg-amber-50 rounded-xl text-amber-700">
-              <Clock className="w-4 h-4" />
+        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-2">
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">
+                Pending Profit
+              </span>
+              <div className="p-1.5 bg-amber-50 rounded-xl text-amber-700">
+                <Clock className="w-3.5 h-3.5" />
+              </div>
             </div>
+            <p className="text-2xl sm:text-3xl font-black text-amber-600">
+              ৳{(wallet?.pendingBalance ?? 0).toLocaleString()}
+            </p>
           </div>
-          <p className="text-3xl font-black text-amber-600">
-            ৳{(wallet?.pendingBalance ?? 0).toLocaleString()}
-          </p>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Reserved earnings for orders in packaging or courier transit. Released instantly upon successful delivery.
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            Reserved earnings for orders in delivery. Released instantly on delivery.
           </p>
         </div>
 
         {/* Lifetime Earnings */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">
-              Lifetime Earnings
-            </span>
-            <div className="p-2 bg-indigo-50 rounded-xl text-indigo-700">
-              <TrendingUp className="w-4 h-4" />
+        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-2">
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">
+                Lifetime Earnings
+              </span>
+              <div className="p-1.5 bg-indigo-50 rounded-xl text-indigo-700">
+                <TrendingUp className="w-3.5 h-3.5" />
+              </div>
             </div>
+            <p className="text-2xl sm:text-3xl font-black text-slate-900">
+              ৳{(wallet?.lifetimeEarnings ?? 0).toLocaleString()}
+            </p>
           </div>
-          <p className="text-3xl font-black text-slate-900">
-            ৳{(wallet?.lifetimeEarnings ?? 0).toLocaleString()}
-          </p>
-          <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold pt-1">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>0% Platform Withdrawal Surcharge</span>
+          <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>0% Platform Withdrawal Fee</span>
           </div>
         </div>
+
+        {/* XP Bonus Vault Card */}
+        {(() => {
+          const xp = reseller.xp || 0;
+          const isEligible = canWithdrawXpBonus(xp);
+          const rank = getRankForXp(xp);
+          return (
+            <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-3xl shadow-xs border border-purple-500/30 flex flex-col justify-between space-y-2">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[11px] uppercase tracking-wider text-purple-300 font-bold flex items-center gap-1">
+                    <Coins className="w-3 h-3 text-amber-400" />
+                    XP Bonus Vault
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[9px] font-black">
+                    1 XP = ৳1
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <p className="text-2xl sm:text-3xl font-black text-amber-400 font-mono">
+                    ৳{getXpBonusBdt(xp)}
+                  </p>
+                  <span className="text-[10px] text-slate-400 font-mono font-bold">({xp} XP)</span>
+                </div>
+              </div>
+
+              {isEligible ? (
+                <div className="p-2 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-[10px] text-emerald-300 font-bold flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-300 shrink-0" />
+                  <span>Unlocked! Claim in Badges & Levels tab</span>
+                </div>
+              ) : (
+                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-200/90 flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span>Unlocks at Ultra Better (701+ XP). Need {701 - xp} XP.</span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Withdrawals List */}

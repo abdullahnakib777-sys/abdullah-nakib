@@ -41,11 +41,40 @@ import {
   ToggleLeft,
   ToggleRight,
   ArrowUpRight,
+  Trophy,
+  GraduationCap,
+  Video,
+  Gift,
+  Truck,
+  Crown,
+  Zap,
+  Tag,
 } from 'lucide-react';
 
-const POSTER_PRESETS = [
+export interface CampaignPreset {
+  name: string;
+  category: 'PRODUCTS' | 'CHALLENGES' | 'ACADEMY' | 'ANNOUNCEMENTS';
+  url: string;
+  titleBn: string;
+  titleEn: string;
+  msgBn: string;
+  msgEn: string;
+  badge: string;
+  badgeBn: string;
+  displayType: NotificationDisplayType;
+  actionType: NotificationActionType;
+  productId?: string;
+  actionUrl: string;
+  actionLabel: string;
+  actionLabelBn: string;
+  priority: NotificationPriority;
+}
+
+const POSTER_PRESETS: CampaignPreset[] = [
+  // 1. PRODUCTS CATEGORY
   {
-    name: 'Smartwatch Mega Campaign (T900 Ultra)',
+    name: 'Smartwatch Mega Campaign (T900 Ultra 2 Max)',
+    category: 'PRODUCTS',
     url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&auto=format&fit=crop&q=80',
     titleBn: '🔥 ৫০% বেশি লাভ! T900 Ultra 2 Max মেগা ক্যাম্পেইন',
     titleEn: '🔥 2X Profit Margin: T900 Ultra 2 Max Flash Campaign',
@@ -53,16 +82,17 @@ const POSTER_PRESETS = [
     msgEn: 'Extra ৳200 bonus profit on every delivered smartwatch! Post this promotional poster to your Facebook & TikTok pages for instant pre-orders.',
     badge: '🔥 HOT CAMPAIGN',
     badgeBn: '🔥 মেগা ক্যাম্পেইন',
-    displayType: 'TOP_CAROUSEL' as NotificationDisplayType,
-    actionType: 'PRODUCT' as NotificationActionType,
+    displayType: 'TOP_CAROUSEL',
+    actionType: 'PRODUCT',
     productId: 'prod-01',
     actionUrl: 'product:prod-01',
     actionLabel: 'Sell T900 Watch Now',
     actionLabelBn: 'এখনই ওয়াচ সেল করুন',
-    priority: 'URGENT' as NotificationPriority,
+    priority: 'URGENT',
   },
   {
     name: 'Kitchen Chopper & Blender Restock',
+    category: 'PRODUCTS',
     url: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=1200&auto=format&fit=crop&q=80',
     titleBn: '🌙 ঈদ স্পেশাল ২-ইন-১ ইলেকট্রিক ফুড চপার রিস্টক',
     titleEn: '🌙 Eid Special 2-in-1 Electric Food Chopper Restock Alert',
@@ -70,16 +100,17 @@ const POSTER_PRESETS = [
     msgEn: 'Top-selling 2L food chopper and garment steamer new batch just arrived from direct manufacturer! Instant 24h delivery.',
     badge: '✨ NEW STOCK',
     badgeBn: '✨ নতুন স্টক',
-    displayType: 'TOP_CAROUSEL' as NotificationDisplayType,
-    actionType: 'PRODUCT' as NotificationActionType,
+    displayType: 'TOP_CAROUSEL',
+    actionType: 'PRODUCT',
     productId: 'prod-03',
     actionUrl: 'product:prod-03',
     actionLabel: 'Sell Electric Chopper',
     actionLabelBn: 'ফুড চপার সেল করুন',
-    priority: 'HIGH' as NotificationPriority,
+    priority: 'HIGH',
   },
   {
     name: 'Wireless ANC Earbuds Pro Flash Sale',
+    category: 'PRODUCTS',
     url: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=1200&auto=format&fit=crop&q=80',
     titleBn: '🎧 আল্ট্রা বাসের ওয়্যারলেস ইয়ারবাডস প্রো ধামাকা অফার',
     titleEn: '🎧 Ultra Bass Wireless Earbuds Pro Super Deal',
@@ -87,30 +118,217 @@ const POSTER_PRESETS = [
     msgEn: 'Wholesale price only ৳320! Resell to retail customers at ৳700-৳900 with ৳400+ net profit margin per piece.',
     badge: '🎧 POPUP ALERT',
     badgeBn: '🎧 স্পেশাল অ্যালার্ট',
-    displayType: 'POPUP_ON_LOGIN' as NotificationDisplayType,
-    actionType: 'PRODUCT' as NotificationActionType,
+    displayType: 'POPUP_ON_LOGIN',
+    actionType: 'PRODUCT',
     productId: 'prod-02',
     actionUrl: 'product:prod-02',
     actionLabel: 'Sell M10 Earbuds Now',
     actionLabelBn: 'এখনই ইয়ারবাডস সেল করুন',
-    priority: 'URGENT' as NotificationPriority,
+    priority: 'URGENT',
   },
   {
-    name: 'Instant bKash/Nagad Payout Notice',
+    name: 'Electric Kettle & Kitchen Super Saver',
+    category: 'PRODUCTS',
+    url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=1200&auto=format&fit=crop&q=80',
+    titleBn: '⚡ প্রিমিয়াম স্টেইনলেস স্টিল ইলেকট্রিক কেটলি সুপার সেভার',
+    titleEn: '⚡ Premium Kitchen Appliances Super Saver Deal',
+    msgBn: 'শীত ও রমজান সিজনের বেস্ট সেলিং অটো-কাট ইলেকট্রিক কেটলিতে সর্বোচ্চ ক্যাশব্যাক বোনাস। পাইকারি মূল্যে আজই বুকিং নিন!',
+    msgEn: 'Highest margin cashback on seasonal electric kettles! Source directly from wholesale batch and maximize earnings.',
+    badge: '⚡ SUPER SAVER',
+    badgeBn: '⚡ সুপার সেভার',
+    displayType: 'TOP_CAROUSEL',
+    actionType: 'PRODUCT',
+    productId: 'prod-04',
+    actionUrl: 'product:prod-04',
+    actionLabel: 'Sell Smart Kettle',
+    actionLabelBn: 'কেটলি সেল শুরু করুন',
+    priority: 'HIGH',
+  },
+
+  // 2. CHALLENGES CATEGORY
+  {
+    name: 'Weekend 50 Orders Sprint: ৳5,000 Cash',
+    category: 'CHALLENGES',
+    url: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=1200&auto=format&fit=crop&q=80',
+    titleBn: '🏆 উইকেন্ড ৫০ অর্ডার স্প্রিন্ট: জিতে নিন নগদ ৫,০০০ টাকা!',
+    titleEn: '🏆 Weekend 50 Orders Sprint: Win ৳5,000 Direct Cash Prize!',
+    msgBn: 'শুক্রবার থেকে রবিবার রাত ১২টার মধ্যে সফলভাবে ৫০টি ডেলিভারি সম্পন্নকারী শীর্ষ ৩ জন রিসেলার পাবেন স্পেশাল নগদ বোনাস ও মেডেল!',
+    msgEn: 'Top 3 resellers delivering 50+ customer orders from Friday to Sunday midnight win ৳5,000 cash prizes and featured badges!',
+    badge: '🏆 SPRINT PRIZE',
+    badgeBn: '🏆 উইকেন্ড স্প্রিন্ট',
+    displayType: 'BOTH',
+    actionType: 'ROUTE',
+    productId: '',
+    actionUrl: 'leaderboard',
+    actionLabel: 'View Sprint Leaderboard',
+    actionLabelBn: 'স্প্রিন্ট লিডারবোর্ড দেখুন',
+    priority: 'URGENT',
+  },
+  {
+    name: 'Monthly 100 Orders Milestone: Laptop Contest',
+    category: 'CHALLENGES',
+    url: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&auto=format&fit=crop&q=80',
+    titleBn: '🎯 মাসিক ১০০ অর্ডার মেগা কনটেস্ট: কক্সবাজার ট্যুর ও ল্যাপটপ পুরষ্কার!',
+    titleEn: '🎯 Monthly 100 Orders Mega Contest: Win Free Cox\'s Bazar Trip & Laptop!',
+    msgBn: 'এই মাসে ১০০+ সফল অর্ডার সম্পন্নকারী টপ পারফর্মারদের জন্য মেহেরমার্টের সৌজন্যে অল-পেইড কক্সবাজার ট্যুর এবং ব্র্যান্ডেড ল্যাপটপ উপহার!',
+    msgEn: 'Hit 100+ delivered orders this month to unlock Grand Contest Prize: All-expenses-paid trip to Cox\'s Bazar + Brand New Laptop!',
+    badge: '🎁 MEGA CONTEST',
+    badgeBn: '🎁 মেগা কনটেস্ট',
+    displayType: 'POPUP_ON_LOGIN',
+    actionType: 'ROUTE',
+    productId: '',
+    actionUrl: 'leaderboard',
+    actionLabel: 'Join Grand Contest',
+    actionLabelBn: 'কনটেস্টে যুক্ত হন',
+    priority: 'URGENT',
+  },
+  {
+    name: 'New Reseller Fast-Starter: ৳500 Cashback',
+    category: 'CHALLENGES',
+    url: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&auto=format&fit=crop&q=80',
+    titleBn: '🚀 নতুন রিসেলার ওয়েলকাম অফার: প্রথম ৫ অর্ডারে ৫০০৳ বোনাস!',
+    titleEn: '🚀 New Reseller Kickstart Bonus: Extra ৳500 on First 5 Orders!',
+    msgBn: 'নতুন যোগদানকারী সকল রিসেলারদের জন্য বিশেষ বুস্টিং বোনাস! জয়েন করার প্রথম ৭ দিনের মধ্যে ৫টি অর্ডার সফল হলেই ওয়ালেটে ৫০০ টাকা ক্যাশব্যাক যোগ হবে।',
+    msgEn: 'Exclusive starter boost for new resellers! Deliver your first 5 customer orders within 7 days of joining to claim instant ৳500 wallet bonus.',
+    badge: '🚀 FAST START',
+    badgeBn: '🚀 নিউ স্টার্টার বোনাস',
+    displayType: 'TOP_CAROUSEL',
+    actionType: 'ROUTE',
+    productId: '',
+    actionUrl: 'products',
+    actionLabel: 'Start First Order',
+    actionLabelBn: 'প্রথম অর্ডার শুরু করুন',
+    priority: 'HIGH',
+  },
+  {
+    name: 'Eid Sales Marathon: Double Profit Multiplier',
+    category: 'CHALLENGES',
+    url: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1200&auto=format&fit=crop&q=80',
+    titleBn: '🎉 ঈদ ফেস্টিভ্যাল সেলস ম্যারাথন: ডাবল প্রফিট বুস্টার চালু!',
+    titleEn: '🎉 Eid Mega Sales Marathon: 2X Double Profit Multiplier Active!',
+    msgBn: 'ফেস্টিভ সিজনে আপনার সেলস দ্বিগুণ করুন! প্রতি ১০টি অর্ডারে পাবেন অতিরিক্ত ১,০০০ টাকা লিডারবোর্ড বাউন্টি। আজই স্টক বুকিং করুন।',
+    msgEn: 'Supercharge your festive earnings! Get an extra ৳1,000 milestone bonus for every 10 orders placed this week.',
+    badge: '🎉 FESTIVE BOOST',
+    badgeBn: '🎉 ঈদ ধামাকা',
+    displayType: 'BOTH',
+    actionType: 'ROUTE',
+    productId: '',
+    actionUrl: 'products',
+    actionLabel: 'Browse Festive Deals',
+    actionLabelBn: 'ফেস্টিভ প্রোডাক্ট দেখুন',
+    priority: 'HIGH',
+  },
+
+  // 3. ACADEMY CATEGORY
+  {
+    name: 'Facebook Ads 0 to 100k Profit Masterclass',
+    category: 'ACADEMY',
+    url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=1200&auto=format&fit=crop&q=80',
+    titleBn: '🎬 নতুন ভিডিও ক্লাস: ফেসবুক অ্যাডস দিয়ে মাসে ১ লাখ টাকা প্রফিট করার কৌশল',
+    titleEn: '🎬 New Academy Video: Facebook Ads Blueprint to ৳100K Monthly Profit',
+    msgBn: 'টপ সেলার রিসেলারদের গোপন ফেসবুক পেজ ও অ্যাড রান স্ট্র্যাটেজি নিয়ে মেহেরমার্ট একাডেমিতে নতুন পূর্ণাঙ্গ ভিডিও আপলোড করা হয়েছে। সম্পূর্ণ ফ্রিতে দেখুন!',
+    msgEn: 'Learn the exact Facebook targeting and video ad techniques used by our top 1% resellers to scale to 100+ daily orders without stock investment.',
+    badge: '🎓 NEW VIDEO CLASS',
+    badgeBn: '🎓 নতুন ভিডিও ক্লাস',
+    displayType: 'BOTH',
+    actionType: 'ROUTE',
+    productId: '',
+    actionUrl: 'academy',
+    actionLabel: 'Watch Free Video Now',
+    actionLabelBn: 'ফ্রি ক্লাসটি দেখুন',
+    priority: 'HIGH',
+  },
+  {
+    name: 'TikTok & Reels Viral Video Selling Blueprint',
+    category: 'ACADEMY',
+    url: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=1200&auto=format&fit=crop&q=80',
+    titleBn: '📱 ভিডিও টিউটোরিয়াল: বিজ্ঞাপন খরচ ছাড়া টিকটক ও রিলস থেকে আনলিমিটেড কাস্টমার পান',
+    titleEn: '📱 Academy Masterclass: Zero-Ad-Spend TikTok & Reels Viral Blueprint',
+    msgBn: 'স্মার্টফোন দিয়ে আকর্ষণীয় প্রোডাক্ট আনবক্সিং ভিডিও বানিয়ে কীভাবে প্রতিদিন ১০-২০টি অর্গানিক কাস্টমার অর্ডার আনবেন তার সহজ প্র্যাকটিক্যাল গাইডলাইন।',
+    msgEn: 'Master organic unboxing short videos on TikTok, Facebook Reels and Instagram to generate steady daily sales with zero ad budget.',
+    badge: '📱 VIRAL MASTERCLASS',
+    badgeBn: '📱 ভাইরাল ভিডিও ক্লাস',
+    displayType: 'TOP_CAROUSEL',
+    actionType: 'ROUTE',
+    productId: '',
+    actionUrl: 'academy',
+    actionLabel: 'Learn Video Selling',
+    actionLabelBn: 'টিউটোরিয়াল দেখুন',
+    priority: 'NORMAL',
+  },
+  {
+    name: 'Customer Phone Script & Return Reduction Strategy',
+    category: 'ACADEMY',
+    url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&auto=format&fit=crop&q=80',
+    titleBn: '💡 সিক্রেট ট্রিকস: ফোন কলের মাধ্যমে কাস্টমার পার্সেল রিটার্ন রেট ০% করার উপায়',
+    titleEn: '💡 Pro Strategy: Phone Confirmation Script to Reduce Returns Under 3%',
+    msgBn: 'অর্ডার কনফার্ম করার সময় কাস্টমারের সাথে কীভাবে কথা বললে পার্সেল রিটার্ন হবে না এবং ডেলিভারি সাকসেস রেট ৯৫%+ হবে তা শিখুন নতুন গাইডলাইনে।',
+    msgEn: 'Proven phone verification scripts and WhatsApp tracking prompts to boost customer delivery success rate above 95% without customer disputes.',
+    badge: '💡 PRO TRAINING',
+    badgeBn: '💡 সিক্রেট ট্রেইনিং',
+    displayType: 'TOP_CAROUSEL',
+    actionType: 'ROUTE',
+    productId: '',
+    actionUrl: 'academy',
+    actionLabel: 'Open Script Guide',
+    actionLabelBn: 'গাইড ওপেন করুন',
+    priority: 'NORMAL',
+  },
+
+  // 4. ANNOUNCEMENTS CATEGORY
+  {
+    name: 'Instant bKash/Nagad Payout (Daily 8 PM Disbursal)',
+    category: 'ANNOUNCEMENTS',
     url: 'https://images.unsplash.com/photo-1556742049-0a67e55722c0?w=1200&auto=format&fit=crop&q=80',
     titleBn: '💸 বিকাশ ও নগদ ইনস্ট্যান্ট উইথড্রয়াল সেটেলমেন্ট আপডেট',
     titleEn: '💸 Instant bKash & Nagad Withdrawal Updates',
-    msgBn: 'সকল অ্যাপ্রুভড অর্ডার উইথড্রয়াল রিকোয়েস্ট প্রতিদিন রাত ৮টার মধ্যে বিকাশ ও নগদে সরাসরি পরিশোধ করা হচ্ছে। আপনার বন্ধুদের রেফার করে জিতে নিন ২০০ টাকা!',
-    msgEn: 'All approved reseller withdrawal requests are processed daily by 8 PM via instant bKash & Nagad merchant payouts.',
+    msgBn: 'সকল অ্যাপ্রুভড অর্ডার উইথড্রয়াল রিকোয়েস্ট প্রতিদিন রাত ৮টার মধ্যে বিকাশ ও নগদে সরাসরি পরিশোধ করা হচ্ছে। কোনো চার্জ ছাড়াই পেমেন্ট নিন!',
+    msgEn: 'All approved reseller withdrawal requests are processed daily by 8 PM via instant bKash & Nagad merchant payouts with zero transaction fees.',
     badge: '💰 FAST PAYOUT',
     badgeBn: '💰 দ্রুত পেমেন্ট',
-    displayType: 'BOTH' as NotificationDisplayType,
-    actionType: 'ROUTE' as NotificationActionType,
+    displayType: 'BOTH',
+    actionType: 'ROUTE',
     productId: '',
     actionUrl: 'wallet',
     actionLabel: 'Check Your Wallet',
     actionLabelBn: 'ওয়ালেট চেক করুন',
-    priority: 'NORMAL' as NotificationPriority,
+    priority: 'NORMAL',
+  },
+  {
+    name: '24-48 Hours Express Logistics Hub (Steadfast/Pathao)',
+    category: 'ANNOUNCEMENTS',
+    url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&auto=format&fit=crop&q=80',
+    titleBn: '🚚 দ্রুততম ডেলিভারি আপডেট: ঢাকা সিটিতে ২৪ ঘণ্টা ও সারাদেশে ৪৮ ঘণ্টায় ডেলিভারি!',
+    titleEn: '🚚 Express Logistics Upgrade: 24h Dhaka & 48h Nationwide Delivery Active!',
+    msgBn: 'আমাদের সেন্ট্রাল ওয়্যারহাউস থেকে সরাসরি স্টিডফাস্ট ও পাঠাও এক্সপ্রেস কুরিয়ারে একই দিনে পার্সেল হ্যান্ডওভার করা হচ্ছে। কাস্টমার পাবে দ্রুততম ডেলিভারি!',
+    msgEn: 'Same-day warehouse direct dispatch with Steadfast & Pathao guarantees ultra-fast 24h delivery inside Dhaka and 48h across all 64 districts.',
+    badge: '🚚 EXPRESS HUB',
+    badgeBn: '🚚 এক্সপ্রেস ডেলিভারি',
+    displayType: 'TOP_CAROUSEL',
+    actionType: 'ROUTE',
+    productId: '',
+    actionUrl: 'orders',
+    actionLabel: 'Track Express Orders',
+    actionLabelBn: 'অর্ডার ট্র্যাক করুন',
+    priority: 'NORMAL',
+  },
+  {
+    name: 'VIP Diamond Reseller Club Launch & Factory Pricing',
+    category: 'ANNOUNCEMENTS',
+    url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1200&auto=format&fit=crop&q=80',
+    titleBn: '👑 ভিআইপি এলিট ডায়মন্ড ক্লাব লঞ্চ: এক্সক্লুসিভ ফ্যাক্টরি রেট ও ডেডিকেটেড ম্যানেজার',
+    titleEn: '👑 VIP Diamond Club Launch: Unlock Factory Direct Wholesale Rates',
+    msgBn: 'মাসে ৫০+ অর্ডার করা রিসেলারদের জন্য ভিআইপি ক্লাব অ্যাক্সেস উন্মুক্ত! পাবেন অতিরিক্ত ১০% ডিসকাউন্ট, প্রায়োরিটি স্টক অ্যালকেশন এবং ২৪/৭ সাপোর্ট।',
+    msgEn: 'Resellers achieving 50+ monthly orders unlock VIP Diamond status with exclusive direct-from-factory pricing and priority 24/7 dedicated account support.',
+    badge: '👑 VIP CLUB',
+    badgeBn: '👑 ভিআইপি ক্লাব',
+    displayType: 'POPUP_ON_LOGIN',
+    actionType: 'ROUTE',
+    productId: '',
+    actionUrl: 'wallet',
+    actionLabel: 'View VIP Benefits',
+    actionLabelBn: 'ভিআইপি সুবিধা দেখুন',
+    priority: 'HIGH',
   },
 ];
 
@@ -153,6 +371,11 @@ export const AdminNotificationsManager: React.FC = () => {
   const [customActionUrl, setCustomActionUrl] = useState<string>('');
   const [actionLabelEn, setActionLabelEn] = useState('Sell Now');
   const [actionLabelBn, setActionLabelBn] = useState('এখনই সেল করুন');
+
+  // Preset Template Category Filter State
+  const [presetCategoryFilter, setPresetCategoryFilter] = useState<
+    'ALL' | 'PRODUCTS' | 'CHALLENGES' | 'ACADEMY' | 'ANNOUNCEMENTS'
+  >('ALL');
 
   const [previewLanguage, setPreviewLanguage] = useState<'bn' | 'en'>('bn');
 
@@ -550,33 +773,145 @@ export const AdminNotificationsManager: React.FC = () => {
 
             {/* Quick Template Presets (Only if not editing) */}
             {!editingNotificationId && (
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  ⚡ {isBn ? 'রেডিমেড ক্যাম্পেইন টেমপ্লেট লোড করুন' : 'Load Ready-made Template Preset'}
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {POSTER_PRESETS.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => applyPreset(preset)}
-                      className={`text-left p-2.5 rounded-xl border text-xs transition-all flex items-center gap-2.5 ${
-                        posterImage === preset.url
-                          ? 'bg-purple-950/60 border-purple-500/60 text-white shadow-[0_0_15px_rgba(147,51,234,0.2)]'
-                          : 'bg-slate-950/50 border-slate-800 text-slate-300 hover:border-slate-700'
-                      }`}
-                    >
-                      <img
-                        src={preset.url}
-                        alt={preset.name}
-                        className="w-10 h-10 rounded-lg object-cover border border-purple-500/20 shrink-0"
-                      />
-                      <div className="truncate">
-                        <p className="font-bold truncate text-white">{preset.name}</p>
-                        <span className="text-[10px] text-amber-400 font-semibold">{preset.badge}</span>
-                      </div>
-                    </button>
-                  ))}
+              <div className="space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-purple-300">
+                    ⚡ {isBn ? 'রেডিমেড ক্যাম্পেইন ও পোস্টার টেমপ্লেট (১৪টি টেমপ্লেট)' : 'Ready-made Campaign & Poster Templates (14 Presets)'}
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    {isBn ? 'ক্লিক করলে স্বয়ংক্রিয়ভাবে ফর্ম ও অ্যাকশন সেট হবে' : 'Click to auto-fill form & actions'}
+                  </span>
+                </div>
+
+                {/* Category Filter Tabs */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  <button
+                    type="button"
+                    onClick={() => setPresetCategoryFilter('ALL')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                      presetCategoryFilter === 'ALL'
+                        ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)]'
+                        : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-800'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{isBn ? 'সবগুলো (১৪)' : 'All Presets (14)'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPresetCategoryFilter('PRODUCTS')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                      presetCategoryFilter === 'PRODUCTS'
+                        ? 'bg-amber-600 text-white shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+                        : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-800'
+                    }`}
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{isBn ? '🛍️ প্রোডাক্ট ফ্ল্যাশ সেল (৪)' : '🛍️ Products & Flash (4)'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPresetCategoryFilter('CHALLENGES')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                      presetCategoryFilter === 'CHALLENGES'
+                        ? 'bg-emerald-600 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]'
+                        : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-800'
+                    }`}
+                  >
+                    <Trophy className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{isBn ? '🏆 চ্যালেঞ্জ ও পুরষ্কার (৪)' : '🏆 Challenges & Contests (4)'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPresetCategoryFilter('ACADEMY')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                      presetCategoryFilter === 'ACADEMY'
+                        ? 'bg-indigo-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]'
+                        : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-800'
+                    }`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>{isBn ? '🎓 একাডেমি ও ভিডিও ক্লাস (৩)' : '🎓 Academy Videos (3)'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPresetCategoryFilter('ANNOUNCEMENTS')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                      presetCategoryFilter === 'ANNOUNCEMENTS'
+                        ? 'bg-pink-600 text-white shadow-[0_0_10px_rgba(236,72,153,0.4)]'
+                        : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-800'
+                    }`}
+                  >
+                    <Megaphone className="w-3.5 h-3.5 text-pink-400" />
+                    <span>{isBn ? '📢 বড় ঘোষণা ও পেআউট (৩)' : '📢 Big Announcements (3)'}</span>
+                  </button>
+                </div>
+
+                {/* Preset Cards Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
+                  {POSTER_PRESETS.filter(
+                    (p) => presetCategoryFilter === 'ALL' || p.category === presetCategoryFilter
+                  ).map((preset, idx) => {
+                    const isSelected =
+                      posterImage === preset.url &&
+                      (titleBn === preset.titleBn || titleEn === preset.titleEn);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => applyPreset(preset)}
+                        className={`text-left p-2.5 rounded-2xl border text-xs transition-all flex items-start gap-2.5 group relative overflow-hidden ${
+                          isSelected
+                            ? 'bg-purple-950/70 border-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)] ring-1 ring-purple-400'
+                            : 'bg-slate-950/60 border-slate-800/80 text-slate-300 hover:border-purple-500/40 hover:bg-slate-900/60'
+                        }`}
+                      >
+                        <div className="relative shrink-0">
+                          <img
+                            src={preset.url}
+                            alt={preset.name}
+                            className="w-14 h-14 rounded-xl object-cover border border-purple-500/20 group-hover:scale-105 transition-transform"
+                          />
+                          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-slate-950/90 border border-purple-400/40 text-purple-300">
+                            {preset.displayType === 'TOP_CAROUSEL'
+                              ? '📱'
+                              : preset.displayType === 'POPUP_ON_LOGIN'
+                              ? '🔔'
+                              : '⭐'}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="text-[10px] font-bold text-amber-400 truncate">
+                              {preset.badge}
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 bg-slate-900 text-slate-400 rounded font-medium shrink-0">
+                              {preset.category === 'PRODUCTS'
+                                ? '🛍️ Product'
+                                : preset.category === 'CHALLENGES'
+                                ? '🏆 Contest'
+                                : preset.category === 'ACADEMY'
+                                ? '🎓 Video'
+                                : '📢 Notice'}
+                            </span>
+                          </div>
+                          <p className="font-bold text-xs text-white leading-snug line-clamp-1 group-hover:text-purple-300 transition-colors">
+                            {preset.name}
+                          </p>
+                          <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
+                            {isBn ? preset.titleBn : preset.titleEn}
+                          </p>
+                          <div className="mt-1 flex items-center gap-1.5 text-[10px] text-purple-400 font-semibold">
+                            <span>➡️ {isBn ? preset.actionLabelBn : preset.actionLabel}</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

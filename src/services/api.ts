@@ -257,7 +257,46 @@ export const api = {
       weeklyChallenges: WeeklyChallenge[];
       resellerLevel: number;
       resellerXp: number;
+      claimedXpBonus?: number;
     }>('/api/v1/gamification'),
+
+  claimXpBonus: () =>
+    apiFetch<{
+      success: boolean;
+      convertedXp: number;
+      bonusBdt: number;
+      newAvailableBalance: number;
+      totalClaimedXp: number;
+      resellerXp: number;
+    }>('/api/v1/gamification/claim-xp-bonus', {
+      method: 'POST',
+    }),
+
+  // Admin Badges & Accolades Management
+  getAdminAchievements: () =>
+    apiFetch<{ achievements: Achievement[] }>('/api/v1/admin/achievements'),
+
+  createAchievement: (body: Partial<Achievement>) =>
+    apiFetch<{ achievement: Achievement; message: string }>('/api/v1/admin/achievements', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateAchievement: (id: string, body: Partial<Achievement>) =>
+    apiFetch<{ achievement: Achievement; message: string }>(`/api/v1/admin/achievements/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  deleteAchievement: (id: string) =>
+    apiFetch<{ success: boolean; deletedBadge?: Achievement }>(`/api/v1/admin/achievements/${id}`, {
+      method: 'DELETE',
+    }),
+
+  resetAchievements: () =>
+    apiFetch<{ achievements: Achievement[]; message: string }>('/api/v1/admin/achievements/reset', {
+      method: 'POST',
+    }),
 
   // Academy
   getAcademyLessons: () =>

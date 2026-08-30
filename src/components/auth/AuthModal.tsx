@@ -80,6 +80,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [rDistrict, setRDistrict] = useState('Dhaka');
   const [rAddress, setRAddress] = useState('');
   const [rSalesIntent, setRSalesIntent] = useState('Facebook Marketplace & WhatsApp');
+  const [rReferredBy, setRReferredBy] = useState(() => {
+    try {
+      return localStorage.getItem('mehermart_referral_code') || '';
+    } catch {
+      return '';
+    }
+  });
 
   // Reseller 500 TK step
   const [resellerStep, setResellerStep] = useState<'form' | 'payment'>('form');
@@ -210,6 +217,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         district: rDistrict,
         address: rAddress,
         salesIntent: rSalesIntent,
+        referredBy: rReferredBy.trim() || undefined,
       });
 
       // Move to 500 TK verification step

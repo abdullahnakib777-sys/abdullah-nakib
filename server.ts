@@ -544,7 +544,112 @@ async function startServer() {
       weeklyChallenges: challenges,
       resellerLevel: reseller ? reseller.level : 1,
       resellerXp: reseller ? reseller.xp : 0,
+      claimedXpBonus: reseller ? ((reseller as any).claimedXpBonus || 0) : 0,
     });
+  });
+
+  // Gamification: Claim XP to BDT Bonus to Wallet Balance (Ultra Better rank 701+ XP required)
+  app.post('/api/v1/gamification/claim-xp-bonus', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const reseller = db.getResellerByUserId(user.id);
+      if (!reseller) {
+        return res.status(400).json({ error: 'Reseller account required to claim XP bonus' });
+      }
+
+      const result = db.claimXpBonusToWallet(reseller.id, user);
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to claim XP bonus' });
+    }
+  });
+
+  // Admin: Get Achievements / Badges List
+  app.get('/api/v1/admin/achievements', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const data = db.getAchievements();
+      res.json({ achievements: data.achievements });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Create Badge / Achievement
+  app.post('/api/v1/admin/achievements', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const { title, titleBn, description, icon, category, xpReward, badgeReward, conditionType, threshold } = req.body;
+      if (!title || !xpReward) {
+        return res.status(400).json({ error: 'Title and XP reward are required' });
+      }
+
+      const ach = db.createAchievement({
+        title,
+        titleBn: titleBn || title,
+        description: description || '',
+        icon: icon || 'Award',
+        category: category || 'SALES',
+        xpReward: Number(xpReward),
+        badgeReward: badgeReward || '⭐ Star Reseller',
+        conditionType: conditionType || 'SALES_COUNT',
+        threshold: Number(threshold) || 1,
+      }, user);
+
+      res.status(201).json({ achievement: ach, message: 'Badge created successfully!' });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Update Badge / Achievement
+  app.patch('/api/v1/admin/achievements/:id', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const { id } = req.params;
+      const updated = db.updateAchievement(id, req.body, user);
+      res.json({ achievement: updated, message: 'Badge updated successfully!' });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Delete Badge / Achievement
+  app.delete('/api/v1/admin/achievements/:id', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const { id } = req.params;
+      const result = db.deleteAchievement(id, user);
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Reset Badges to Default
+  app.post('/api/v1/admin/achievements/reset', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const list = db.resetAchievementsToDefaults(user);
+      res.json({ achievements: list, message: 'Badges reset to default system list!' });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
   });
 
   // Reseller Academy

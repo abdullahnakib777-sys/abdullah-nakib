@@ -109,6 +109,21 @@ function MainAppContent() {
 
   useEffect(() => {
     loadPlatformData();
+
+    // Check for referral code in URL query string
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const refCode = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('refCode');
+      if (refCode) {
+        const cleanRef = refCode.trim().toUpperCase();
+        localStorage.setItem('mehermart_referral_code', cleanRef);
+        setTimeout(() => {
+          toast.show(`🎉 Invited by Reseller Sponsor ${cleanRef}! Special registration bonuses unlocked.`, 'success');
+        }, 1200);
+      }
+    } catch (e) {
+      console.warn('Could not parse referral parameters from URL:', e);
+    }
   }, []);
 
   useEffect(() => {

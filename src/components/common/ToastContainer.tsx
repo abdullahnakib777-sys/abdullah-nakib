@@ -49,32 +49,32 @@ const ToastIcon: React.FC<{ type: ToastItem['type'] }> = ({ type }) => {
 const getToastBorderClass = (type: ToastItem['type']) => {
   switch (type) {
     case 'success':
-      return 'border-emerald-500/40 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(16,185,129,0.25)]';
+      return 'border-emerald-400/70 shadow-[0_10px_35px_rgba(16,185,129,0.4),0_0_20px_rgba(16,185,129,0.3)] ring-1 ring-emerald-400/30';
     case 'error':
-      return 'border-rose-500/40 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(244,63,94,0.25)]';
+      return 'border-rose-400/70 shadow-[0_10px_35px_rgba(244,63,94,0.4),0_0_20px_rgba(244,63,94,0.3)] ring-1 ring-rose-400/30';
     case 'warning':
-      return 'border-amber-500/40 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(245,158,11,0.25)]';
+      return 'border-amber-400/70 shadow-[0_10px_35px_rgba(245,158,11,0.4),0_0_20px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/30';
     case 'cosmic':
-      return 'border-purple-500/50 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_25px_rgba(168,85,247,0.35)]';
+      return 'border-purple-400/80 shadow-[0_10px_40px_rgba(168,85,247,0.45),0_0_25px_rgba(6,182,212,0.35)] ring-1 ring-purple-300/40';
     case 'info':
     default:
-      return 'border-cyan-500/40 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(6,182,212,0.25)]';
+      return 'border-cyan-400/70 shadow-[0_10px_35px_rgba(6,182,212,0.4),0_0_20px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400/30';
   }
 };
 
 const getProgressBarGradient = (type: ToastItem['type']) => {
   switch (type) {
     case 'success':
-      return 'bg-gradient-to-r from-emerald-400 to-teal-300';
+      return 'bg-gradient-to-r from-emerald-400 to-teal-300 shadow-[0_0_8px_rgba(52,211,153,0.8)]';
     case 'error':
-      return 'bg-gradient-to-r from-rose-500 to-pink-500';
+      return 'bg-gradient-to-r from-rose-500 to-pink-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]';
     case 'warning':
-      return 'bg-gradient-to-r from-amber-400 to-orange-400';
+      return 'bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]';
     case 'cosmic':
-      return 'bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400';
+      return 'bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 shadow-[0_0_10px_rgba(168,85,247,0.9)]';
     case 'info':
     default:
-      return 'bg-gradient-to-r from-cyan-400 to-blue-500';
+      return 'bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]';
   }
 };
 
@@ -87,23 +87,24 @@ const SingleToast: React.FC<{ toast: ToastItem; onDismiss: (id: string) => void 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: -20, scale: 0.92, filter: 'blur(4px)' }}
+      initial={{ opacity: 0, y: -30, scale: 0.9, filter: 'blur(6px)' }}
       animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-      exit={{ opacity: 0, scale: 0.9, y: -15, filter: 'blur(4px)' }}
-      transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-      className={`relative overflow-hidden rounded-2xl p-4 bg-[#0e0c1f]/85 backdrop-blur-2xl border ${getToastBorderClass(
+      exit={{ opacity: 0, scale: 0.9, y: -25, filter: 'blur(6px)' }}
+      transition={{ type: 'spring', damping: 22, stiffness: 380 }}
+      className={`relative overflow-hidden rounded-2xl p-4 bg-[#0d0b1e]/90 backdrop-blur-2xl border ${getToastBorderClass(
         toast.type
-      )} max-w-sm sm:max-w-md w-full flex items-start gap-3 pointer-events-auto`}
+      )} max-w-sm sm:max-w-md w-full flex items-start gap-3 pointer-events-auto transition-shadow animate-pulse`}
+      style={{ animationDuration: '4s' }}
     >
       <ToastIcon type={toast.type} />
 
       <div className="flex-1 min-w-0 pr-1">
         {toast.title && (
-          <h4 className="text-xs font-black tracking-wide text-white mb-0.5">
+          <h4 className="text-xs font-black tracking-wide text-white mb-0.5 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
             {toast.title}
           </h4>
         )}
-        <p className="text-xs text-slate-200 leading-relaxed font-medium">
+        <p className="text-xs text-slate-100 leading-relaxed font-medium">
           {toast.message}
         </p>
 
@@ -128,13 +129,13 @@ const SingleToast: React.FC<{ toast: ToastItem; onDismiss: (id: string) => void 
         <X className="w-3.5 h-3.5" />
       </button>
 
-      {/* Shrinking bottom progress timer line */}
+      {/* Shrinking bottom progress timer line with glowing aura */}
       {duration > 0 && (
         <motion.div
           initial={{ scaleX: 1 }}
           animate={{ scaleX: 0 }}
           transition={{ duration: duration / 1000, ease: 'linear' }}
-          className={`absolute bottom-0 left-0 right-0 h-[2px] origin-left ${getProgressBarGradient(
+          className={`absolute bottom-0 left-0 right-0 h-[2.5px] origin-left ${getProgressBarGradient(
             toast.type
           )}`}
         />
@@ -149,7 +150,7 @@ export const ToastContainer: React.FC = () => {
   return (
     <div
       aria-live="polite"
-      className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50 flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none px-3 sm:px-0"
+      className="fixed top-3 inset-x-3 sm:top-5 sm:right-5 sm:left-auto sm:inset-x-auto z-50 flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none mx-auto sm:mx-0 items-center sm:items-end"
     >
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (

@@ -67,8 +67,15 @@ export interface AdminResellerItem extends ResellerProfile {
   completedLessonsCount?: number;
   deliveredOrdersCount?: number;
   totalOrdersCount?: number;
+  totalSalesBdt?: number;
+  moneyMadeBdt?: number;
   totalProfitEarned?: number;
   totalProfitEarnedBdt?: number;
+  moneyProfitedBdt?: number;
+  pendingProfitBdt?: number;
+  availableBalanceBdt?: number;
+  totalWithdrawnBdt?: number;
+  recentOrders?: Order[];
 }
 
 export interface ProductCategory {

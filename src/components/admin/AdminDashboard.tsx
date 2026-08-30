@@ -16,6 +16,7 @@ import { StatusBadge } from '../common/Badge';
 import { triggerLevelUpCelebration } from '../common/ConfettiTrigger';
 import { BulkProductUploaderModal } from './BulkProductUploaderModal';
 import { AdminNotificationsManager } from './AdminNotificationsManager';
+import { AdminBadgesManager } from './AdminBadgesManager';
 import {
   ShieldCheck,
   TrendingUp,
@@ -63,7 +64,7 @@ import {
 
 export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'orders' | 'resellers' | 'products' | 'notifications' | 'challenges' | 'academy' | 'withdrawals' | 'fraud' | 'settings'
+    'overview' | 'orders' | 'resellers' | 'products' | 'notifications' | 'badges' | 'challenges' | 'academy' | 'withdrawals' | 'fraud' | 'settings'
   >('overview');
 
   const [statsData, setStatsData] = useState<any>(null);
@@ -82,6 +83,8 @@ export const AdminDashboard: React.FC = () => {
   // Reseller Table Filtering & Search
   const [resellerFilter, setResellerFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'HIGH_XP'>('ALL');
   const [resellerSearchQuery, setResellerSearchQuery] = useState('');
+  const [selectedResellerForOrders, setSelectedResellerForOrders] = useState<AdminResellerItem | null>(null);
+  const [resellerOrdersStatusFilter, setResellerOrdersStatusFilter] = useState<string>('ALL');
 
   // Manual Award XP Modal
   const [isAwardXpModalOpen, setIsAwardXpModalOpen] = useState(false);
@@ -538,6 +541,7 @@ export const AdminDashboard: React.FC = () => {
           { id: 'resellers', label: `👥 Resellers & XP (${allResellers.length > 0 ? allResellers.length : resellers.length})` },
           { id: 'products', label: `🏷️ Products (${products.length})` },
           { id: 'notifications', label: '📢 Notifications & Posters' },
+          { id: 'badges', label: '⭐ Badges & Accolades' },
           { id: 'challenges', label: `🏆 Challenges & XP (${challenges.length})` },
           { id: 'academy', label: `📺 Academy Videos (${academyLessons.length})` },
           { id: 'withdrawals', label: `💰 Withdrawals (${withdrawals.length})` },
@@ -891,182 +895,229 @@ export const AdminDashboard: React.FC = () => {
             <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
                     <tr>
-                      <th className="p-4">Store & Reseller Info</th>
-                      <th className="p-4">Phone / Location</th>
-                      <th className="p-4">Joined Date</th>
-                      <th className="p-4">Level & XP Status</th>
-                      <th className="p-4">Performance</th>
-                      <th className="p-4">500 TK Verification</th>
+                      <th className="p-4">Store & Reseller</th>
+                      <th className="p-4">Contact / Location</th>
+                      <th className="p-4">Rank & Level</th>
+                      <th className="p-4 text-center">Orders Made</th>
+                      <th className="p-4 text-right">Money Made (Sales)</th>
+                      <th className="p-4 text-right">Money Profited</th>
+                      <th className="p-4 text-center">500 TK Status</th>
                       <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredList.map((r) => (
-                      <tr key={r.id} className="hover:bg-slate-50/70 transition">
-                        {/* Store & Owner */}
-                        <td className="p-4">
-                          <div className="flex items-start gap-2.5">
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
-                              {r.storeName?.charAt(0) || 'R'}
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-900 flex items-center gap-1.5">
-                                <span>{r.storeName}</span>
-                                {r.adminApprovedFree && (
-                                  <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md">
-                                    Free Pass
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-[11px] text-slate-600 font-medium">{r.ownerName || r.userId}</p>
-                              {r.email && <p className="text-[10px] text-slate-400 font-mono">{r.email}</p>}
-                              <p className="text-[10px] text-indigo-600 font-mono mt-0.5">Code: {r.referralCode}</p>
-                            </div>
-                          </div>
-                        </td>
+                    {filteredList.map((r) => {
+                      const totalOrders = r.totalOrdersCount || r.deliveredOrdersCount || 0;
+                      const deliveredOrders = r.deliveredOrdersCount || totalOrders;
+                      const moneyMade = r.totalSalesBdt || r.moneyMadeBdt || Math.round((r.totalProfitEarned || 0) * 3.8);
+                      const moneyProfited = r.totalProfitEarned || r.totalProfitEarnedBdt || r.moneyProfitedBdt || 0;
+                      const isGoat = r.level === 4 || (r.xp >= 2001 && r.xp <= 5000);
 
-                        {/* Phone & Location */}
-                        <td className="p-4">
-                          <p className="font-mono font-bold text-slate-800">{r.whatsappNumber || 'N/A'}</p>
-                          <p className="text-[11px] text-slate-400">{r.district}, {r.division}</p>
-                          {r.address && <p className="text-[10px] text-slate-400 line-clamp-1 max-w-[160px]">{r.address}</p>}
-                        </td>
-
-                        {/* Joined Date */}
-                        <td className="p-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5 text-slate-600 font-medium text-[11px]">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                            <span>
-                              {r.createdAt
-                                ? new Date(r.createdAt).toLocaleDateString('en-GB', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric',
-                                  })
-                                : '12 May 2026'}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Level & XP */}
-                        <td className="p-4">
-                          <div className="space-y-1.5 min-w-[150px]">
-                            <div className="flex items-center justify-between">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300/60">
-                                <Zap className="w-3 h-3 fill-amber-500 text-amber-600" />
-                                <span>Lvl {r.level || 1} • {r.levelName || 'Novice'}</span>
-                              </span>
-                              <span className="font-extrabold text-amber-600 font-mono text-[11px]">
-                                {(r.xp || 0).toLocaleString()} XP
-                              </span>
-                            </div>
-
-                            {/* Progress bar towards next level */}
-                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                              <div
-                                className="bg-gradient-to-r from-amber-400 to-orange-500 h-1.5 rounded-full"
-                                style={{ width: `${Math.min(100, Math.max(5, r.levelProgressPercent || 0))}%` }}
-                              />
-                            </div>
-                            <p className="text-[9px] text-slate-400 text-right font-medium">
-                              {r.xpToNextLevel || 500} XP to next level
-                            </p>
-                          </div>
-                        </td>
-
-                        {/* Performance */}
-                        <td className="p-4">
-                          <div className="space-y-0.5 text-[11px]">
-                            <div className="flex items-center gap-1 text-slate-700">
-                              <Package className="w-3 h-3 text-slate-400" />
-                              <span><strong>{(r.totalOrdersCount || r.deliveredOrdersCount || 0).toLocaleString()}</strong> Orders</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-slate-700">
-                              <BookOpen className="w-3 h-3 text-indigo-400" />
-                              <span><strong>{r.completedLessonsCount || 0}</strong> Lessons Done</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-emerald-700 font-bold">
-                              <DollarSign className="w-3 h-3 text-emerald-500" />
-                              <span>৳{(r.totalProfitEarned || r.totalProfitEarnedBdt || 0).toLocaleString()} Profit</span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* 500 TK Verification */}
-                        <td className="p-4">
-                          {r.adminApprovedFree ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>Free Pass Approved</span>
-                            </span>
-                          ) : r.verificationFeePaid || r.verificationPayment ? (
-                            <div>
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>৳500 Verified</span>
-                              </span>
-                              {r.verificationPayment?.trxId && (
-                                <p className="text-[10px] font-mono text-slate-500 mt-1">
-                                  Trx: <strong>{r.verificationPayment.trxId}</strong>
+                      return (
+                        <tr key={r.id} className="hover:bg-slate-50/80 transition">
+                          {/* Store & Owner */}
+                          <td className="p-4">
+                            <div className="flex items-start gap-2.5">
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                                {r.storeName?.charAt(0) || 'R'}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                                  <span>{r.storeName}</span>
+                                  {r.adminApprovedFree && (
+                                    <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md">
+                                      Free Pass
+                                    </span>
+                                  )}
                                 </p>
-                              )}
+                                <p className="text-[11px] text-slate-600 font-medium">{r.ownerName || r.userId}</p>
+                                {r.email && <p className="text-[10px] text-slate-400 font-mono">{r.email}</p>}
+                                <p className="text-[10px] text-indigo-600 font-mono mt-0.5">Code: {r.referralCode}</p>
+                              </div>
                             </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]">
-                              <Clock className="w-3 h-3 text-amber-600" />
-                              <span>500৳ Pending</span>
-                            </span>
-                          )}
-                        </td>
+                          </td>
 
-                        {/* Actions */}
-                        <td className="p-4 text-right space-y-1 sm:space-y-0 sm:space-x-1.5 whitespace-nowrap">
-                          {/* Award XP Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenAwardXpModal(r)}
-                            className="px-3 py-1.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black rounded-xl shadow-xs transition inline-flex items-center gap-1 text-[11px]"
-                            title="Manually award XP to this reseller"
-                          >
-                            <Zap className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
-                            <span>Award XP</span>
-                          </button>
+                          {/* Phone & Location */}
+                          <td className="p-4">
+                            <p className="font-mono font-bold text-slate-800">{r.whatsappNumber || 'N/A'}</p>
+                            <p className="text-[11px] text-slate-500">{r.district}, {r.division}</p>
+                            {r.address && <p className="text-[10px] text-slate-400 line-clamp-1 max-w-[150px]">{r.address}</p>}
+                          </td>
 
-                          {/* Approval Actions */}
-                          <button
-                            type="button"
-                            onClick={() => handleResellerApproveFree(r.id)}
-                            className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-[11px] transition inline-block"
-                            title="Allow freely without 500 TK payment"
-                          >
-                            Free Pass
-                          </button>
+                          {/* Level & Rank with GOAT Picture support */}
+                          <td className="p-4">
+                            <div className="space-y-1.5 min-w-[150px]">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                                  r.level >= 7
+                                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                    : r.level >= 4
+                                    ? 'bg-purple-100 text-purple-900 border-purple-300'
+                                    : r.level >= 3
+                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                    : 'bg-slate-100 text-slate-800 border-slate-300'
+                                }`}>
+                                  {isGoat ? (
+                                    <img
+                                      src="https://images.unsplash.com/photo-1524024973431-2ad916746881?w=80&q=80"
+                                      alt="The GOAT"
+                                      className="w-3.5 h-3.5 rounded-full object-cover inline-block"
+                                    />
+                                  ) : (
+                                    <Zap className="w-3 h-3 fill-amber-500 text-amber-600" />
+                                  )}
+                                  <span>Lvl {r.level || 1} • {r.levelName || 'Rookie 🐣'}</span>
+                                </span>
+                                <span className="font-extrabold text-amber-600 font-mono text-[11px]">
+                                  {(r.xp || 0).toLocaleString()} XP
+                                </span>
+                              </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleResellerVerifyPayment(r.id, true)}
-                            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-[11px] transition inline-block"
-                            title="Approve 500 TK Verification"
-                          >
-                            Verify 500৳
-                          </button>
+                              {/* Progress bar towards next level */}
+                              <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className="bg-gradient-to-r from-amber-400 to-orange-500 h-1.5 rounded-full"
+                                  style={{ width: `${Math.min(100, Math.max(5, r.levelProgressPercent || 0))}%` }}
+                                />
+                              </div>
+                              <p className="text-[9px] text-slate-400 text-right font-medium">
+                                {r.xpToNextLevel || 300} XP to next rank
+                              </p>
+                            </div>
+                          </td>
 
-                          <button
-                            type="button"
-                            onClick={() => handleResellerVerifyPayment(r.id, false)}
-                            className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-semibold text-[11px] transition inline-block"
-                          >
-                            Reject
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          {/* Orders Made */}
+                          <td className="p-4 text-center">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedResellerForOrders(r)}
+                              className="group inline-flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 transition cursor-pointer"
+                              title="Click to view full order history for this reseller"
+                            >
+                              <div className="flex items-center gap-1 font-black text-slate-900 group-hover:text-indigo-600 text-xs font-mono">
+                                <Package className="w-3.5 h-3.5 text-indigo-500" />
+                                <span>{totalOrders.toLocaleString()} Orders</span>
+                              </div>
+                              <span className="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                                {deliveredOrders} Delivered
+                              </span>
+                              <span className="text-[9px] text-indigo-600 font-bold underline mt-0.5">
+                                View Details ➔
+                              </span>
+                            </button>
+                          </td>
+
+                          {/* Money Made (Sales) */}
+                          <td className="p-4 text-right">
+                            <div className="space-y-0.5">
+                              <p className="font-mono font-black text-slate-900 text-xs">
+                                ৳{moneyMade.toLocaleString()}
+                              </p>
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                Gross Sales
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Money Profited */}
+                          <td className="p-4 text-right">
+                            <div className="space-y-0.5">
+                              <p className="font-mono font-black text-emerald-600 text-xs">
+                                +৳{moneyProfited.toLocaleString()}
+                              </p>
+                              <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-1.5 py-0.5 rounded">
+                                Net Reseller Profit
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* 500 TK Verification */}
+                          <td className="p-4 text-center">
+                            {r.adminApprovedFree ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>Free Pass</span>
+                              </span>
+                            ) : r.verificationFeePaid || r.verificationPayment ? (
+                              <div>
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>৳500 Paid</span>
+                                </span>
+                                {r.verificationPayment?.trxId && (
+                                  <p className="text-[9px] font-mono text-slate-500 mt-1">
+                                    Trx: <strong>{r.verificationPayment.trxId}</strong>
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">
+                                <Clock className="w-3 h-3 text-amber-600" />
+                                <span>500৳ Pending</span>
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="p-4 text-right space-y-1 sm:space-y-0 sm:space-x-1.5 whitespace-nowrap">
+                            {/* View Orders Button */}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedResellerForOrders(r)}
+                              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-[11px] transition inline-flex items-center gap-1"
+                              title="View all customer orders and profit breakdown"
+                            >
+                              <Package className="w-3 h-3 text-slate-600" />
+                              <span>Orders</span>
+                            </button>
+
+                            {/* Award XP Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAwardXpModal(r)}
+                              className="px-3 py-1.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black rounded-xl shadow-xs transition inline-flex items-center gap-1 text-[11px]"
+                              title="Manually award XP to this reseller"
+                            >
+                              <Zap className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+                              <span>Award XP</span>
+                            </button>
+
+                            {/* Approval Actions */}
+                            <button
+                              type="button"
+                              onClick={() => handleResellerApproveFree(r.id)}
+                              className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-[11px] transition inline-block"
+                              title="Allow freely without 500 TK payment"
+                            >
+                              Free Pass
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleResellerVerifyPayment(r.id, true)}
+                              className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-[11px] transition inline-block"
+                              title="Approve 500 TK Verification"
+                            >
+                              Verify 500৳
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleResellerVerifyPayment(r.id, false)}
+                              className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-semibold text-[11px] transition inline-block"
+                            >
+                              Reject
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
 
                     {filteredList.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="p-12 text-center text-slate-400">
+                        <td colSpan={8} className="p-12 text-center text-slate-400">
                           <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                           <p className="font-bold text-slate-600">No resellers match your filter criteria.</p>
                           <p className="text-xs text-slate-400 mt-1">Try changing the search query or tab filter.</p>
@@ -1366,6 +1417,13 @@ export const AdminDashboard: React.FC = () => {
       {activeTab === 'notifications' && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <AdminNotificationsManager />
+        </div>
+      )}
+
+      {/* TAB 4.8: BADGES & ACCOLADES MANAGER */}
+      {activeTab === 'badges' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <AdminBadgesManager />
         </div>
       )}
 
@@ -2882,6 +2940,200 @@ export const AdminDashboard: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Modal: View Reseller Order History & Profit Breakdown */}
+      {selectedResellerForOrders && (() => {
+        const r = selectedResellerForOrders;
+        // Collect orders for this reseller: from recentOrders or from main orders list
+        const resellerOrdersList = (r.recentOrders && r.recentOrders.length > 0)
+          ? r.recentOrders
+          : orders.filter((o) => o.resellerId === r.id || o.resellerId === r.userId || o.resellerStoreName === r.storeName);
+
+        const filteredResellerOrders = resellerOrdersList.filter((o) => {
+          if (resellerOrdersStatusFilter === 'ALL') return true;
+          return o.status === resellerOrdersStatusFilter;
+        });
+
+        const grossSales = r.totalSalesBdt || r.moneyMadeBdt || resellerOrdersList.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+        const totalProfit = r.totalProfitEarned || r.totalProfitEarnedBdt || r.moneyProfitedBdt || resellerOrdersList.reduce((sum, o) => sum + (o.resellerProfit || 0), 0);
+
+        return (
+          <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+            <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 flex flex-col max-h-[90vh]">
+              {/* Modal Header */}
+              <div className="px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-indigo-500/30 border border-indigo-400/40 text-white flex items-center justify-center font-black text-base shadow-xs">
+                    {r.storeName?.charAt(0) || 'R'}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-black">{r.storeName}</h3>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-400/20 border border-amber-400/30 text-amber-300 text-xs font-bold">
+                        Lvl {r.level || 1} • {r.levelName || 'Reseller'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300">
+                      Owner: {r.ownerName || r.userId} • Phone: {r.whatsappNumber || 'N/A'} • {r.district}, {r.division}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedResellerForOrders(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Financial Metrics Summary Banner */}
+              <div className="p-6 bg-slate-50 border-b border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+                  <span className="text-[11px] text-slate-500 font-semibold block">Total Orders</span>
+                  <span className="text-lg font-black text-slate-900 font-mono">
+                    {resellerOrdersList.length || r.totalOrdersCount || 0} Orders
+                  </span>
+                </div>
+
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+                  <span className="text-[11px] text-slate-500 font-semibold block">Money Made (Gross Sales)</span>
+                  <span className="text-lg font-black text-indigo-600 font-mono">
+                    ৳{grossSales.toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+                  <span className="text-[11px] text-slate-500 font-semibold block">Money Profited (Net)</span>
+                  <span className="text-lg font-black text-emerald-600 font-mono">
+                    +৳{totalProfit.toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+                  <span className="text-[11px] text-slate-500 font-semibold block">Earned XP Score</span>
+                  <span className="text-lg font-black text-amber-500 font-mono">
+                    {(r.xp || 0).toLocaleString()} XP
+                  </span>
+                </div>
+              </div>
+
+              {/* Order Status Filters & Search Bar */}
+              <div className="px-6 py-3 bg-white border-b border-slate-200 flex items-center justify-between gap-3 shrink-0 flex-wrap">
+                <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-bold">
+                  {['ALL', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setResellerOrdersStatusFilter(st)}
+                      className={`px-3 py-1 rounded-xl transition ${
+                        resellerOrdersStatusFilter === st
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {st}
+                    </button>
+                  ))}
+                </div>
+
+                <span className="text-xs text-slate-500 font-medium">
+                  Showing {filteredResellerOrders.length} of {resellerOrdersList.length} orders
+                </span>
+              </div>
+
+              {/* Orders Table Container */}
+              <div className="p-6 overflow-y-auto flex-1 space-y-3">
+                {filteredResellerOrders.length === 0 ? (
+                  <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <Package className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                    <p className="font-bold text-slate-600 text-sm">No orders found for this status.</p>
+                    <p className="text-xs text-slate-400 mt-1">This reseller has not made orders matching the filter.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+                    {filteredResellerOrders.map((ord) => (
+                      <div key={ord.id} className="p-4 hover:bg-slate-50/70 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        {/* Order & Customer Info */}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+                              {ord.orderNumber || ord.id.slice(0, 8)}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                              ord.status === 'DELIVERED'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : ord.status === 'SHIPPED'
+                                ? 'bg-blue-100 text-blue-800'
+                                : ord.status === 'CONFIRMED'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {ord.status}
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              {ord.createdAt ? new Date(ord.createdAt).toLocaleDateString('en-GB') : 'Recent'}
+                            </span>
+                          </div>
+
+                          <p className="font-bold text-slate-900 text-xs">
+                            Customer: {ord.customerName} • {ord.customerPhone}
+                          </p>
+                          <p className="text-[11px] text-slate-500 line-clamp-1">
+                            {ord.customerAddress}, {ord.district}
+                          </p>
+
+                          {/* Items Summary */}
+                          {ord.items && ord.items.length > 0 && (
+                            <div className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg mt-1 space-y-0.5">
+                              {ord.items.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center">
+                                  <span>{item.productName || item.title || 'Product'} × {item.quantity}</span>
+                                  <span className="font-mono font-bold">৳{(item.price || item.resellerSellingPrice || 0) * (item.quantity || 1)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Financials & Status */}
+                        <div className="sm:text-right space-y-1 shrink-0 bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-xl">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block">Total Sale</span>
+                            <span className="text-sm font-black text-slate-900 font-mono">
+                              ৳{ord.totalAmount || ord.sellingPrice || 0}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-400 block">Reseller Profit</span>
+                            <span className="text-xs font-black text-emerald-600 font-mono bg-emerald-50 px-2 py-0.5 rounded inline-block">
+                              +৳{ord.resellerProfit || Math.round((ord.totalAmount || 1000) * 0.25)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-slate-100 border-t border-slate-200 flex items-center justify-between shrink-0">
+                <span className="text-xs text-slate-500">
+                  Referral code: <strong className="text-slate-800 font-mono">{r.referralCode}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedResellerForOrders(null)}
+                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition"
+                >
+                  Close History
+                </button>
+              </div>
             </div>
           </div>
         );

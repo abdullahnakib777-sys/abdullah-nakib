@@ -537,76 +537,184 @@ const INITIAL_PRODUCTS: Product[] = [
 
 const INITIAL_ACHIEVEMENTS: Achievement[] = [
   {
-    id: 'ach-01',
-    title: 'First Sale Hero',
-    titleBn: 'প্রথম অর্ডারের নায়ক',
-    description: 'Generated your very first successfully delivered customer order on Shadhin Reseller.',
-    icon: 'Rocket',
-    category: 'SALES',
-    xpReward: 300,
-    badgeReward: '🌱 First Spark',
-    conditionType: 'DELIVERIES',
+    id: 'ach-login-verified',
+    title: 'Login & Verified Member',
+    titleBn: 'লগইন ও ভেরিফাইড মেম্বার',
+    description: 'Successfully registered, verified account, and logged in to MeherMart Reseller portal.',
+    icon: 'ShieldCheck',
+    category: 'VERIFICATION' as any,
+    xpReward: 10,
+    badgeReward: '🛡️ Verified Pro',
+    conditionType: 'LOGIN_VERIFIED',
     threshold: 1,
   },
   {
-    id: 'ach-02',
-    title: 'Ten Delivered Club',
-    titleBn: '১০টি সফল ডেলিভারি',
-    description: 'Completed 10 successful customer deliveries with zero fraud.',
+    id: 'ach-first-sale',
+    title: 'First Sell Victory',
+    titleBn: 'প্রথম সেল অর্জন',
+    description: 'Generated your very first successfully delivered customer order.',
+    icon: 'Sparkles',
+    category: 'SALES',
+    xpReward: 3,
+    badgeReward: '🌱 First Spark',
+    conditionType: 'SALES_COUNT',
+    threshold: 1,
+  },
+  {
+    id: 'ach-10-sells',
+    title: '10 Sells Milestone',
+    titleBn: '১০টি সেল মাইলস্টোন',
+    description: 'Completed 10 successful delivered orders across Bangladesh.',
     icon: 'PackageCheck',
     category: 'DELIVERY',
-    xpReward: 600,
-    badgeReward: '🔥 Consistent Hustler',
-    conditionType: 'DELIVERIES',
+    xpReward: 5,
+    badgeReward: '⚡ 10 Orders Club',
+    conditionType: 'SALES_COUNT',
     threshold: 10,
   },
   {
-    id: 'ach-03',
-    title: '50 Delivered Champion',
-    titleBn: '৫০টি সফল ডেলিভারি চ্যাম্পিয়ন',
-    description: 'Delivered 50 products across Bangladesh with top customer reviews.',
-    icon: 'ShieldCheck',
+    id: 'ach-50-sells',
+    title: '50 Sells Champion',
+    titleBn: '৫০টি সেল চ্যাম্পিয়ন',
+    description: 'Completed 50 successful delivered customer orders with top reviews.',
+    icon: 'Trophy',
     category: 'DELIVERY',
-    xpReward: 1500,
-    badgeReward: '⚡ High Volume Pro',
-    conditionType: 'DELIVERIES',
+    xpReward: 20,
+    badgeReward: '🔥 50 Deliveries Club',
+    conditionType: 'SALES_COUNT',
     threshold: 50,
   },
   {
-    id: 'ach-04',
-    title: '৳5,000 Pure Profit',
-    titleBn: '৳৫,০০০ নিট প্রফিট ক্লাব',
-    description: 'Accumulated over ৳5,000 in net withdrawable reseller profits.',
-    icon: 'Coins',
-    category: 'PROFIT',
-    xpReward: 800,
-    badgeReward: '💰 Profit Maker',
-    conditionType: 'PROFIT',
-    threshold: 5000,
-  },
-  {
-    id: 'ach-05',
-    title: '7-Day Selling Streak',
-    titleBn: 'টানা ৭ দিনের সেল স্ট্রিক',
-    description: 'Made at least one sale every day for 7 consecutive days.',
+    id: 'ach-streak-7d-2p',
+    title: '7 Days Selling Streak (2+ Products)',
+    titleBn: '৭ দিনের টানা সেল স্ট্রিক (২+ প্রোডাক্ট)',
+    description: 'Maintained 7 consecutive active selling days with at least 2 products delivered.',
     icon: 'Flame',
     category: 'STREAK',
-    xpReward: 1000,
-    badgeReward: '🔥 Unstoppable Streak',
-    conditionType: 'STREAK',
+    xpReward: 40,
+    badgeReward: '🔥 7-Day Flame Streak',
+    conditionType: 'STREAK_DAYS',
     threshold: 7,
   },
   {
-    id: 'ach-06',
-    title: 'Academy Master Graduate',
-    titleBn: 'একাডেমি গ্র্যাজুয়েট',
-    description: 'Completed all core modules of the Reseller Academy.',
+    id: 'ach-academy-4-lessons',
+    title: 'Academy Starter (First 4 Lessons)',
+    titleBn: 'একাডেমি স্টারটার (প্রথম ৪টি ক্লাস সম্পন্ন)',
+    description: 'Finished watching and mastering the first 4 video lessons in Reseller Academy.',
     icon: 'GraduationCap',
     category: 'ACADEMY',
+    xpReward: 10,
+    badgeReward: '🎓 Academy Scholar',
+    conditionType: 'ACADEMY_LESSONS',
+    threshold: 4,
+  },
+  {
+    id: 'ach-100-sells',
+    title: '100 Sells Master',
+    titleBn: '১০০ সেলস মাস্টার',
+    description: 'Delivered 100 customer orders with zero return fraud and high customer satisfaction.',
+    icon: 'Award',
+    category: 'DELIVERY',
+    xpReward: 40,
+    badgeReward: '⭐ Century Merchant',
+    conditionType: 'SALES_COUNT',
+    threshold: 100,
+  },
+  {
+    id: 'ach-1000-sells',
+    title: '1,000 Sells Titan',
+    titleBn: '১,০০০ সেলস টাইটান',
+    description: 'Achieved a monumental milestone of 1,000 delivered orders.',
+    icon: 'Crown',
+    category: 'DELIVERY',
     xpReward: 500,
-    badgeReward: '🎓 Certified Reseller',
-    conditionType: 'ACADEMY',
-    threshold: 5,
+    badgeReward: '👑 1K Titan Club',
+    conditionType: 'SALES_COUNT',
+    threshold: 1000,
+  },
+  {
+    id: 'ach-referral-first-sale',
+    title: 'Referral First Sale Reward',
+    titleBn: 'রেফারেলের প্রথম সেল বোনাস',
+    description: 'A new reseller registered with your referral code completed their first delivered sale.',
+    icon: 'Users',
+    category: 'REFERRAL' as any,
+    xpReward: 5,
+    badgeReward: '🤝 Affiliate Spark',
+    conditionType: 'REFERRAL_SALES',
+    threshold: 1,
+  },
+  {
+    id: 'ach-goat-status',
+    title: 'The GOAT Elite Rank',
+    titleBn: 'দ্য গোট (G.O.A.T) এলিট স্ট্যাটাস',
+    description: 'Achieved 2,001+ XP and unlocked The GOAT legendary status with VIP benefits.',
+    icon: 'Zap',
+    category: 'SPECIAL' as any,
+    xpReward: 50,
+    badgeReward: '🐐 The True GOAT',
+    conditionType: 'XP_THRESHOLD',
+    threshold: 2001,
+  },
+  {
+    id: 'ach-dhaka-express-25',
+    title: 'Dhaka Express Speedster (25 Orders)',
+    titleBn: 'ঢাকা এক্সপ্রেস স্পিডস্টার (২৫ অর্ডার)',
+    description: 'Successfully delivered 25 orders inside Dhaka city express courier zone.',
+    icon: 'Truck',
+    category: 'DELIVERY',
+    xpReward: 15,
+    badgeReward: '🚚 Dhaka Speedster',
+    conditionType: 'DHAKA_DELIVERIES',
+    threshold: 25,
+  },
+  {
+    id: 'ach-nationwide-64',
+    title: '64 Districts Nationwide Hero',
+    titleBn: '৬৪ জেলা ন্যাশনাল হিরো (৫০ অর্ডার)',
+    description: 'Completed 50 customer deliveries outside Dhaka division across Bangladesh.',
+    icon: 'MapPin',
+    category: 'DELIVERY',
+    xpReward: 25,
+    badgeReward: '🗺️ Nationwide Courier Hero',
+    conditionType: 'OUTSIDE_DELIVERIES',
+    threshold: 50,
+  },
+  {
+    id: 'ach-academy-master-all',
+    title: 'Academy Master Graduate',
+    titleBn: 'একাডেমি মাস্টার গ্র্যাজুয়েট (সবগুলো ক্লাস)',
+    description: 'Completed all 10 video classes in the Reseller Academy with full graduation score.',
+    icon: 'GraduationCap',
+    category: 'ACADEMY',
+    xpReward: 30,
+    badgeReward: '🎓 Certified Master Graduate',
+    conditionType: 'ACADEMY_LESSONS',
+    threshold: 10,
+  },
+  {
+    id: 'ach-profit-5k',
+    title: '৳5,000 Net Profit Earner',
+    titleBn: '৳৫,০০০ নিট প্রফিট ক্লাব',
+    description: 'Earned ৳5,000+ pure reseller net profit in your wallet balance.',
+    icon: 'Coins',
+    category: 'PROFIT',
+    xpReward: 15,
+    badgeReward: '💰 5K Profit Club',
+    conditionType: 'PROFIT_BDT',
+    threshold: 5000,
+  },
+  {
+    id: 'ach-profit-25k',
+    title: '৳25,000 Diamond Profit Master',
+    titleBn: '৳২৫,০০০ ডায়মন্ড প্রফিট মাস্টার',
+    description: 'Accumulated ৳25,000+ net profits from customer e-commerce orders.',
+    icon: 'Gem',
+    category: 'PROFIT',
+    xpReward: 50,
+    badgeReward: '💎 Diamond Earner',
+    conditionType: 'PROFIT_BDT',
+    threshold: 25000,
   },
 ];
 
@@ -1329,6 +1437,7 @@ class Database {
           users: finalUsers,
           resellers: finalResellers,
           products: mergedProducts,
+          orders: (parsed.orders && parsed.orders.length >= defaults.orders.length) ? parsed.orders : defaults.orders,
           wallets: finalWallets,
           settings: { ...defaults.settings, ...(parsed.settings || {}) },
           notifications: (parsed.notifications && parsed.notifications.length > 0) ? parsed.notifications : defaults.notifications,
@@ -1476,49 +1585,163 @@ class Database {
 
   public getAllResellersWithDetails() {
     const orders = this.data.orders || [];
-    return this.data.resellers.map((r) => {
+    return this.data.resellers.map((r, index) => {
       const user = this.getUserById(r.userId);
       const resellerOrders = orders.filter((o) => o.resellerId === r.id);
       const delivered = resellerOrders.filter((o) => o.status === 'DELIVERED');
-      const orderCount = delivered.length > 0 ? delivered.length : (r.deliveredOrdersCount || r.totalOrdersCount || 0);
+      
+      const xp = r.xp || 100;
+      const level = r.level || 1;
+
+      // Deterministic realistic seed generation based on index and xp
+      let baseDelivered = r.deliveredOrdersCount || 0;
+      let baseProfit = r.totalProfitEarned || (r as any).totalProfitEarnedBdt || 0;
+
+      if (r.status === 'ACTIVE') {
+        if (baseDelivered <= 1) {
+          if (level >= 7) {
+            baseDelivered = 480 + ((index * 37) % 320);
+          } else if (level >= 6) {
+            baseDelivered = 240 + ((index * 23) % 180);
+          } else if (level >= 5) {
+            baseDelivered = 115 + ((index * 17) % 95);
+          } else if (level >= 4) {
+            baseDelivered = 48 + ((index * 9) % 52);
+          } else if (level >= 3) {
+            baseDelivered = 18 + ((index * 4) % 24);
+          } else if (level >= 2) {
+            baseDelivered = 7 + ((index * 2) % 9);
+          } else {
+            baseDelivered = 2 + (index % 4);
+          }
+        }
+
+        if (baseProfit <= 300) {
+          baseProfit = Math.round(baseDelivered * (195 + ((index * 7) % 45)) + ((index * 137) % 1200));
+        }
+      } else {
+        baseDelivered = 0;
+        baseProfit = 0;
+      }
+
+      const finalDelivered = Math.max(baseDelivered, delivered.length);
+      const finalTotalOrders = r.status === 'ACTIVE'
+        ? Math.max(finalDelivered, r.totalOrdersCount || 0, resellerOrders.length, finalDelivered + ((index % 6) + 1))
+        : 0;
+
       const totalProfitFromOrders = delivered.reduce((acc, o) => acc + (o.totalResellerProfit || 0), 0);
+      const totalProfit = Math.max(baseProfit, totalProfitFromOrders);
+
+      const totalSalesFromOrders = delivered.reduce((acc, o) => acc + (o.subtotal || 0), 0);
+      const totalSales = Math.max(
+        totalSalesFromOrders,
+        (r as any).totalSalesBdt || 0,
+        Math.round(totalProfit * (3.4 + ((index % 5) * 0.12)))
+      );
+
       const wallet = this.data.wallets[r.id];
-      const totalProfit = totalProfitFromOrders > 0 ? totalProfitFromOrders : (r.totalProfitEarned || wallet?.totalEarned || r.totalProfitEarnedBdt || 0);
+      const pendingProfit = r.status === 'ACTIVE'
+        ? Math.max(300, Math.round(totalProfit * 0.05) + ((index * 40) % 250))
+        : 0;
+      const availableBalance = wallet?.availableBalance ?? (totalProfit > 0 ? Math.round(totalProfit * 0.65) : 0);
+      const totalWithdrawn = wallet?.totalWithdrawn ?? Math.max(0, totalProfit - availableBalance);
       const completedLessons = this.data.userLessonProgress[r.id] || [];
 
-      // Calculate level details
+      // Calculate 7-rank level details
       const levelNames: Record<number, string> = {
-        1: 'Novice',
-        2: 'Hustler',
-        3: 'Seller',
-        4: 'Pro Seller',
-        5: 'Elite Master',
+        1: 'Rookie 🐣',
+        2: 'Better ⚡',
+        3: 'Ultra Better 🔥',
+        4: 'The GOAT 🐐',
+        5: 'Monster 👹',
+        6: 'Ultra Monster 👾',
+        7: 'Legend 👑',
       };
 
-      const xp = r.xp || 100;
-      let nextLevelXp = 500;
+      let nextLevelXp = 300;
       let prevLevelXp = 0;
-      if (r.level === 2) { prevLevelXp = 500; nextLevelXp = 1500; }
-      else if (r.level === 3) { prevLevelXp = 1500; nextLevelXp = 4000; }
-      else if (r.level === 4) { prevLevelXp = 4000; nextLevelXp = 10000; }
-      else if (r.level >= 5) { prevLevelXp = 10000; nextLevelXp = 25000; }
+      if (r.level === 2) { prevLevelXp = 301; nextLevelXp = 700; }
+      else if (r.level === 3) { prevLevelXp = 701; nextLevelXp = 2000; }
+      else if (r.level === 4) { prevLevelXp = 2001; nextLevelXp = 5000; }
+      else if (r.level === 5) { prevLevelXp = 5001; nextLevelXp = 10000; }
+      else if (r.level === 6) { prevLevelXp = 10001; nextLevelXp = 20000; }
+      else if (r.level >= 7) { prevLevelXp = 20001; nextLevelXp = 50000; }
 
-      const levelProgressPercent = Math.min(100, Math.max(5, Math.round(((xp - prevLevelXp) / (nextLevelXp - prevLevelXp)) * 100)));
+      const levelProgressPercent = Math.min(100, Math.max(5, Math.round(((xp - prevLevelXp) / Math.max(1, (nextLevelXp - prevLevelXp))) * 100)));
       const xpToNextLevel = Math.max(0, nextLevelXp - xp);
+
+      // Generate dynamic recent orders for inspection if few or none in database
+      let sampleRecentOrders = resellerOrders;
+      if (sampleRecentOrders.length < 3 && r.status === 'ACTIVE') {
+        const sampleCustomers = [
+          { name: 'Tanvir Hossain', phone: '01712-445588', district: 'Dhaka', address: 'Dhanmondi 27, Dhaka' },
+          { name: 'Nusrat Jahan', phone: '01819-332211', district: 'Chittagong', address: 'GEC Circle, Nasirabad, Chattogram' },
+          { name: 'Farhan Kabir', phone: '01911-889900', district: 'Sylhet', address: 'Zindabazar, Sylhet' },
+          { name: 'Sabrina Akter', phone: '01622-776655', district: 'Rajshahi', address: 'Shaheb Bazar, Rajshahi' },
+          { name: 'Mahmudul Hasan', phone: '01533-112233', district: 'Gazipur', address: 'Joydebpur, Gazipur' },
+        ];
+
+        const products = this.data.products.slice(0, 5);
+        sampleRecentOrders = sampleCustomers.slice(0, Math.min(finalDelivered, 5)).map((c, cIdx) => {
+          const prod = products[cIdx % products.length] || products[0];
+          const profit = prod ? (prod.suggestedSellingPrice - prod.resellerPrice) : 250;
+          const totalAmt = prod ? prod.suggestedSellingPrice + 120 : 950;
+          return {
+            id: `ord-demo-${r.id}-${cIdx + 1}`,
+            orderNumber: `MM-ORD-${10000 + (index * 10) + cIdx}`,
+            customerId: `cust-${cIdx}`,
+            customerName: c.name,
+            customerPhone: c.phone,
+            customerAddress: c.address,
+            district: c.district,
+            resellerId: r.id,
+            resellerStoreName: r.storeName,
+            status: cIdx === 0 ? 'DELIVERED' : cIdx === 1 ? 'SHIPPED' : 'DELIVERED',
+            items: [
+              {
+                productId: prod?.id || 'prod-01',
+                productName: prod?.name || 'Wholesale Wireless Earbuds',
+                productCode: prod?.productCode || 'MM-1001',
+                quantity: 1,
+                price: prod?.resellerPrice || 320,
+                resellerSellingPrice: prod?.suggestedSellingPrice || 550,
+                resellerProfit: profit,
+                image: prod?.images?.[0] || 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=200',
+              }
+            ],
+            subtotal: totalAmt - 120,
+            deliveryFee: 120,
+            totalAmount: totalAmt,
+            resellerProfit: profit,
+            totalResellerProfit: profit,
+            paymentMethod: 'COD',
+            paymentStatus: 'PAID',
+            deliveryMethod: 'STEADFAST',
+            createdAt: new Date(Date.now() - (cIdx * 86400000 * 2)).toISOString(),
+          } as any;
+        });
+      }
 
       return {
         ...r,
         user,
         ownerName: user?.name || r.storeName,
         email: user?.email || '',
-        levelName: levelNames[r.level || 1] || 'Novice',
+        levelName: levelNames[r.level || 1] || 'Rookie 🐣',
         levelProgressPercent,
         xpToNextLevel,
-        deliveredOrdersCount: orderCount,
-        totalOrdersCount: orderCount,
+        deliveredOrdersCount: finalDelivered,
+        totalOrdersCount: finalTotalOrders,
+        totalSalesBdt: totalSales,
+        moneyMadeBdt: totalSales,
         totalProfitEarned: totalProfit,
         totalProfitEarnedBdt: totalProfit,
-        completedLessonsCount: completedLessons.length || (r.level >= 4 ? 3 : r.level >= 2 ? 2 : 1),
+        moneyProfitedBdt: totalProfit,
+        pendingProfitBdt: pendingProfit,
+        availableBalanceBdt: availableBalance,
+        totalWithdrawnBdt: totalWithdrawn,
+        completedLessonsCount: completedLessons.length || (r.level >= 4 ? 4 : r.level >= 2 ? 2 : 1),
+        recentOrders: sampleRecentOrders,
       };
     });
   }
@@ -1616,6 +1839,36 @@ class Database {
 
     this.data.users.push(newUser);
     this.data.resellers.push(newReseller);
+
+    // Credit referrer if referredBy is provided
+    if (data.referredBy) {
+      const referrer = this.getResellerByReferralCode(data.referredBy);
+      if (referrer) {
+        referrer.xp = (referrer.xp || 100) + 250;
+        const levelCheck = (xp: number) => {
+          if (xp >= 20001) return 7;
+          if (xp >= 10001) return 6;
+          if (xp >= 5001) return 5;
+          if (xp >= 2001) return 4;
+          if (xp >= 701) return 3;
+          if (xp >= 301) return 2;
+          return 1;
+        };
+        referrer.level = levelCheck(referrer.xp);
+
+        if (this.data.wallets[referrer.id]) {
+          this.data.wallets[referrer.id].availableBalance = (this.data.wallets[referrer.id].availableBalance || 0) + 100;
+          this.data.wallets[referrer.id].totalEarned = (this.data.wallets[referrer.id].totalEarned || 0) + 100;
+        }
+
+        this.addNotification({
+          userId: referrer.userId,
+          title: '🎉 New Referral Joined & Bonus Credited!',
+          message: `${data.storeName} (${newUser.name}) registered with your code ${referrer.referralCode}. +250 XP & ৳100 referral bonus credited!`,
+          type: 'SYSTEM',
+        });
+      }
+    }
 
     // Audit log
     this.logAudit({
@@ -2317,17 +2570,23 @@ class Database {
   }
 
   // --- Gamification, Leaderboard & Academy ---
+  public calculateResellerLevel(xp: number): number {
+    const cleanXp = Math.max(0, Number(xp) || 0);
+    if (cleanXp >= 20001) return 7; // Legend (20001+ XP)
+    if (cleanXp >= 10001) return 6; // Ultra Monster (10001-20000 XP)
+    if (cleanXp >= 5001) return 5;  // Monster (5001-10000 XP)
+    if (cleanXp >= 2001) return 4;  // The GOAT (2001-5000 XP)
+    if (cleanXp >= 701) return 3;   // Ultra Better (701-2000 XP) - XP Withdrawal Unlocks Here!
+    if (cleanXp >= 301) return 2;   // Better (301-700 XP)
+    return 1;                       // Rookie (0-300 XP)
+  }
+
   public awardResellerXp(resellerId: string, amount: number, reason: string) {
     const reseller = this.getResellerById(resellerId);
     if (!reseller) return;
 
     reseller.xp += amount;
-    // Calculate Level
-    if (reseller.xp >= 10000) reseller.level = 5;
-    else if (reseller.xp >= 4000) reseller.level = 4;
-    else if (reseller.xp >= 1500) reseller.level = 3;
-    else if (reseller.xp >= 500) reseller.level = 2;
-    else reseller.level = 1;
+    reseller.level = this.calculateResellerLevel(reseller.xp);
 
     this.save();
     return reseller;
@@ -2343,13 +2602,7 @@ class Database {
     reseller.xp += amount;
     if (reseller.xp < 0) reseller.xp = 0;
 
-    // Calculate Level
-    if (reseller.xp >= 10000) reseller.level = 5;
-    else if (reseller.xp >= 4000) reseller.level = 4;
-    else if (reseller.xp >= 1500) reseller.level = 3;
-    else if (reseller.xp >= 500) reseller.level = 2;
-    else reseller.level = 1;
-
+    reseller.level = this.calculateResellerLevel(reseller.xp);
     const leveledUp = reseller.level > prevLevel;
 
     this.logAudit({
@@ -2397,7 +2650,17 @@ class Database {
     const entries: LeaderboardEntry[] = this.data.resellers.map((r) => {
       const user = this.getUserById(r.userId);
       const stats = resellerStats[r.id] || { sales: 0, profit: 0, deliveries: 0 };
-      const levelTitles = ['', 'Beginner 🌱', 'Hustler 🔥', 'Seller ⚡', 'Pro Seller 🚀', 'Elite Master 👑'];
+      const currentRankLvl = this.calculateResellerLevel(r.xp);
+      const levelTitles = [
+        '',
+        'Rookie 🐣',
+        'Better ⚡',
+        'Ultra Better 🔥',
+        'The GOAT 🐐',
+        'Monster 👹',
+        'Ultra Monster 👾',
+        'Legend 👑',
+      ];
 
       return {
         rank: 1,
@@ -2408,12 +2671,12 @@ class Database {
         salesCount: stats.deliveries,
         profitAmount: stats.profit,
         successfulDeliveries: stats.deliveries,
-        level: r.level,
-        levelTitle: levelTitles[r.level] || 'Seller',
+        level: currentRankLvl,
+        levelTitle: levelTitles[currentRankLvl] || 'Rookie 🐣',
         xp: r.xp,
         isFounder: user?.isFounder || r.id === 'rsl-founder',
         streakDays: Math.min(14, Math.max(1, Math.floor(stats.deliveries / 50) + 1)),
-        badges: r.level >= 4 ? ['⚡ Top Seller', '⭐ Verified', '🏆 500+ Orders'] : r.level >= 3 ? ['⚡ Top Seller', '⭐ Verified'] : ['🌱 Active Reseller'],
+        badges: currentRankLvl >= 4 ? ['🐐 The GOAT', '⚡ Top Seller', '⭐ Verified'] : currentRankLvl >= 3 ? ['🔥 Ultra Better', '⭐ Verified'] : ['🐣 Rookie'],
       };
     });
 
@@ -2431,10 +2694,228 @@ class Database {
     const list = this.data.achievements;
     if (!resellerId) return { achievements: list, unlocked: [] };
 
+    // Auto-evaluate milestone unlocks for this reseller
+    const reseller = this.getResellerById(resellerId);
+    if (reseller) {
+      if (!this.data.userAchievements[resellerId]) {
+        this.data.userAchievements[resellerId] = [];
+      }
+      const existingUnlocked = this.data.userAchievements[resellerId];
+      const deliveredOrders = this.data.orders.filter(
+        (o) => o.resellerId === resellerId && o.status === 'DELIVERED'
+      );
+      const completedLessons = this.data.userLessonProgress[resellerId] || [];
+      const wallet = this.getWallet(resellerId);
+
+      // Check each achievement condition
+      for (const ach of list) {
+        const isAlreadyUnlocked = existingUnlocked.some((u) => u.achievementId === ach.id);
+        if (isAlreadyUnlocked) continue;
+
+        let shouldUnlock = false;
+
+        if (ach.conditionType === 'LOGIN_VERIFIED') {
+          shouldUnlock = Boolean(reseller.isVerified || reseller.status === 'ACTIVE');
+        } else if (ach.conditionType === 'SALES_COUNT' || ach.conditionType === 'DELIVERIES') {
+          shouldUnlock = deliveredOrders.length >= ach.threshold;
+        } else if (ach.conditionType === 'ACADEMY_LESSONS') {
+          shouldUnlock = completedLessons.length >= ach.threshold;
+        } else if (ach.conditionType === 'XP_THRESHOLD') {
+          shouldUnlock = reseller.xp >= ach.threshold;
+        } else if (ach.conditionType === 'PROFIT_BDT' || ach.conditionType === 'PROFIT') {
+          shouldUnlock = (wallet.totalEarned || 0) >= ach.threshold;
+        } else if (ach.conditionType === 'DHAKA_DELIVERIES') {
+          const dhakaCount = deliveredOrders.filter(
+            (o) => (o.division || '').toLowerCase().includes('dhaka')
+          ).length;
+          shouldUnlock = dhakaCount >= ach.threshold;
+        } else if (ach.conditionType === 'OUTSIDE_DELIVERIES') {
+          const outsideCount = deliveredOrders.filter(
+            (o) => !(o.division || '').toLowerCase().includes('dhaka')
+          ).length;
+          shouldUnlock = outsideCount >= ach.threshold;
+        } else if (ach.conditionType === 'STREAK_DAYS' || ach.conditionType === 'STREAK') {
+          shouldUnlock = deliveredOrders.length >= ach.threshold;
+        }
+
+        if (shouldUnlock) {
+          existingUnlocked.push({
+            achievementId: ach.id,
+            unlockedAt: new Date().toISOString(),
+            claimed: true,
+          });
+          // Award achievement XP
+          reseller.xp += ach.xpReward;
+          reseller.level = this.calculateResellerLevel(reseller.xp);
+        }
+      }
+      this.save();
+    }
+
     const userUnlocked = this.data.userAchievements[resellerId] || [];
     return {
       achievements: list,
       unlocked: userUnlocked,
+    };
+  }
+
+  // --- Admin Badges & Accolades CRUD ---
+  public createAchievement(
+    input: Omit<Achievement, 'id'>,
+    actor: User
+  ) {
+    const id = `ach-${Date.now()}`;
+    const newAch: Achievement = {
+      ...input,
+      id,
+    };
+    this.data.achievements.push(newAch);
+
+    this.logAudit({
+      action: 'CREATE_ACHIEVEMENT',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'ACHIEVEMENT',
+      targetId: id,
+      details: `Created new badge "${newAch.title}" (${newAch.category}) with +${newAch.xpReward} XP reward`,
+    });
+
+    this.save();
+    return newAch;
+  }
+
+  public updateAchievement(
+    id: string,
+    updates: Partial<Achievement>,
+    actor: User
+  ) {
+    const ach = this.data.achievements.find((a) => a.id === id);
+    if (!ach) throw new Error('Badge / Achievement not found');
+
+    Object.assign(ach, updates);
+
+    this.logAudit({
+      action: 'UPDATE_ACHIEVEMENT',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'ACHIEVEMENT',
+      targetId: id,
+      details: `Updated badge "${ach.title}" with +${ach.xpReward} XP reward`,
+    });
+
+    this.save();
+    return ach;
+  }
+
+  public deleteAchievement(id: string, actor: User) {
+    const idx = this.data.achievements.findIndex((a) => a.id === id);
+    if (idx === -1) throw new Error('Badge not found');
+
+    const [deleted] = this.data.achievements.splice(idx, 1);
+
+    // Clean user unlocked achievements
+    for (const resellerId in this.data.userAchievements) {
+      this.data.userAchievements[resellerId] = this.data.userAchievements[resellerId].filter(
+        (u) => u.achievementId !== id
+      );
+    }
+
+    this.logAudit({
+      action: 'DELETE_ACHIEVEMENT',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'ACHIEVEMENT',
+      targetId: id,
+      details: `Deleted badge "${deleted.title}"`,
+    });
+
+    this.save();
+    return { success: true, deletedBadge: deleted };
+  }
+
+  public resetAchievementsToDefaults(actor: User) {
+    this.data.achievements = JSON.parse(JSON.stringify(INITIAL_ACHIEVEMENTS));
+
+    this.logAudit({
+      action: 'RESET_ACHIEVEMENTS',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'ACHIEVEMENT',
+      targetId: 'all',
+      details: 'Reset all Badges & Accolades to factory default list',
+    });
+
+    this.save();
+    return this.data.achievements;
+  }
+
+  // --- XP to BDT Bonus Withdrawal Logic ---
+  // Reseller gets 1 TK bonus for every 1 XP, but withdrawal is only allowed if rank is Ultra Better (701+ XP) or above!
+  public claimXpBonusToWallet(resellerId: string, actor: User) {
+    const reseller = this.getResellerById(resellerId);
+    if (!reseller) throw new Error('Reseller not found');
+
+    const currentXp = reseller.xp || 0;
+    if (currentXp < 701) {
+      throw new Error(
+        `XP Bonus cashout is locked! You must reach Ultra Better rank (701+ XP) to withdraw your XP bonus money. Current XP: ${currentXp} (Need ${701 - currentXp} XP more).`
+      );
+    }
+
+    const claimedSoFar = (reseller as any).claimedXpBonus || 0;
+    const claimableXp = Math.max(0, currentXp - claimedSoFar);
+
+    if (claimableXp <= 0) {
+      throw new Error('All available XP bonuses have already been converted to your wallet balance!');
+    }
+
+    const bonusBdt = claimableXp * 1; // 1 XP = ৳1 BDT
+    const wallet = this.getWallet(resellerId);
+    const now = new Date().toISOString();
+
+    wallet.availableBalance += bonusBdt;
+    wallet.totalEarned += bonusBdt;
+    wallet.updatedAt = now;
+
+    (reseller as any).claimedXpBonus = claimedSoFar + claimableXp;
+
+    const tx: WalletTransaction = {
+      id: `tx-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      resellerId,
+      type: 'BONUS',
+      amount: bonusBdt,
+      balanceAfter: wallet.availableBalance,
+      currency: 'BDT',
+      referenceType: 'BONUS',
+      referenceId: `xp-bonus-${Date.now()}`,
+      status: 'COMPLETED',
+      description: `XP Bonus Cashout: ${claimableXp} XP converted to ৳${bonusBdt} withdrawable balance (1 XP = ৳1 BDT)`,
+      createdAt: now,
+    };
+    this.data.transactions.unshift(tx);
+
+    this.logAudit({
+      action: 'CLAIM_XP_BONUS',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'WALLET',
+      targetId: resellerId,
+      details: `Converted ${claimableXp} XP to ৳${bonusBdt} wallet cashout bonus for ${reseller.storeName}`,
+    });
+
+    this.save();
+    return {
+      success: true,
+      convertedXp: claimableXp,
+      bonusBdt,
+      newAvailableBalance: wallet.availableBalance,
+      totalClaimedXp: (reseller as any).claimedXpBonus,
+      resellerXp: reseller.xp,
     };
   }
 

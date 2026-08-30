@@ -86,6 +86,17 @@ export interface SeedDataset {
   orders: Order[];
 }
 
+// Helper to accurately map XP to 7-rank Level
+function calculate7RankLevel(xp: number): number {
+  if (xp >= 20001) return 7; // Legend 👑
+  if (xp >= 10001) return 6; // Ultra Monster 👾
+  if (xp >= 5001) return 5;  // Monster 👹
+  if (xp >= 2001) return 4;  // The GOAT 🐐
+  if (xp >= 701) return 3;   // Ultra Better 🔥
+  if (xp >= 301) return 2;   // Better ⚡
+  return 1;                  // Rookie 🐣
+}
+
 export function generateRealisticResellersDataset(): SeedDataset {
   const users: User[] = [];
   const resellers: ResellerProfile[] = [];
@@ -121,22 +132,26 @@ export function generateRealisticResellersDataset(): SeedDataset {
     upazila: 'Savar',
     address: 'Savar DOHS, Savar, Dhaka-1344',
     salesIntent: 'Official central distribution and flagship catalog testing',
-    level: 5,
-    xp: 18500,
+    level: 7, // Legend rank
+    xp: 26500,
+    deliveredOrdersCount: 420,
+    totalOrdersCount: 435,
+    totalProfitEarned: 98500,
+    totalProfitEarnedBdt: 98500,
     isAnonymousOnLeaderboard: false,
     createdAt: '2026-04-04T09:00:00.000Z',
   };
   resellers.push(founderReseller);
   wallets[founderReseller.id] = {
     resellerId: founderReseller.id,
-    availableBalance: 34500,
+    availableBalance: 48500,
     pendingBalance: 4200,
-    totalEarned: 52000,
-    totalWithdrawn: 17500,
+    totalEarned: 98500,
+    totalWithdrawn: 45800,
     updatedAt: '2026-08-20T12:00:00.000Z',
   };
 
-  // 2. Generate 212 additional resellers (Total = 213)
+  // 2. Generate 212 additional resellers (Total = 213) across 7 ranks
   const TOTAL_RESELLERS = 213;
 
   for (let i = 1; i < TOTAL_RESELLERS; i++) {
@@ -160,13 +175,6 @@ export function generateRealisticResellersDataset(): SeedDataset {
     const codeClean = storePrefix.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 4);
     const referralCode = `MM-${codeClean}${String(100 + i)}`;
 
-    // Realistic Performance Segmentation based on Joined Duration
-    // Total 213 members: 1 Founder + 204 Active Members + 8 Pending Verification
-    const joinedDateMs = new Date(joinedAt).getTime();
-    const anchorNowMs = new Date('2026-08-26T12:00:00.000Z').getTime();
-    const daysSinceJoined = (anchorNowMs - joinedDateMs) / (1000 * 60 * 60 * 24);
-
-    let level = 1;
     let xp = 100;
     let status: ResellerProfile['status'] = 'ACTIVE';
     let isVerified = true;
@@ -178,45 +186,58 @@ export function generateRealisticResellersDataset(): SeedDataset {
     const isActiveMember = i <= 204; // Exactly 204 active members excluding founder store
 
     if (isActiveMember) {
-      if (daysSinceJoined >= 60) {
-        // 1. Joined 2 months+ (60+ days): 500 - 1,000 orders, ৳70,000 - ৳150,000 profit
-        deliveredOrdersCount = Math.floor(500 + ((i * 47 + 13) % 501)); // 500 to 1000
-        totalProfitEarned = Math.floor(70000 + ((i * 791 + 123) % 80001)); // 70,000 to 150,000 BDT
-        xp = Math.floor(6500 + ((totalProfitEarned / 10) % 9500)); // 6,500 - 16,000 XP
-        level = totalProfitEarned >= 110000 ? 5 : 4;
-        status = 'ACTIVE';
-        isVerified = true;
-        verificationFeePaid = true;
-      } else if (daysSinceJoined >= 30) {
-        // 2. Joined 1 month (30 to 59 days): 100 - 200 orders, ৳20,000 - ৳40,000 profit
-        deliveredOrdersCount = Math.floor(100 + ((i * 23 + 7) % 101)); // 100 to 200
-        totalProfitEarned = Math.floor(20000 + ((i * 383 + 47) % 20001)); // 20,000 to 40,000 BDT
-        xp = Math.floor(2000 + ((totalProfitEarned / 12) % 3200)); // 2,000 - 5,200 XP
-        level = totalProfitEarned >= 30000 ? 3 : 2;
-        status = 'ACTIVE';
-        isVerified = true;
-        verificationFeePaid = true;
+      // Create rich, tiered distribution across the 7 ranks
+      if (i <= 5) {
+        // Rank 7: Legend 👑 (20,001+ XP)
+        xp = 21000 + ((i * 1850) % 12000);
+        deliveredOrdersCount = 550 + ((i * 45) % 350);
+        totalProfitEarned = Math.round(deliveredOrdersCount * 230 + ((i * 1234) % 15000));
+      } else if (i <= 18) {
+        // Rank 6: Ultra Monster 👾 (10,001 - 20,000 XP)
+        xp = 11000 + ((i * 720) % 8500);
+        deliveredOrdersCount = 280 + ((i * 25) % 200);
+        totalProfitEarned = Math.round(deliveredOrdersCount * 210 + ((i * 850) % 10000));
+      } else if (i <= 45) {
+        // Rank 5: Monster 👹 (5,001 - 10,000 XP)
+        xp = 5200 + ((i * 410) % 4500);
+        deliveredOrdersCount = 130 + ((i * 15) % 120);
+        totalProfitEarned = Math.round(deliveredOrdersCount * 195 + ((i * 550) % 6000));
+      } else if (i <= 90) {
+        // Rank 4: The GOAT 🐐 (2,001 - 5,000 XP)
+        xp = 2150 + ((i * 190) % 2700);
+        deliveredOrdersCount = 55 + ((i * 8) % 65);
+        totalProfitEarned = Math.round(deliveredOrdersCount * 180 + ((i * 350) % 4000));
+      } else if (i <= 145) {
+        // Rank 3: Ultra Better 🔥 (701 - 2,000 XP)
+        xp = 750 + ((i * 95) % 1150);
+        deliveredOrdersCount = 20 + ((i * 4) % 30);
+        totalProfitEarned = Math.round(deliveredOrdersCount * 170 + ((i * 180) % 2000));
+      } else if (i <= 185) {
+        // Rank 2: Better ⚡ (301 - 700 XP)
+        xp = 320 + ((i * 35) % 360);
+        deliveredOrdersCount = 8 + ((i * 2) % 10);
+        totalProfitEarned = Math.round(deliveredOrdersCount * 160 + ((i * 90) % 1000));
       } else {
-        // 3. Joined recently (<30 days): 20 - 80 orders, ৳3,500 - ৳15,000 profit
-        deliveredOrdersCount = Math.floor(20 + ((i * 13 + 5) % 61)); // 20 to 80
-        totalProfitEarned = Math.floor(3500 + ((i * 187 + 29) % 11501)); // 3,500 to 15,000 BDT
-        xp = Math.floor(450 + ((totalProfitEarned / 15) % 1200)); // 450 - 1,650 XP
-        level = totalProfitEarned >= 8000 ? 2 : 1;
-        status = 'ACTIVE';
-        isVerified = true;
-        verificationFeePaid = true;
+        // Rank 1: Rookie 🐣 (0 - 300 XP)
+        xp = 50 + ((i * 22) % 240);
+        deliveredOrdersCount = 1 + (i % 5);
+        totalProfitEarned = Math.round(deliveredOrdersCount * 150 + ((i * 40) % 500));
       }
+      status = 'ACTIVE';
+      isVerified = true;
+      verificationFeePaid = true;
     } else {
       // Pending 8 members (i = 205 to 212) awaiting verification
-      level = 1;
+      xp = 10;
       deliveredOrdersCount = 0;
       totalProfitEarned = 0;
-      xp = 100;
       status = 'PENDING';
       isVerified = false;
       verificationFeePaid = i % 2 === 0;
       adminApprovedFree = false;
     }
+
+    const level = calculate7RankLevel(xp);
 
     // User entity
     const user: User = {
@@ -258,7 +279,7 @@ export function generateRealisticResellersDataset(): SeedDataset {
       level,
       xp,
       deliveredOrdersCount,
-      totalOrdersCount: deliveredOrdersCount,
+      totalOrdersCount: deliveredOrdersCount + (status === 'ACTIVE' ? Math.floor(i % 4) : 0),
       totalProfitEarned,
       totalProfitEarnedBdt: totalProfitEarned,
       isAnonymousOnLeaderboard: false,
@@ -267,9 +288,9 @@ export function generateRealisticResellersDataset(): SeedDataset {
     resellers.push(profile);
 
     // Wallet entity
-    const availableBalance = Math.round(totalProfitEarned * 0.7);
-    const pendingBalance = Math.round(totalProfitEarned * 0.05);
-    const totalWithdrawn = Math.max(0, totalProfitEarned - availableBalance - pendingBalance);
+    const availableBalance = Math.round(totalProfitEarned * 0.65);
+    const pendingBalance = status === 'ACTIVE' ? Math.round(totalProfitEarned * 0.08) + 350 : 0;
+    const totalWithdrawn = Math.max(0, totalProfitEarned - availableBalance);
 
     wallets[resellerId] = {
       resellerId,
@@ -281,26 +302,45 @@ export function generateRealisticResellersDataset(): SeedDataset {
     };
   }
 
-  // 3. Seed Realistic Orders Starting from #3001
-  const orderCount = 28;
-  const statuses: Order['status'][] = [
-    'DELIVERED', 'DELIVERED', 'SHIPPING', 'PACKAGING', 'CONFIRMED', 'DELIVERED', 'PENDING'
+  // 3. Seed Comprehensive Realistic Orders Mapped Across Active Resellers
+  const CATALOG_PRODUCTS = [
+    { id: 'prod-01', code: 'MM-1001', name: 'T900 Ultra 2 Max Smartwatch (Dual Strap)', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80', cost: 520, resPrice: 650, sellPrice: 999, profit: 349, margin: 130 },
+    { id: 'prod-02', code: 'MM-1002', name: 'M10 TWS Dual Earbuds with 2000mAh Powerbank', img: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&q=80', cost: 240, resPrice: 320, sellPrice: 499, profit: 179, margin: 80 },
+    { id: 'prod-03', code: 'MM-1003', name: 'High-Power Electric Meat & Vegetable Food Chopper (2L)', img: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=600&q=80', cost: 780, resPrice: 950, sellPrice: 1450, profit: 500, margin: 170 },
+    { id: 'prod-04', code: 'MM-1004', name: 'Rechargeable Portable Handheld Garment Steamer', img: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=600&q=80', cost: 680, resPrice: 850, sellPrice: 1299, profit: 449, margin: 170 },
+    { id: 'prod-05', code: 'MM-1005', name: 'Rice Raw Silk Glow Brightening Serum (100ml)', img: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&q=80', cost: 210, resPrice: 280, sellPrice: 450, profit: 170, margin: 70 },
+    { id: 'prod-06', code: 'MM-1006', name: 'Dr. Rashel Vitamin C Whitening & Anti-Aging Face Wash', img: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&q=80', cost: 190, resPrice: 250, sellPrice: 399, profit: 149, margin: 60 },
+    { id: 'prod-09', code: 'MM-1009', name: '12-inch RGB LED Ring Light with 7ft Tripod Stand', img: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600&q=80', cost: 580, resPrice: 720, sellPrice: 1099, profit: 379, margin: 140 },
+    { id: 'prod-10', code: 'MM-1010', name: 'Automatic Rechargeable Water Dispenser Pump', img: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=600&q=80', cost: 190, resPrice: 260, sellPrice: 420, profit: 160, margin: 70 },
   ];
+
+  const orderCount = 85;
+  const statuses: Order['status'][] = [
+    'DELIVERED', 'DELIVERED', 'DELIVERED', 'SHIPPING', 'PACKAGING', 'CONFIRMED', 'DELIVERED', 'PENDING'
+  ];
+  const couriers: Order['courier'][] = ['STEADFAST', 'PATHAO', 'REDX', 'STEADFAST'];
 
   for (let idx = 0; idx < orderCount; idx++) {
     const orderNumInt = 3001 + idx; // #3001, #3002, #3003...
     const orderNumber = `#${orderNumInt}`;
     const orderId = `ord-${orderNumInt}`;
-    const rsl = resellers[idx % resellers.length];
+    const rsl = resellers[idx % Math.min(resellers.length, 60)]; // Spread orders across 60 top active resellers
     const loc = BANGLADESH_LOCATIONS[(idx * 3 + 2) % BANGLADESH_LOCATIONS.length];
     const customerName = `${FIRST_NAMES[(idx * 2) % FIRST_NAMES.length]} ${LAST_NAMES[(idx * 4) % LAST_NAMES.length]}`;
     const customerPhone = `017${String(10000000 + idx * 76543).slice(0, 8)}`;
     const status = statuses[idx % statuses.length];
+    const courier = couriers[idx % couriers.length];
     const isDhaka = loc.division.toLowerCase() === 'dhaka';
     const deliveryFee = isDhaka ? 60 : 120;
     const packagingFee = 30; // 30 TK standard packaging fee
-    const subtotal = 999 + ((idx * 250) % 1500);
-    const profit = Math.round(subtotal * 0.3);
+
+    const prod = CATALOG_PRODUCTS[idx % CATALOG_PRODUCTS.length];
+    const qty = (idx % 7 === 0) ? 2 : 1;
+    const unitSellingPrice = prod.sellPrice;
+    const subtotal = unitSellingPrice * qty;
+    const totalResellerProfit = prod.profit * qty;
+    const totalPlatformMargin = prod.margin * qty;
+    const totalAmount = subtotal + deliveryFee + packagingFee;
 
     orders.push({
       id: orderId,
@@ -317,31 +357,31 @@ export function generateRealisticResellersDataset(): SeedDataset {
       resellerReferralCode: rsl.referralCode,
       items: [
         {
-          productId: 'prod-01',
-          productCode: 'MM-1001',
-          productName: 'T900 Ultra 2 Max Smartwatch (Dual Strap)',
-          productImage: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80',
-          quantity: 1,
-          baseCost: 520,
-          resellerPrice: 650,
-          unitSellingPrice: subtotal,
-          resellerProfit: profit,
-          platformMargin: 130,
+          productId: prod.id,
+          productCode: prod.code,
+          productName: prod.name,
+          productImage: prod.img,
+          quantity: qty,
+          baseCost: prod.cost,
+          resellerPrice: prod.resPrice,
+          unitSellingPrice,
+          resellerProfit: totalResellerProfit,
+          platformMargin: totalPlatformMargin,
         }
       ],
-      itemCount: 1,
+      itemCount: qty,
       subtotal,
       packagingFee,
       deliveryFee,
       platformFee: 0,
-      totalAmount: subtotal + deliveryFee + packagingFee,
-      totalResellerProfit: profit,
-      totalPlatformMargin: 130,
+      totalAmount,
+      totalResellerProfit,
+      totalPlatformMargin,
       profitStatus: status === 'DELIVERED' ? 'AVAILABLE' : 'PENDING',
       paymentMethod: 'COD',
       paymentStatus: status === 'DELIVERED' ? 'PAID' : 'UNPAID',
-      courier: 'STEADFAST',
-      trackingNumber: `STDF-881${idx}90`,
+      courier,
+      trackingNumber: `${courier.slice(0, 4)}-${880000 + idx * 137}`,
       status,
       statusHistory: [
         {
@@ -350,15 +390,28 @@ export function generateRealisticResellersDataset(): SeedDataset {
           note: `Order placed via ${rsl.storeName}`,
           updatedBy: rsl.storeName,
         },
+        {
+          status: 'CONFIRMED',
+          timestamp: '2026-08-15T11:30:00.000Z',
+          note: 'Customer confirmed via automated IVR/call center',
+          updatedBy: 'Admin Ops',
+        },
+        ...(status === 'DELIVERED' || status === 'SHIPPING' ? [{
+          status: 'SHIPPING' as const,
+          timestamp: '2026-08-16T14:00:00.000Z',
+          note: `Dispatched to ${courier} Courier Hub`,
+          updatedBy: 'Warehouse Hub',
+        }] : []),
         ...(status === 'DELIVERED' ? [{
           status: 'DELIVERED' as const,
-          timestamp: '2026-08-18T14:30:00.000Z',
-          note: 'Customer received parcel and paid in cash',
-          updatedBy: 'Steadfast Courier API',
+          timestamp: '2026-08-18T16:30:00.000Z',
+          note: 'Customer accepted parcel and paid full COD cash',
+          updatedBy: `${courier} Courier Sync`,
         }] : [])
       ],
       createdAt: '2026-08-15T10:00:00.000Z',
-      deliveredAt: status === 'DELIVERED' ? '2026-08-18T14:30:00.000Z' : undefined,
+      deliveredAt: status === 'DELIVERED' ? '2026-08-18T16:30:00.000Z' : undefined,
+      settledAt: status === 'DELIVERED' ? '2026-08-18T16:30:00.000Z' : undefined,
       isDirectCustomerOrder: false,
     });
   }
