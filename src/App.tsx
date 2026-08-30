@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
 import { ResellerCartProvider } from './context/ResellerCartContext';
+import { ToastProvider, useToast } from './context/ToastContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
+import { ToastContainer } from './components/common/ToastContainer';
+import { ProductGridSkeleton } from './components/common/SkeletonLoader';
 import { api } from './services/api';
 import { Product, ProductCategory, Order, Wallet } from './types';
 
@@ -9,6 +15,7 @@ import { Product, ProductCategory, Order, Wallet } from './types';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { FloatingWhatsApp } from './components/layout/FloatingWhatsApp';
+import { MobileNavigationDock } from './components/layout/MobileNavigationDock';
 import { GalaxyBackground } from './components/common/GalaxyBackground';
 
 // Views
@@ -41,6 +48,7 @@ import { AlertCircle, Sparkles, Store, Shield } from 'lucide-react';
 function MainAppContent() {
   const { user, reseller, isLoading: authLoading } = useAuth();
   const { setIsCartOpen } = useCart();
+  const toast = useToast();
 
   // Navigation tab
   const [currentView, setCurrentView] = useState<string>('storefront');
@@ -50,6 +58,7 @@ function MainAppContent() {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
 
   // Modals state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -71,11 +80,14 @@ function MainAppContent() {
   // Load products & categories on startup
   const loadPlatformData = async () => {
     try {
+      setIsLoadingData(true);
       const [prodRes, catRes] = await Promise.all([api.getProducts(), api.getCategories()]);
       setProducts(prodRes.products || []);
       setCategories(catRes.categories || []);
     } catch (err) {
       console.error('Failed to load initial data:', err);
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
@@ -140,6 +152,7 @@ function MainAppContent() {
   const handleOrderSuccess = (orderNumber: string) => {
     setTrackingOrderNumber(orderNumber);
     setIsTrackingOpen(true);
+    toast.success(`Order placed successfully! Tracking ID #${orderNumber}`, 'Order Confirmed 🚀');
     loadUserData();
   };
 
@@ -234,152 +247,172 @@ function MainAppContent() {
 
       {/* Main Viewport Container */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {currentView === 'storefront' && (
-          <StorefrontView
-            products={products}
-            categories={categories}
-            onOpenProductDetail={handleOpenProductDetail}
-            onOpenManualOrder={handleOpenManualOrder}
-            onOpenShareModal={handleOpenShareModal}
-            onOpenAiKit={handleOpenAiKit}
-            onOpenBecomeReseller={() => handleOpenAuthModal('reseller_register')}
-            onNavigateTab={setCurrentView}
-          />
-        )}
-
-        {/* Reseller Hub Route */}
-        {currentView === 'reseller_hub' && (
-          isResellerVerified && reseller ? (
-            <ResellerDashboard
-              reseller={reseller}
-              orders={orders}
-              wallet={wallet}
-              products={products}
-              onNavigateTab={setCurrentView}
-              onOpenManualOrder={handleOpenManualOrder}
-              onOpenWithdrawalModal={() => setCurrentView('wallet')}
-              onOpenAiChat={() => setIsAiDrawerOpen(true)}
-            />
-          ) : (
-            <ResellerVerificationGate
-              onOpenAuthModal={handleOpenAuthModal}
-              onNavigateTab={setCurrentView}
-            />
-          )
-        )}
-
-        {/* Wholesale Products Route */}
-        {currentView === 'products' && (
-          isResellerVerified && reseller ? (
-            <ResellerProductsView
-              products={products}
-              categories={categories}
-              reseller={reseller}
-              onOpenProductDetail={handleOpenProductDetail}
-              onOpenManualOrder={handleOpenManualOrder}
-              onOpenShareModal={handleOpenShareModal}
-              onOpenAiKit={handleOpenAiKit}
-            />
-          ) : (
-            <ResellerVerificationGate
-              onOpenAuthModal={handleOpenAuthModal}
-              onNavigateTab={setCurrentView}
-            />
-          )
-        )}
-
-        {/* Reseller Orders Route */}
-        {currentView === 'orders' && (
-          isResellerVerified && reseller ? (
-            <ResellerOrdersView
-              orders={orders}
-              reseller={reseller}
-              onOpenManualOrder={() => handleOpenManualOrder()}
-              onOpenTrackingModal={handleOpenTracking}
-            />
-          ) : (
-            <ResellerVerificationGate
-              onOpenAuthModal={handleOpenAuthModal}
-              onNavigateTab={setCurrentView}
-            />
-          )
-        )}
-
-        {/* Reseller Wallet Route */}
-        {currentView === 'wallet' && (
-          isResellerVerified && reseller ? (
-            <WalletView
-              reseller={reseller}
-              wallet={wallet}
-              onRefreshWallet={loadUserData}
-            />
-          ) : (
-            <ResellerVerificationGate
-              onOpenAuthModal={handleOpenAuthModal}
-              onNavigateTab={setCurrentView}
-            />
-          )
-        )}
-
-        {/* Public / Shared Leaderboard Route */}
-        {currentView === 'leaderboard' && <LeaderboardView />}
-
-        {/* Academy Route */}
-        {currentView === 'academy' && (
-          isResellerVerified && reseller ? (
-            <AcademyView reseller={reseller} />
-          ) : (
-            <ResellerVerificationGate
-              onOpenAuthModal={handleOpenAuthModal}
-              onNavigateTab={setCurrentView}
-            />
-          )
-        )}
-
-        {/* Gamification Route */}
-        {currentView === 'gamification' && (
-          isResellerVerified && reseller ? (
-            <GamificationView reseller={reseller} />
-          ) : (
-            <ResellerVerificationGate
-              onOpenAuthModal={handleOpenAuthModal}
-              onNavigateTab={setCurrentView}
-            />
-          )
-        )}
-
-        {/* Admin Route with strict access protection */}
-        {currentView === 'admin' && (
-          user?.role === 'ADMIN' ? (
-            <AdminDashboard />
-          ) : (
-            <div className="py-20 px-4 max-w-lg mx-auto text-center space-y-4">
-              <div className="p-6 rounded-3xl bg-rose-950/60 border border-rose-500/40 text-rose-200 shadow-2xl space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-rose-900/50 border border-rose-500/50 text-rose-400 flex items-center justify-center mx-auto text-xl font-black">
-                  🔒
-                </div>
-                <h3 className="text-base font-black text-white">Restricted Admin Portal</h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  The Admin Control Panel is strictly protected and accessible only to verified administrators. You are currently logged in as a Reseller.
-                </p>
-                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
-                  <button
-                    onClick={() => setCurrentView('reseller_hub')}
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs transition"
-                  >
-                    Go to Reseller Hub
-                  </button>
-                  <button
-                    onClick={() => handleOpenAuthModal('admin_login')}
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/40 text-indigo-200 font-bold text-xs hover:bg-indigo-900/60 transition"
-                  >
-                    Admin Login
-                  </button>
-                </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentView}
+            initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
+            className="w-full"
+          >
+            {isLoadingData && (currentView === 'storefront' || currentView === 'products') ? (
+              <div className="space-y-8">
+                <div className="h-48 rounded-3xl bg-purple-950/20 cosmic-shimmer border border-purple-500/20" />
+                <ProductGridSkeleton count={8} />
               </div>
-            </div>
-          )
-        )}
+            ) : (
+              <>
+                {currentView === 'storefront' && (
+                  <StorefrontView
+                    products={products}
+                    categories={categories}
+                    onOpenProductDetail={handleOpenProductDetail}
+                    onOpenManualOrder={handleOpenManualOrder}
+                    onOpenShareModal={handleOpenShareModal}
+                    onOpenAiKit={handleOpenAiKit}
+                    onOpenBecomeReseller={() => handleOpenAuthModal('reseller_register')}
+                    onNavigateTab={setCurrentView}
+                  />
+                )}
+
+                {/* Reseller Hub Route */}
+                {currentView === 'reseller_hub' && (
+                  isResellerVerified && reseller ? (
+                    <ResellerDashboard
+                      reseller={reseller}
+                      orders={orders}
+                      wallet={wallet}
+                      products={products}
+                      onNavigateTab={setCurrentView}
+                      onOpenManualOrder={handleOpenManualOrder}
+                      onOpenWithdrawalModal={() => setCurrentView('wallet')}
+                      onOpenAiChat={() => setIsAiDrawerOpen(true)}
+                    />
+                  ) : (
+                    <ResellerVerificationGate
+                      onOpenAuthModal={handleOpenAuthModal}
+                      onNavigateTab={setCurrentView}
+                    />
+                  )
+                )}
+
+                {/* Wholesale Products Route */}
+                {currentView === 'products' && (
+                  isResellerVerified && reseller ? (
+                    <ResellerProductsView
+                      products={products}
+                      categories={categories}
+                      reseller={reseller}
+                      onOpenProductDetail={handleOpenProductDetail}
+                      onOpenManualOrder={handleOpenManualOrder}
+                      onOpenShareModal={handleOpenShareModal}
+                      onOpenAiKit={handleOpenAiKit}
+                    />
+                  ) : (
+                    <ResellerVerificationGate
+                      onOpenAuthModal={handleOpenAuthModal}
+                      onNavigateTab={setCurrentView}
+                    />
+                  )
+                )}
+
+                {/* Reseller Orders Route */}
+                {currentView === 'orders' && (
+                  isResellerVerified && reseller ? (
+                    <ResellerOrdersView
+                      orders={orders}
+                      reseller={reseller}
+                      onOpenManualOrder={() => handleOpenManualOrder()}
+                      onOpenTrackingModal={handleOpenTracking}
+                    />
+                  ) : (
+                    <ResellerVerificationGate
+                      onOpenAuthModal={handleOpenAuthModal}
+                      onNavigateTab={setCurrentView}
+                    />
+                  )
+                )}
+
+                {/* Reseller Wallet Route */}
+                {currentView === 'wallet' && (
+                  isResellerVerified && reseller ? (
+                    <WalletView
+                      reseller={reseller}
+                      wallet={wallet}
+                      onRefreshWallet={loadUserData}
+                    />
+                  ) : (
+                    <ResellerVerificationGate
+                      onOpenAuthModal={handleOpenAuthModal}
+                      onNavigateTab={setCurrentView}
+                    />
+                  )
+                )}
+
+                {/* Public / Shared Leaderboard Route */}
+                {currentView === 'leaderboard' && <LeaderboardView />}
+
+                {/* Academy Route */}
+                {currentView === 'academy' && (
+                  isResellerVerified && reseller ? (
+                    <AcademyView reseller={reseller} />
+                  ) : (
+                    <ResellerVerificationGate
+                      onOpenAuthModal={handleOpenAuthModal}
+                      onNavigateTab={setCurrentView}
+                    />
+                  )
+                )}
+
+                {/* Gamification Route */}
+                {currentView === 'gamification' && (
+                  isResellerVerified && reseller ? (
+                    <GamificationView reseller={reseller} />
+                  ) : (
+                    <ResellerVerificationGate
+                      onOpenAuthModal={handleOpenAuthModal}
+                      onNavigateTab={setCurrentView}
+                    />
+                  )
+                )}
+
+                {/* Admin Route with strict access protection */}
+                {currentView === 'admin' && (
+                  user?.role === 'ADMIN' ? (
+                    <AdminDashboard />
+                  ) : (
+                    <div className="py-20 px-4 max-w-lg mx-auto text-center space-y-4">
+                      <div className="p-6 rounded-3xl bg-rose-950/60 border border-rose-500/40 text-rose-200 shadow-2xl space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-rose-900/50 border border-rose-500/50 text-rose-400 flex items-center justify-center mx-auto text-xl font-black">
+                          🔒
+                        </div>
+                        <h3 className="text-base font-black text-white">Restricted Admin Portal</h3>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          The Admin Control Panel is strictly protected and accessible only to verified administrators. You are currently logged in as a Reseller.
+                        </p>
+                        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+                          <button
+                            onClick={() => setCurrentView('reseller_hub')}
+                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs transition"
+                          >
+                            Go to Reseller Hub
+                          </button>
+                          <button
+                            onClick={() => handleOpenAuthModal('admin_login')}
+                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/40 text-indigo-200 font-bold text-xs hover:bg-indigo-900/60 transition"
+                          >
+                            Admin Login
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Footer */}
@@ -393,6 +426,15 @@ function MainAppContent() {
       {/* Floating Official WhatsApp Support Widget */}
       <FloatingWhatsApp
         onOpenPrivacyPolicy={() => setIsPrivacyPolicyOpen(true)}
+      />
+
+      {/* Futuristic Floating Mobile Crystal Dock Navigation */}
+      <MobileNavigationDock
+        currentView={currentView}
+        onNavigate={setCurrentView}
+        onOpenAiDrawer={() => setIsAiDrawerOpen(true)}
+        onOpenTrackingModal={() => handleOpenTracking()}
+        onOpenAuthModal={handleOpenAuthModal}
       />
 
       {/* Interactive Global Modals */}
@@ -484,12 +526,19 @@ function MainAppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <ResellerCartProvider>
-          <MainAppContent />
-        </ResellerCartProvider>
-      </CartProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <CartProvider>
+              <ResellerCartProvider>
+                <MainAppContent />
+                <ToastContainer />
+              </ResellerCartProvider>
+            </CartProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }

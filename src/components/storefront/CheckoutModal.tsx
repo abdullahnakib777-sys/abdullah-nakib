@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { BANGLADESH_DIVISIONS } from '../../data/bangladeshGeo';
 import { api } from '../../services/api';
 import { triggerSaleCelebration } from '../common/ConfettiTrigger';
@@ -13,6 +14,7 @@ export const CheckoutModal: React.FC<{
 }> = ({ isOpen, onClose, onOrderSuccess }) => {
   const { items, subtotal, clearCart, referralCode } = useCart();
   const { user } = useAuth();
+  const toast = useToast();
 
   const [customerName, setCustomerName] = useState(user?.name || '');
   const [customerPhone, setCustomerPhone] = useState(user?.phone || '');
@@ -80,6 +82,7 @@ export const CheckoutModal: React.FC<{
       });
 
       triggerSaleCelebration();
+      toast.success(`Order placed successfully! Tracking ID #${res.order.orderNumber}`, 'Order Confirmed 🚀');
       clearCart();
       onOrderSuccess(res.order.orderNumber);
       onClose();

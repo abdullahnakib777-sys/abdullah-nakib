@@ -338,6 +338,8 @@ export interface PlatformSettings {
   supportEmail: string;
   supportAddress: string;
   founderResellerId: string;
+  adminEmail?: string;
+  adminPassword?: string;
 }
 
 export interface AuditLog {
@@ -361,4 +363,29 @@ export interface FraudAlert {
   message: string;
   createdAt: string;
   status: 'PENDING_REVIEW' | 'DISMISSED' | 'ACTION_TAKEN';
+}
+
+export type NotificationTargetType = 'ALL' | 'SELECTED' | 'INDIVIDUAL';
+export type NotificationPriority = 'NORMAL' | 'HIGH' | 'URGENT';
+
+export interface MarketingNotification {
+  id: string;
+  title: string;
+  titleBn?: string;
+  message: string;
+  messageBn?: string;
+  posterImage: string;
+  targetType: NotificationTargetType;
+  targetResellerIds?: string[];
+  badge?: string;
+  badgeBn?: string;
+  actionUrl?: string;
+  actionLabel?: string;
+  actionLabelBn?: string;
+  priority: NotificationPriority;
+  popupOnLogin?: boolean;
+  readBy: string[];
+  dismissedBy?: string[];
+  createdAt: string;
+  createdBy?: string;
 }

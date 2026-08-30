@@ -17,6 +17,7 @@ import {
   AuditLog,
   FraudAlert,
   LeaderboardEntry,
+  MarketingNotification,
 } from '../src/types';
 import { ProfitEngine } from './profitEngine';
 import { FirebaseSyncService } from './firebaseSync';
@@ -43,6 +44,7 @@ export interface DatabaseSchema {
   auditLogs: AuditLog[];
   fraudAlerts: FraudAlert[];
   referralClicks: Record<string, number>;
+  notifications: MarketingNotification[];
 }
 
 // Initial Database Seeding
@@ -1102,7 +1104,69 @@ const INITIAL_SETTINGS: PlatformSettings = {
   supportEmail: 'support@mehermart.com',
   supportAddress: 'Savar DOHS, Savar, Dhaka-1344',
   founderResellerId: 'rsl-founder',
+  adminEmail: 'abdullahnakib777@gmail.com',
+  adminPassword: 'admin1234',
 };
+
+const INITIAL_NOTIFICATIONS: MarketingNotification[] = [
+  {
+    id: 'notif-01',
+    title: '🔥 ৫০% বেশি লাভ! T900 Ultra 2 Max মেগা ক্যাম্পেইন',
+    titleBn: '🔥 ৫০% বেশি লাভ! T900 Ultra 2 Max মেগা ক্যাম্পেইন',
+    message: 'প্রতি ডেলিভার্ড অর্ডারে অতিরিক্ত ২০০ টাকা প্রফিট মার্জিন বোনাস! আপনার ফেসবুক পেজ ও টিকটকে পোস্টারটি পোস্ট করে দ্রুত কাস্টমার অর্ডার নিন। স্টক সীমিত!',
+    messageBn: 'প্রতি ডেলিভার্ড অর্ডারে অতিরিক্ত ২০০ টাকা প্রফিট মার্জিন বোনাস! আপনার ফেসবুক পেজ ও টিকটকে পোস্টারটি পোস্ট করে দ্রুত কাস্টমার অর্ডার নিন। স্টক সীমিত!',
+    posterImage: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&auto=format&fit=crop&q=80',
+    targetType: 'ALL',
+    badge: '🔥 HOT CAMPAIGN',
+    badgeBn: '🔥 মেগা ক্যাম্পেইন',
+    actionUrl: 'products',
+    actionLabel: 'Sell T900 Watch Now',
+    actionLabelBn: 'এখনই ওয়াচ সেল করুন',
+    priority: 'URGENT',
+    popupOnLogin: true,
+    readBy: [],
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+    createdBy: 'Master Admin (Nakib Abdullah)',
+  },
+  {
+    id: 'notif-02',
+    title: '🌙 রমজান ও ঈদ স্পেশাল কিচেন গ্যাজেট রিস্টক নোটিশ',
+    titleBn: '🌙 রমজান ও ঈদ স্পেশাল কিচেন গ্যাজেট রিস্টক নোটিশ',
+    message: 'সবচেয়ে দ্রুত বিক্রি হওয়া ২ লিটার ফুড চপার এবং ইনস্ট্যান্ট গারমেন্ট স্টিমার নতুন স্টক ফ্যাক্টরি থেকে চলে এসেছে। ডেলিভারি টাইম মাত্র ২৪-৪৮ ঘণ্টা!',
+    messageBn: 'সবচেয়ে দ্রুত বিক্রি হওয়া ২ লিটার ফুড চপার এবং ইনস্ট্যান্ট গারমেন্ট স্টিমার নতুন স্টক ফ্যাক্টরি থেকে চলে এসেছে। ডেলিভারি টাইম মাত্র ২৪-৪৮ ঘণ্টা!',
+    posterImage: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=1200&auto=format&fit=crop&q=80',
+    targetType: 'ALL',
+    badge: '✨ NEW STOCK',
+    badgeBn: '✨ নতুন স্টক',
+    actionUrl: 'products',
+    actionLabel: 'View Kitchen Catalog',
+    actionLabelBn: 'কিচেন ক্যাটালগ দেখুন',
+    priority: 'HIGH',
+    popupOnLogin: false,
+    readBy: ['rsl-founder'],
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+    createdBy: 'Master Admin (Nakib Abdullah)',
+  },
+  {
+    id: 'notif-03',
+    title: '💸 বিকাশ ও নগদ ইনস্ট্যান্ট উইথড্রয়াল সেটেলমেন্ট আপডেট',
+    titleBn: '💸 বিকাশ ও নগদ ইনস্ট্যান্ট উইথড্রয়াল সেটেলমেন্ট আপডেট',
+    message: 'সকল অ্যাপ্রুভড অর্ডার উইথড্রয়াল রিকোয়েস্ট প্রতিদিন রাত ৮টার মধ্যে বিকাশ ও নগদে সরাসরি পরিশোধ করা হচ্ছে। আপনার বন্ধুদের রেফার করে জিতে নিন প্রতি ভেরিফায়েড রেসিলারে ২০০ টাকা রিওয়ার্ড!',
+    messageBn: 'সকল অ্যাপ্রুভড অর্ডার উইথড্রয়াল রিকোয়েস্ট প্রতিদিন রাত ৮টার মধ্যে বিকাশ ও নগদে সরাসরি পরিশোধ করা হচ্ছে। আপনার বন্ধুদের রেফার করে জিতে নিন প্রতি ভেরিফায়েড রেসিলারে ২০০ টাকা রিওয়ার্ড!',
+    posterImage: 'https://images.unsplash.com/photo-1556742049-0a67e55722c0?w=1200&auto=format&fit=crop&q=80',
+    targetType: 'ALL',
+    badge: '💰 FAST PAYOUT',
+    badgeBn: '💰 দ্রুত পেমেন্ট',
+    actionUrl: 'wallet',
+    actionLabel: 'Check Your Wallet',
+    actionLabelBn: 'ওয়ালেট চেক করুন',
+    priority: 'NORMAL',
+    popupOnLogin: false,
+    readBy: ['rsl-founder'],
+    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+    createdBy: 'Master Admin (Nakib Abdullah)',
+  },
+];
 
 class Database {
   private data: DatabaseSchema;
@@ -1161,6 +1225,7 @@ class Database {
         'MM-SMAR101': 210,
         'MM-ELIT102': 95,
       },
+      notifications: [...INITIAL_NOTIFICATIONS],
     };
   }
 
@@ -1232,6 +1297,7 @@ class Database {
           products: mergedProducts,
           wallets: finalWallets,
           settings: { ...defaults.settings, ...(parsed.settings || {}) },
+          notifications: (parsed.notifications && parsed.notifications.length > 0) ? parsed.notifications : defaults.notifications,
         };
       } else {
         this.save();
@@ -1247,6 +1313,7 @@ class Database {
               ...cloudData,
               wallets: { ...this.getDefaultData().wallets, ...(cloudData.wallets || {}) },
               settings: { ...this.getDefaultData().settings, ...(cloudData.settings || {}) },
+              notifications: (cloudData.notifications && cloudData.notifications.length > 0) ? cloudData.notifications : this.data.notifications,
             };
             this.saveLocal();
             console.log('Database synced and hydrated with Cloud Firestore');
@@ -2607,6 +2674,79 @@ class Database {
     return this.data.settings;
   }
 
+  public getAdminCredentials() {
+    const adminEmail = process.env.ADMIN_EMAIL || this.data.settings.adminEmail || 'abdullahnakib777@gmail.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || this.data.settings.adminPassword || 'admin1234';
+    return {
+      adminEmail,
+      adminPassword,
+    };
+  }
+
+  public verifyAdminCredentials(inputEmailOrId: string, inputPass: string): boolean {
+    if (!inputEmailOrId || !inputPass) return false;
+    const cleanInput = inputEmailOrId.trim().toLowerCase();
+    const cleanPass = inputPass.trim();
+
+    const { adminEmail, adminPassword } = this.getAdminCredentials();
+    const cleanConfigEmail = adminEmail.trim().toLowerCase();
+
+    const isMatchId =
+      cleanInput === 'admin' ||
+      cleanInput === 'usr-founder' ||
+      cleanInput === cleanConfigEmail ||
+      cleanInput === 'abdullahnakib777@gmail.com';
+
+    const isMatchPass = cleanPass === adminPassword;
+
+    return Boolean(isMatchId && isMatchPass);
+  }
+
+  public updateAdminCredentials(params: {
+    currentPassword?: string;
+    newPassword: string;
+    newEmail?: string;
+    actor: User;
+  }) {
+    const { currentPassword, newPassword, newEmail, actor } = params;
+    const { adminPassword } = this.getAdminCredentials();
+
+    if (currentPassword && currentPassword.trim() !== adminPassword) {
+      throw new Error('Current Admin Password is incorrect');
+    }
+
+    if (newPassword) {
+      this.data.settings.adminPassword = newPassword.trim();
+    }
+    if (newEmail) {
+      this.data.settings.adminEmail = newEmail.trim().toLowerCase();
+    }
+
+    // Also update founder user record if present
+    const founderUser = this.data.users.find((u) => u.id === 'usr-founder' || u.role === 'ADMIN');
+    if (founderUser) {
+      if (newEmail) founderUser.email = newEmail.trim().toLowerCase();
+      founderUser.password = newPassword.trim();
+    }
+
+    this.logAudit({
+      action: 'UPDATE_ADMIN_CREDENTIALS',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'SETTINGS',
+      targetId: 'admin_security',
+      details: `Admin password and credentials updated securely by ${actor.name}`,
+    });
+
+    this.save();
+    return {
+      success: true,
+      message: 'Admin credentials updated and synced to Firestore successfully',
+      adminEmail: this.data.settings.adminEmail,
+    };
+  }
+
   public updateSettings(settings: Partial<PlatformSettings>, actor: User) {
     this.data.settings = { ...this.data.settings, ...settings };
     this.logAudit({
@@ -2641,6 +2781,123 @@ class Database {
     if (this.data.auditLogs.length > 200) {
       this.data.auditLogs = this.data.auditLogs.slice(0, 200);
     }
+  }
+
+  // --- Marketing Notifications & Broadcasts ---
+  public getNotifications(resellerId?: string): MarketingNotification[] {
+    const all = this.data.notifications || [];
+    if (!resellerId) {
+      return all.filter((n) => n.targetType === 'ALL');
+    }
+    return all.filter(
+      (n) =>
+        n.targetType === 'ALL' ||
+        (n.targetResellerIds && n.targetResellerIds.includes(resellerId))
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  public getAllNotificationsAdmin(): MarketingNotification[] {
+    return (this.data.notifications || []).slice().sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  public createNotification(data: Partial<MarketingNotification>, actor?: User): MarketingNotification {
+    const newNotif: MarketingNotification = {
+      id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      title: data.title || '📢 New Marketing Campaign Notice',
+      titleBn: data.titleBn || data.title || '📢 নতুন মার্কেটিং ক্যাম্পেইন নোটিশ',
+      message: data.message || '',
+      messageBn: data.messageBn || data.message || '',
+      posterImage: data.posterImage || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&auto=format&fit=crop&q=80',
+      targetType: data.targetType || 'ALL',
+      targetResellerIds: data.targetResellerIds || [],
+      badge: data.badge || '📢 ANNOUNCEMENT',
+      badgeBn: data.badgeBn || '📢 নোটিশ',
+      actionUrl: data.actionUrl || 'products',
+      actionLabel: data.actionLabel || 'View Catalog',
+      actionLabelBn: data.actionLabelBn || 'ক্যাটালগ দেখুন',
+      priority: data.priority || 'NORMAL',
+      popupOnLogin: Boolean(data.popupOnLogin),
+      readBy: [],
+      createdAt: new Date().toISOString(),
+      createdBy: actor ? `${actor.name} (${actor.role})` : 'System Admin',
+    };
+
+    if (!this.data.notifications) {
+      this.data.notifications = [];
+    }
+    this.data.notifications.unshift(newNotif);
+
+    if (actor) {
+      this.logAudit({
+        action: 'BROADCAST_NOTIFICATION',
+        actorId: actor.id,
+        actorName: actor.name,
+        actorRole: actor.role,
+        targetType: 'NOTIFICATION',
+        targetId: newNotif.id,
+        details: `Sent notification "${newNotif.title}" (Target: ${newNotif.targetType}, Priority: ${newNotif.priority})`,
+      });
+    }
+
+    this.save();
+    return newNotif;
+  }
+
+  public markNotificationRead(notificationId: string, resellerId: string): boolean {
+    if (!this.data.notifications) return false;
+    const notif = this.data.notifications.find((n) => n.id === notificationId);
+    if (notif) {
+      if (!notif.readBy) notif.readBy = [];
+      if (!notif.readBy.includes(resellerId)) {
+        notif.readBy.push(resellerId);
+        this.save();
+      }
+      return true;
+    }
+    return false;
+  }
+
+  public markAllNotificationsRead(resellerId: string): boolean {
+    if (!this.data.notifications) return false;
+    let changed = false;
+    this.data.notifications.forEach((n) => {
+      if (
+        (n.targetType === 'ALL' || (n.targetResellerIds && n.targetResellerIds.includes(resellerId))) &&
+        (!n.readBy || !n.readBy.includes(resellerId))
+      ) {
+        if (!n.readBy) n.readBy = [];
+        n.readBy.push(resellerId);
+        changed = true;
+      }
+    });
+    if (changed) {
+      this.save();
+    }
+    return true;
+  }
+
+  public deleteNotification(notificationId: string, actor?: User): boolean {
+    if (!this.data.notifications) return false;
+    const idx = this.data.notifications.findIndex((n) => n.id === notificationId);
+    if (idx !== -1) {
+      const removed = this.data.notifications.splice(idx, 1)[0];
+      if (actor) {
+        this.logAudit({
+          action: 'DELETE_NOTIFICATION',
+          actorId: actor.id,
+          actorName: actor.name,
+          actorRole: actor.role,
+          targetType: 'NOTIFICATION',
+          targetId: notificationId,
+          details: `Deleted notification "${removed.title}"`,
+        });
+      }
+      this.save();
+      return true;
+    }
+    return false;
   }
 }
 

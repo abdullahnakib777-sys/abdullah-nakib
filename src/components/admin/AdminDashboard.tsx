@@ -15,6 +15,7 @@ import { api } from '../../services/api';
 import { StatusBadge } from '../common/Badge';
 import { triggerLevelUpCelebration } from '../common/ConfettiTrigger';
 import { BulkProductUploaderModal } from './BulkProductUploaderModal';
+import { AdminNotificationsManager } from './AdminNotificationsManager';
 import {
   ShieldCheck,
   TrendingUp,
@@ -52,11 +53,17 @@ import {
   BookOpen,
   Calendar,
   Tag,
+  Lock,
+  KeyRound,
+  Mail,
+  Eye,
+  EyeOff,
+  AlertCircle,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'orders' | 'resellers' | 'products' | 'challenges' | 'academy' | 'withdrawals' | 'fraud' | 'settings'
+    'overview' | 'orders' | 'resellers' | 'products' | 'notifications' | 'challenges' | 'academy' | 'withdrawals' | 'fraud' | 'settings'
   >('overview');
 
   const [statsData, setStatsData] = useState<any>(null);
@@ -165,6 +172,52 @@ export const AdminDashboard: React.FC = () => {
       'Publish 2 short reels per day using trending audio',
     ],
   });
+
+  // Admin Password & Security Settings
+  const [currentAdminPass, setCurrentAdminPass] = useState('');
+  const [newAdminPass, setNewAdminPass] = useState('');
+  const [confirmAdminPass, setConfirmAdminPass] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [showAdminPassFields, setShowAdminPassFields] = useState(false);
+  const [isChangingPass, setIsChangingPass] = useState(false);
+  const [passChangeSuccess, setPassChangeSuccess] = useState<string | null>(null);
+  const [passChangeError, setPassChangeError] = useState<string | null>(null);
+
+  const handleAdminPasswordChangeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassChangeError(null);
+    setPassChangeSuccess(null);
+
+    if (!newAdminPass || newAdminPass.trim().length < 4) {
+      setPassChangeError('New password must be at least 4 characters long.');
+      return;
+    }
+
+    if (newAdminPass !== confirmAdminPass) {
+      setPassChangeError('New password and confirmation do not match.');
+      return;
+    }
+
+    setIsChangingPass(true);
+    try {
+      const res = await api.adminChangePassword({
+        currentPassword: currentAdminPass.trim() || undefined,
+        newPassword: newAdminPass.trim(),
+        newEmail: newAdminEmail.trim() || undefined,
+      });
+
+      setPassChangeSuccess(res.message || 'Admin credentials updated and securely saved in Cloud Firestore!');
+      setCurrentAdminPass('');
+      setNewAdminPass('');
+      setConfirmAdminPass('');
+      triggerLevelUpCelebration();
+      loadAllAdminData();
+    } catch (err: any) {
+      setPassChangeError(err.message || 'Failed to update admin credentials. Please verify your current password.');
+    } finally {
+      setIsChangingPass(false);
+    }
+  };
 
   const loadAllAdminData = async () => {
     setIsLoading(true);
@@ -484,6 +537,7 @@ export const AdminDashboard: React.FC = () => {
           { id: 'orders', label: `📦 Orders (${orders.length})` },
           { id: 'resellers', label: `👥 Resellers & XP (${allResellers.length > 0 ? allResellers.length : resellers.length})` },
           { id: 'products', label: `🏷️ Products (${products.length})` },
+          { id: 'notifications', label: '📢 Notifications & Posters' },
           { id: 'challenges', label: `🏆 Challenges & XP (${challenges.length})` },
           { id: 'academy', label: `📺 Academy Videos (${academyLessons.length})` },
           { id: 'withdrawals', label: `💰 Withdrawals (${withdrawals.length})` },
@@ -1308,6 +1362,13 @@ export const AdminDashboard: React.FC = () => {
         );
       })()}
 
+      {/* TAB 4.5: NOTIFICATIONS & MARKETING POSTERS */}
+      {activeTab === 'notifications' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <AdminNotificationsManager />
+        </div>
+      )}
+
       {/* TAB 5: CHALLENGES & XP REWARDS */}
       {activeTab === 'challenges' && (
         <div className="space-y-4 animate-in fade-in duration-150">
@@ -1549,6 +1610,147 @@ export const AdminDashboard: React.FC = () => {
       {/* TAB 9: SETTINGS & LOGS */}
       {activeTab === 'settings' && (
         <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Security & Master Admin Password */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <span>Master Admin Security & Password</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      Cloud Synced
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Change your admin credentials anytime. Changes automatically sync to Firebase Firestore and are protected from public exposure.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-xs">
+                <span className="text-slate-500 font-medium">Active Admin Email: </span>
+                <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+                  {statsData?.settings?.adminEmail || 'abdullahnakib777@gmail.com'}
+                </span>
+              </div>
+            </div>
+
+            {passChangeSuccess && (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{passChangeSuccess}</span>
+              </div>
+            )}
+
+            {passChangeError && (
+              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{passChangeError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAdminPasswordChangeSubmit} className="space-y-4 max-w-2xl">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Update Admin Email / Login ID <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="email"
+                      placeholder={statsData?.settings?.adminEmail || 'abdullahnakib777@gmail.com'}
+                      value={newAdminEmail}
+                      onChange={(e) => setNewAdminEmail(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-xs font-medium bg-slate-50/50"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Current Password <span className="text-slate-400 font-normal">(For verification)</span>
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showAdminPassFields ? 'text' : 'password'}
+                      placeholder="Enter current password"
+                      value={currentAdminPass}
+                      onChange={(e) => setCurrentAdminPass(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-xs font-medium bg-slate-50/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminPassFields(!showAdminPassFields)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5"
+                    >
+                      {showAdminPassFields ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    New Admin Password *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-indigo-500 absolute left-3.5 top-3" />
+                    <input
+                      type={showAdminPassFields ? 'text' : 'password'}
+                      required
+                      placeholder="Enter new strong password"
+                      value={newAdminPass}
+                      onChange={(e) => setNewAdminPass(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-xs font-medium bg-slate-50/50"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Confirm New Password *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-indigo-500 absolute left-3.5 top-3" />
+                    <input
+                      type={showAdminPassFields ? 'text' : 'password'}
+                      required
+                      placeholder="Confirm new password"
+                      value={confirmAdminPass}
+                      onChange={(e) => setConfirmAdminPass(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-xs font-medium bg-slate-50/50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={isChangingPass}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-2"
+                >
+                  {isChangingPass ? (
+                    <span>Saving to Firebase...</span>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Update & Save Admin Password</span>
+                    </>
+                  )}
+                </button>
+
+                <p className="text-[11px] text-slate-500">
+                  Tip: You can also set <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-mono">ADMIN_PASSWORD</code> in Render Environment Variables.
+                </p>
+              </div>
+            </form>
+          </div>
+
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
             <h3 className="font-bold text-sm text-slate-900">Platform Global Parameters</h3>
             <div className="grid sm:grid-cols-3 gap-4 text-xs">

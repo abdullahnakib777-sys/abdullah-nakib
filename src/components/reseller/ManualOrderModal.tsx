@@ -3,6 +3,7 @@ import { Product, ResellerProfile } from '../../types';
 import { BANGLADESH_DIVISIONS, COURIER_PROVIDERS } from '../../data/bangladeshGeo';
 import { api } from '../../services/api';
 import { triggerSaleCelebration } from '../common/ConfettiTrigger';
+import { useToast } from '../../context/ToastContext';
 import { X, CheckCircle2, ShoppingBag, Truck, DollarSign, AlertCircle, Sparkles } from 'lucide-react';
 
 export const ManualOrderModal: React.FC<{
@@ -13,6 +14,7 @@ export const ManualOrderModal: React.FC<{
   reseller: ResellerProfile | null;
   onOrderCreated?: () => void;
 }> = ({ isOpen, onClose, products, initialProduct, reseller, onOrderCreated }) => {
+  const toast = useToast();
   const [selectedProductId, setSelectedProductId] = useState<string>(
     initialProduct?.id || products[0]?.id || ''
   );
@@ -124,7 +126,9 @@ export const ManualOrderModal: React.FC<{
         courier,
       });
 
+      const calculatedProfit = profitPreview?.netResellerProfit ?? (sellingPrice - (selectedProduct?.resellerPrice || 0)) * quantity;
       triggerSaleCelebration();
+      toast.success(`Order booked successfully with ${courier}! ৳${calculatedProfit} profit will be credited on delivery.`, 'Order Placed 🚀');
       if (onOrderCreated) onOrderCreated();
       onClose();
     } catch (err: any) {

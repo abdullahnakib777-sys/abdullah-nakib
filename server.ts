@@ -9,7 +9,7 @@ import { User } from './src/types';
 
 dotenv.config();
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
   const app = express();
@@ -64,31 +64,54 @@ async function startServer() {
       return res.status(400).json({ error: 'Admin ID / Email and Password are required' });
     }
 
-    const cleanId = String(adminId).trim().toLowerCase();
+    const cleanId = String(adminId).trim();
     const cleanPass = String(password).trim();
 
-    // Check single admin ID and password
-    const validAdminIds = ['admin', 'abdullahnakib777@gmail.com', 'usr-founder', 'nakib'];
-    const validPasswords = ['admin1234', 'admin', 'admin@shadhin2026', 'nakib2026'];
+    const isValid = db.verifyAdminCredentials(cleanId, cleanPass);
 
-    const isValidId = validAdminIds.includes(cleanId) || cleanId.includes('abdullahnakib');
-    const isValidPass = validPasswords.includes(cleanPass) || cleanPass === 'admin1234';
-
-    if (!isValidId || !isValidPass) {
-      return res.status(401).json({ error: 'Invalid Admin Credentials. Access Denied.' });
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid Admin Email or Password. Access Denied.' });
     }
 
-    const adminUser = db.getUserById('usr-admin-master') || db.getUsers().find((u) => u.role === 'ADMIN');
+    const adminUser = db.getUsers().find((u) => u.role === 'ADMIN') || db.getUserById('usr-founder');
     if (!adminUser) {
       return res.status(404).json({ error: 'Admin account not initialized' });
     }
 
+    const reseller = db.getResellerByUserId(adminUser.id);
+
     res.json({
       user: adminUser,
-      reseller: undefined,
+      reseller,
       token: adminUser.id,
       message: 'Master Admin authenticated successfully',
     });
+  });
+
+  // Admin: Change Admin Password & Email
+  app.post('/api/v1/admin/change-password', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required to change admin credentials' });
+      }
+
+      const { currentPassword, newPassword, newEmail } = req.body;
+      if (!newPassword || newPassword.trim().length < 4) {
+        return res.status(400).json({ error: 'New password must be at least 4 characters long' });
+      }
+
+      const result = db.updateAdminCredentials({
+        currentPassword,
+        newPassword,
+        newEmail,
+        actor: user,
+      });
+
+      res.json(result);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to update admin credentials' });
+    }
   });
 
   // Auth: Login / Switch User
@@ -1028,6 +1051,125 @@ async function startServer() {
 
   app.get('/api/v1/admin/fraud-alerts', (req: Request, res: Response) => {
     res.json({ alerts: db.getFraudAlerts() });
+  });
+
+  // --- Marketing Notifications & Broadcasts API ---
+
+  // Reseller / User: Get notifications
+  app.get('/api/v1/notifications', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const reseller = user ? db.getResellerByUserId(user.id) : undefined;
+      const resellerId = reseller?.id || (user?.role === 'RESELLER' ? user.id : undefined);
+      const notifications = db.getNotifications(resellerId);
+      const unreadCount = notifications.filter(
+        (n) => !resellerId || !n.readBy || !n.readBy.includes(resellerId)
+      ).length;
+
+      res.json({ notifications, unreadCount });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to fetch notifications' });
+    }
+  });
+
+  // Admin: Get all notifications with full recipient metrics
+  app.get('/api/v1/admin/notifications', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+      const notifications = db.getAllNotificationsAdmin();
+      res.json({ notifications });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to fetch admin notifications' });
+    }
+  });
+
+  // Admin: Send / Broadcast new notification with marketing poster
+  app.post('/api/v1/admin/notifications', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const { title, message, posterImage, targetType, targetResellerIds, badge, badgeBn, actionUrl, actionLabel, actionLabelBn, priority, popupOnLogin, titleBn, messageBn } = req.body;
+
+      if (!title || !posterImage) {
+        return res.status(400).json({ error: 'Notification title and marketing poster image URL are required' });
+      }
+
+      const notification = db.createNotification(
+        {
+          title,
+          titleBn,
+          message,
+          messageBn,
+          posterImage,
+          targetType: targetType || 'ALL',
+          targetResellerIds: Array.isArray(targetResellerIds) ? targetResellerIds : [],
+          badge,
+          badgeBn,
+          actionUrl,
+          actionLabel,
+          actionLabelBn,
+          priority: priority || 'NORMAL',
+          popupOnLogin: Boolean(popupOnLogin),
+        },
+        user
+      );
+
+      res.status(201).json({
+        success: true,
+        notification,
+        message: targetType === 'ALL'
+          ? 'Marketing poster broadcasted to all resellers successfully!'
+          : `Marketing poster sent to ${targetResellerIds?.length || 1} targeted reseller(s) successfully!`,
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to create notification' });
+    }
+  });
+
+  // Reseller: Mark single notification as read
+  app.post('/api/v1/notifications/:id/read', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const reseller = user ? db.getResellerByUserId(user.id) : undefined;
+      const resellerId = reseller?.id || (user?.role === 'RESELLER' ? user.id : 'rsl-founder');
+      const success = db.markNotificationRead(req.params.id, resellerId);
+      res.json({ success });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Reseller: Mark all notifications as read
+  app.post('/api/v1/notifications/mark-all-read', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const reseller = user ? db.getResellerByUserId(user.id) : undefined;
+      const resellerId = reseller?.id || (user?.role === 'RESELLER' ? user.id : 'rsl-founder');
+      const success = db.markAllNotificationsRead(resellerId);
+      res.json({ success });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Delete notification
+  app.delete('/api/v1/admin/notifications/:id', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+      const success = db.deleteNotification(req.params.id, user);
+      res.json({ success, message: 'Notification removed successfully' });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
   });
 
   // Reset Demo Database

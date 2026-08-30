@@ -10,7 +10,7 @@ export const FloatingWhatsApp: React.FC<{
   const whatsappLink = 'https://wa.me/8801333855344';
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3" id="floating-whatsapp-widget">
+    <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-3" id="floating-whatsapp-widget">
       {/* Expanded Quick Contact Card */}
       {isOpen && (
         <div className="w-80 galaxy-glass-card-static rounded-3xl p-5 border border-emerald-500/40 shadow-[0_0_40px_rgba(16,185,129,0.35)] animate-in fade-in slide-in-from-bottom-4 duration-200 text-slate-200">

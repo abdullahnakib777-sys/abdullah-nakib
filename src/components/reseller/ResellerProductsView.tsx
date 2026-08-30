@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Product, ProductCategory, ResellerProfile } from '../../types';
 import { useResellerCart } from '../../context/ResellerCartContext';
+import { EmptyState } from '../common/EmptyState';
 import {
   Search,
   Filter,
@@ -16,6 +17,8 @@ import {
   Tag,
   Check,
   ShoppingCart,
+  Eye,
+  X,
 } from 'lucide-react';
 
 export const ResellerProductsView: React.FC<{
@@ -38,7 +41,7 @@ export const ResellerProductsView: React.FC<{
   const { addToCart, items: cartItems, itemCount, setIsCartOpen } = useResellerCart();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'profit' | 'price_low' | 'price_high' | 'popularity'>('profit');
+  const [sortBy, setSortBy] = useState<'profit' | 'price_low' | 'price_high' | 'popularity' | 'newest'>('profit');
   const [filterTrending, setFilterTrending] = useState(false);
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK'>('ALL');
 
@@ -51,12 +54,13 @@ export const ResellerProductsView: React.FC<{
       if (p.isStockOut || p.stock <= 0) return false;
     }
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
       return (
         p.name.toLowerCase().includes(q) ||
         p.nameBn.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q) ||
-        (p.productCode && p.productCode.toLowerCase().includes(q))
+        (p.productCode && p.productCode.toLowerCase().includes(q)) ||
+        (p.sku && p.sku.toLowerCase().includes(q))
       );
     }
     return true;
@@ -72,6 +76,8 @@ export const ResellerProductsView: React.FC<{
     filtered.sort((a, b) => b.resellerPrice - a.resellerPrice);
   } else if (sortBy === 'popularity') {
     filtered.sort((a, b) => b.successfulSalesCount - a.successfulSalesCount);
+  } else if (sortBy === 'newest') {
+    filtered.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   const inStockCount = products.filter((p) => !p.isStockOut && p.stock > 0).length;
@@ -88,8 +94,16 @@ export const ResellerProductsView: React.FC<{
               placeholder="Search by code (e.g. MM-1001), name, Bangla title, category..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm galaxy-glass-input rounded-xl"
+              className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm galaxy-glass-input rounded-xl"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-3 text-slate-400 hover:text-white p-0.5 rounded-full hover:bg-purple-900/60 transition"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
@@ -132,16 +146,20 @@ export const ResellerProductsView: React.FC<{
               <span>Trending</span>
             </button>
 
-            <select
-              value={sortBy}
-              onChange={(e: any) => setSortBy(e.target.value)}
-              className="px-3 py-2 text-xs galaxy-glass border border-purple-500/30 rounded-xl font-semibold text-cyan-300 focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="profit" className="bg-[#110e24] text-slate-200">Highest Profit First</option>
-              <option value="popularity" className="bg-[#110e24] text-slate-200">Most Popular / Best Seller</option>
-              <option value="price_low" className="bg-[#110e24] text-slate-200">Wholesale Price: Low to High</option>
-              <option value="price_high" className="bg-[#110e24] text-slate-200">Wholesale Price: High to Low</option>
-            </select>
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e: any) => setSortBy(e.target.value)}
+                className="pl-7 pr-7 py-2 text-xs galaxy-glass border border-purple-500/30 rounded-xl font-semibold text-cyan-300 focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer"
+              >
+                <option value="profit" className="bg-[#110e24] text-slate-200">💰 Highest Profit First</option>
+                <option value="newest" className="bg-[#110e24] text-slate-200">✨ Newest First</option>
+                <option value="popularity" className="bg-[#110e24] text-slate-200">🔥 Best Seller / Popular</option>
+                <option value="price_low" className="bg-[#110e24] text-slate-200">📉 Wholesale: Low to High</option>
+                <option value="price_high" className="bg-[#110e24] text-slate-200">📈 Wholesale: High to Low</option>
+              </select>
+              <ArrowUpDown className="w-3.5 h-3.5 text-cyan-400 absolute left-2 top-2.5 pointer-events-none" />
+            </div>
 
             {/* Reseller Multi-Product Cart Button */}
             <button
@@ -190,181 +208,181 @@ export const ResellerProductsView: React.FC<{
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {filtered.map((product) => {
-          const profit = product.suggestedSellingPrice - product.resellerPrice;
-          const marginPercent = ((profit / product.suggestedSellingPrice) * 100).toFixed(0);
-          const isOut = product.isStockOut || product.stock <= 0;
+      {filtered.length === 0 ? (
+        <EmptyState
+          title="No Products Found"
+          description={
+            stockFilter === 'IN_STOCK'
+              ? 'No in-stock products matched your filters. Switch to "All Products" to view upcoming restocks.'
+              : 'No reseller products matched your search or category filter.'
+          }
+          actionLabel="Reset Filters"
+          onAction={() => {
+            setSearchQuery('');
+            setSelectedCategory('all');
+            setFilterTrending(false);
+            setStockFilter('ALL');
+          }}
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {filtered.map((product) => {
+            const profit = product.suggestedSellingPrice - product.resellerPrice;
+            const marginPercent = ((profit / product.suggestedSellingPrice) * 100).toFixed(0);
+            const isOut = product.isStockOut || product.stock <= 0;
 
-          return (
-            <div
-              key={product.id}
-              className={`galaxy-glass-card rounded-3xl overflow-hidden shadow-lg transition-all flex flex-col justify-between group ${
-                isOut ? 'border-amber-500/30 bg-amber-950/10' : ''
-              }`}
-            >
-              <div>
-                {/* Image Container */}
-                <div
-                  className="aspect-square relative overflow-hidden bg-slate-900/60 cursor-pointer"
-                  onClick={() => onOpenProductDetail(product)}
-                >
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-                      isOut ? 'opacity-70 grayscale-30' : ''
-                    }`}
-                  />
-                  
-                  {/* Product Code Badge */}
-                  {product.productCode && (
-                    <span className="absolute top-3 left-3 px-2 py-0.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-cyan-300 text-[10px] font-mono font-bold border border-cyan-500/40 shadow-xs">
-                      #{product.productCode}
-                    </span>
-                  )}
+            return (
+              <div
+                key={product.id}
+                className={`galaxy-glass-card rounded-3xl overflow-hidden shadow-lg transition-all duration-300 flex flex-col justify-between group hover:border-cyan-400/50 hover:shadow-[0_10px_30px_rgba(6,182,212,0.2)] hover:-translate-y-1.5 ${
+                  isOut ? 'border-amber-500/30 bg-amber-950/10' : ''
+                }`}
+              >
+                <div>
+                  {/* Image Container with Quick-View hover overlay */}
+                  <div
+                    className="aspect-square relative overflow-hidden bg-slate-900/60 cursor-pointer group/img"
+                    onClick={() => onOpenProductDetail(product)}
+                  >
+                    <img
+                      src={product.images[0]}
+                      alt={product.name}
+                      className={`w-full h-full object-cover group-hover/img:scale-110 group-hover:scale-105 transition-transform duration-500 ease-out ${
+                        isOut ? 'opacity-70 grayscale-30' : ''
+                      }`}
+                    />
 
-                  {/* Stock Status Badge */}
-                  {isOut ? (
-                    <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-rose-600/90 backdrop-blur-md text-white text-[10px] font-black shadow-[0_0_12px_rgba(225,29,72,0.6)] flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      <span>Stock Out</span>
-                    </span>
-                  ) : (
-                    <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-emerald-500/90 text-slate-950 text-[11px] font-black shadow-[0_0_12px_rgba(16,185,129,0.5)]">
-                      +৳{profit} Profit
-                    </span>
-                  )}
-
-                  {product.isTrending && !isOut && (
-                    <span className="absolute bottom-3 left-3 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[10px] font-bold shadow-[0_0_12px_rgba(244,63,94,0.6)] flex items-center gap-1">
-                      <Flame className="w-3 h-3 fill-current text-amber-300" />
-                      <span>Trending</span>
-                    </span>
-                  )}
-                </div>
-
-                {/* Details */}
-                <div className="p-4 space-y-2">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400/80">
-                      {product.category}
-                    </span>
-                    {product.productCode && (
-                      <span className="text-[10px] font-mono text-slate-400">
-                        {product.productCode}
+                    {/* Quick View glass overlay */}
+                    <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center pointer-events-none">
+                      <span className="px-3 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-cyan-400/50 text-cyan-300 text-xs font-black shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center gap-1.5 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                        <Eye className="w-3.5 h-3.5 text-cyan-300" />
+                        <span>Quick View</span>
                       </span>
+                    </div>
+                    
+                    {/* Product Code Badge */}
+                    <div className="absolute top-3 left-3 bg-[#0d0920]/80 backdrop-blur-md px-2.5 py-1 rounded-xl border border-purple-500/30 flex items-center gap-1 text-[11px] font-mono font-bold text-cyan-300 shadow-md z-10">
+                      <Tag className="w-3 h-3 text-cyan-400" />
+                      <span>{product.productCode || product.sku}</span>
+                    </div>
+
+                    {/* Stock status or trending badge */}
+                    <div className="absolute top-3 right-3 flex flex-col items-end gap-1 z-10">
+                      {isOut ? (
+                        <span className="px-2.5 py-1 rounded-xl bg-amber-500/90 text-slate-950 font-black text-[10px] flex items-center gap-1 shadow-md">
+                          <AlertTriangle className="w-3 h-3" />
+                          <span>Out of Stock</span>
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-xl bg-emerald-500/80 text-slate-950 font-black text-[10px] flex items-center gap-1 shadow-md">
+                          <CheckCircle2 className="w-3 h-3 text-slate-950" />
+                          <span>{product.stock} in stock</span>
+                        </span>
+                      )}
+
+                      {product.isTrending && (
+                        <span className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black text-[10px] flex items-center gap-1 shadow-[0_0_10px_rgba(244,63,94,0.6)]">
+                          <Flame className="w-3 h-3 text-amber-300 fill-current" />
+                          <span>Hot</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {isOut && product.restockEta && (
+                      <div className="absolute bottom-0 inset-x-0 bg-amber-950/90 backdrop-blur-xs py-1 px-3 text-[10px] text-amber-300 font-bold flex items-center justify-center gap-1 border-t border-amber-500/40 z-10">
+                        <Clock className="w-3 h-3" />
+                        <span>Restocking: {product.restockEta}</span>
+                      </div>
                     )}
                   </div>
 
-                  <h3
-                    onClick={() => onOpenProductDetail(product)}
-                    className="font-bold text-xs sm:text-sm text-white line-clamp-1 hover:text-cyan-300 cursor-pointer transition"
-                  >
-                    {product.name}
-                  </h3>
-
-                  {/* Stock Notice for Stocked Out Items */}
-                  {isOut ? (
-                    <div className="p-2.5 bg-rose-950/40 rounded-xl border border-rose-500/30 text-[11px] text-rose-300 space-y-1">
-                      <div className="flex items-center gap-1.5 font-bold">
-                        <Clock className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Currently Stocked Out</span>
-                      </div>
-                      <p className="text-[10px] text-slate-300">
-                        Estimated Restock: <span className="font-bold text-amber-300">{product.estimatedRestockDate || (product.estimatedRestockDays ? `In ~${product.estimatedRestockDays} days` : 'Within 3-5 days')}</span>
-                      </p>
+                  {/* Content Info */}
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                        {product.category}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400">
+                        Sold: {product.successfulSalesCount} units
+                      </span>
                     </div>
-                  ) : (
-                    /* Price Comparison Box */
-                    <div className="p-3 bg-purple-950/40 rounded-xl border border-purple-500/30 space-y-1 text-xs">
-                      <div className="flex justify-between items-center text-slate-400">
-                        <span>Wholesale Cost:</span>
-                        <span className="font-bold text-emerald-400">৳{product.resellerPrice}</span>
+
+                    <h3
+                      onClick={() => onOpenProductDetail(product)}
+                      className="font-bold text-sm text-white line-clamp-1 hover:text-cyan-300 cursor-pointer transition"
+                    >
+                      {product.name}
+                    </h3>
+                    <p className="text-xs text-slate-400 font-medium line-clamp-1">{product.nameBn}</p>
+
+                    {/* Price Breakdown Matrix */}
+                    <div className="p-2.5 bg-purple-950/40 rounded-2xl border border-purple-500/20 space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-400 font-medium">Wholesale Price:</span>
+                        <span className="font-bold text-cyan-300">৳{product.resellerPrice}</span>
                       </div>
-                      <div className="flex justify-between items-center text-slate-400">
-                        <span>Suggested Retail:</span>
-                        <span className="font-semibold text-slate-200">৳{product.suggestedSellingPrice}</span>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-400 font-medium">Retail Price:</span>
+                        <span className="font-bold text-slate-300">৳{product.suggestedSellingPrice}</span>
                       </div>
-                      <div className="border-t border-purple-500/20 pt-1 flex justify-between items-center font-bold text-cyan-300">
-                        <span>Your Profit Margin:</span>
-                        <span>৳{profit} ({marginPercent}%)</span>
+                      <div className="pt-1 border-t border-purple-500/20 flex justify-between text-xs items-center">
+                        <span className="text-emerald-400 font-bold">Your Profit:</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-black text-emerald-300 text-sm">৳{profit}</span>
+                          <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-1.5 py-0.2 rounded">
+                            {marginPercent}%
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  )}
+                  </div>
+                </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                    <span className={isOut ? 'text-rose-400 font-bold' : 'text-emerald-400'}>
-                      {isOut ? 'Stock: 0 pcs' : `Stock: ${product.stock} units`}
-                    </span>
-                    <span>Return rate: {product.returnRatePercent}%</span>
+                {/* Card Action Buttons */}
+                <div className="p-4 pt-0 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => onOpenManualOrder(product)}
+                      className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-[0_0_12px_rgba(16,185,129,0.4)] transition flex items-center justify-center gap-1.5"
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      <span>Place Order</span>
+                    </button>
+
+                    <button
+                      onClick={() => addToCart(product, 1)}
+                      className="py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-bold text-xs transition flex items-center justify-center gap-1.5"
+                      title="Add to Reseller Multi-Order Cart"
+                    >
+                      <ShoppingCart className="w-3.5 h-3.5" />
+                      <span>+ Cart</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => onOpenShareModal(product)}
+                      className="py-2 px-2.5 rounded-xl bg-purple-900/50 hover:bg-purple-800 text-slate-200 hover:text-white border border-purple-500/30 font-bold text-xs transition flex items-center justify-center gap-1"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>Share Link</span>
+                    </button>
+
+                    <button
+                      onClick={() => onOpenAiKit(product)}
+                      className="py-2 px-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-purple-300 hover:text-cyan-300 font-bold text-xs transition flex items-center justify-center gap-1"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>AI Copy</span>
+                    </button>
                   </div>
                 </div>
               </div>
-
-              {/* Action Buttons */}
-              <div className="p-4 pt-0 space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => addToCart(product, 1)}
-                    disabled={isOut}
-                    className={`py-2.5 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1 ${
-                      isOut
-                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                        : 'bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white shadow-[0_0_12px_rgba(6,182,212,0.35)]'
-                    }`}
-                    title="Add this product to multi-item reseller order cart"
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>{isOut ? 'Restocking' : 'Add to Cart'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => onOpenManualOrder(product)}
-                    disabled={isOut}
-                    className={`py-2.5 px-3 rounded-xl font-black text-xs transition flex items-center justify-center gap-1 ${
-                      isOut
-                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                        : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
-                    }`}
-                  >
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                    <span>{isOut ? 'Restocking' : 'Sell Now'}</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => onOpenShareModal(product)}
-                    className="py-2 px-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-cyan-300 font-bold text-xs transition flex items-center justify-center gap-1"
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>Share Link</span>
-                  </button>
-
-                  <button
-                    onClick={() => onOpenAiKit(product)}
-                    className="py-2 px-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-purple-300 hover:text-cyan-300 font-bold text-xs transition flex items-center justify-center gap-1"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>AI Copy</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {filtered.length === 0 && (
-        <div className="py-20 text-center space-y-3 galaxy-glass-card-static rounded-3xl border border-purple-500/30">
-          <Layers className="w-12 h-12 text-purple-400/50 mx-auto" />
-          <h4 className="font-bold text-slate-200 text-sm">No products found matching criteria</h4>
-          <p className="text-xs text-slate-400">
-            {stockFilter === 'IN_STOCK' ? 'Try switching to "All Products" to see restock schedules' : 'Try changing your search term or category filters'}
-          </p>
+            );
+          })}
         </div>
       )}
     </div>
   );
 };
+

@@ -88,8 +88,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [payTrxId, setPayTrxId] = useState('');
 
   // Admin login fields
-  const [adminId, setAdminId] = useState('abdullahnakib777@gmail.com');
-  const [adminPass, setAdminPass] = useState('admin1234');
+  const [adminId, setAdminId] = useState('');
+  const [adminPass, setAdminPass] = useState('');
 
   // Privacy Policy modal state
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
@@ -1106,7 +1106,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <input
                     type="text"
                     required
-                    placeholder="admin or abdullahnakib777@gmail.com"
+                    placeholder="Enter authorized Admin email or ID"
                     value={adminId}
                     onChange={(e) => setAdminId(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
@@ -1121,7 +1121,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <input
                     type="password"
                     required
-                    placeholder="Enter Admin Password (e.g. admin1234)"
+                    placeholder="Enter Admin Password"
                     value={adminPass}
                     onChange={(e) => setAdminPass(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"

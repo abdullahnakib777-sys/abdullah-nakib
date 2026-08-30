@@ -150,6 +150,27 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["id", "updatedAt"]
+    },
+    "notifications": {
+      "title": "notifications",
+      "description": "Marketing poster announcements and targeted notifications for resellers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "titleBn": { "type": "string" },
+        "message": { "type": "string" },
+        "messageBn": { "type": "string" },
+        "posterImage": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["ALL", "SELECTED", "INDIVIDUAL"] },
+        "targetResellerIds": { "type": "array" },
+        "badge": { "type": "string" },
+        "priority": { "type": "string", "enum": ["NORMAL", "HIGH", "URGENT"] },
+        "popupOnLogin": { "type": "boolean" },
+        "readBy": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "posterImage", "targetType", "priority", "createdAt"]
     }
   }
 }

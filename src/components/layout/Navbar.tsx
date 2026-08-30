@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useResellerCart } from '../../context/ResellerCartContext';
+import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { AuthTabType } from '../auth/AuthModal';
 import { MeherMartLogo } from '../common/MeherMartLogo';
 import {
@@ -21,6 +23,9 @@ import {
   ChevronDown,
   Phone,
   CheckCircle2,
+  Sun,
+  Moon,
+  Languages,
 } from 'lucide-react';
 
 export const Navbar: React.FC<{
@@ -39,6 +44,8 @@ export const Navbar: React.FC<{
   const { user, reseller, logout } = useAuth();
   const { itemCount: customerCartCount, setIsCartOpen: setCustomerCartOpen } = useCart();
   const { itemCount: resellerCartCount, setIsCartOpen: setResellerCartOpen } = useResellerCart();
+  const { theme, isDay, toggleTheme } = useTheme();
+  const { isBn, toggleLanguage } = useLanguage();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const isReseller = user?.role === 'RESELLER';
@@ -66,7 +73,7 @@ export const Navbar: React.FC<{
               onClick={() => onNavigate('storefront')}
               className="flex items-center text-left group"
             >
-              <MeherMartLogo size="md" variant="horizontal" theme="dark" showTagline={true} />
+              <MeherMartLogo size="md" variant="horizontal" theme={isDay ? 'light' : 'dark'} showTagline={true} />
             </button>
           </div>
 
@@ -164,6 +171,33 @@ export const Navbar: React.FC<{
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
               <span className="hidden sm:inline">ResellAI</span>
+            </button>
+
+            {/* Language Toggle: English vs বাংলা */}
+            <button
+              onClick={toggleLanguage}
+              className="px-2.5 py-1.5 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-amber-400/50 hover:bg-purple-900/60 text-slate-200 hover:text-amber-300 transition flex items-center gap-1.5 text-xs font-bold shadow-xs"
+              title={isBn ? 'Switch to English' : 'বাংলা ভাষায় পরিবর্তন করুন'}
+              aria-label="Toggle Language"
+              id="language-toggle-btn"
+            >
+              <Languages className="w-3.5 h-3.5 text-amber-400" />
+              <span>{isBn ? 'বাংলা' : 'EN'}</span>
+            </button>
+
+            {/* Theme Toggle Button: Cosmic Night vs Crystalline Day */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-purple-950/60 border border-purple-500/30 hover:border-cyan-400/50 hover:bg-purple-900/60 text-slate-200 hover:text-cyan-300 transition flex items-center justify-center group"
+              title={isDay ? 'Switch to Cosmic Night theme' : 'Switch to Crystalline Day theme'}
+              aria-label="Toggle Cosmic Theme"
+              id="theme-toggle-btn"
+            >
+              {isDay ? (
+                <Sun className="w-4 h-4 text-amber-400 group-hover:rotate-45 transition-transform duration-300" />
+              ) : (
+                <Moon className="w-4 h-4 text-cyan-300 group-hover:-rotate-12 transition-transform duration-300" />
+              )}
             </button>
 
             {/* Cart Button */}

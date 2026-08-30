@@ -84,7 +84,7 @@ export const EarningsCalculator: React.FC<{ onStartSelling?: () => void }> = ({ 
         </div>
 
         {/* Right Output Cards */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-6 sm:p-7 rounded-3xl border border-white/20 space-y-5">
+        <div className="lg:col-span-5 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-6 sm:p-7 rounded-3xl border border-white/20 space-y-5 animate-float-gentle">
           <div className="space-y-4">
             <div>
               <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">Estimated Daily Profit</p>

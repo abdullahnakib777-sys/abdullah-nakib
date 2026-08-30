@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Product, ResellerProfile } from '../../types';
+import { useToast } from '../../context/ToastContext';
 import { Share2, Copy, Check, MessageSquare, Facebook, Send, Download, Sparkles, X, ExternalLink } from 'lucide-react';
 
 export const ShareAndSellModal: React.FC<{
@@ -9,6 +10,7 @@ export const ShareAndSellModal: React.FC<{
   onClose: () => void;
   onOpenAiKit?: (product: Product) => void;
 }> = ({ product, reseller, isOpen, onClose, onOpenAiKit }) => {
+  const toast = useToast();
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCaption, setCopiedCaption] = useState(false);
 
@@ -22,12 +24,14 @@ export const ShareAndSellModal: React.FC<{
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl);
     setCopiedLink(true);
+    toast.cosmic('Your unique referral storefront link has been copied.', 'Link Copied ✨');
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const handleCopyCaption = () => {
     navigator.clipboard.writeText(defaultCaption);
     setCopiedCaption(true);
+    toast.cosmic('Viral Bangla sales caption & order link copied.', 'Caption Copied 📝');
     setTimeout(() => setCopiedCaption(false), 2000);
   };
 

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Order, ResellerProfile } from '../../types';
 import { useResellerCart } from '../../context/ResellerCartContext';
 import { StatusBadge } from '../common/Badge';
-import { Search, Filter, Package, Truck, CheckCircle2, Clock, MapPin, Eye, ExternalLink, Plus, ShoppingCart } from 'lucide-react';
+import { EmptyState } from '../common/EmptyState';
+import { Search, Filter, Package, Truck, CheckCircle2, Clock, MapPin, Eye, ExternalLink, Plus, ShoppingCart, X } from 'lucide-react';
 
 export const ResellerOrdersView: React.FC<{
   orders: Order[];
@@ -20,7 +21,7 @@ export const ResellerOrdersView: React.FC<{
       const q = searchQuery.toLowerCase();
       return (
         o.orderNumber.toLowerCase().includes(q) ||
-        o.trackingNumber.toLowerCase().includes(q) ||
+        (o.trackingNumber && o.trackingNumber.toLowerCase().includes(q)) ||
         o.customerName.toLowerCase().includes(q) ||
         o.customerPhone.includes(q)
       );
@@ -42,8 +43,16 @@ export const ResellerOrdersView: React.FC<{
               placeholder="Search by Order #, Courier Tracking #, or Customer Phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm galaxy-glass-input rounded-xl font-mono"
+              className="w-full pl-10 pr-9 py-2.5 text-xs sm:text-sm galaxy-glass-input rounded-xl font-mono"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-3 text-slate-400 hover:text-white p-0.5 rounded-full hover:bg-purple-900/60 transition"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -98,96 +107,102 @@ export const ResellerOrdersView: React.FC<{
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="galaxy-glass-card-static rounded-3xl border border-purple-500/30 overflow-hidden shadow-lg">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#120f26]/80 text-cyan-300 font-semibold border-b border-purple-500/30">
-              <tr>
-                <th className="p-4">Order / Tracking</th>
-                <th className="p-4">Customer Details</th>
-                <th className="p-4">Products</th>
-                <th className="p-4">Amount & COD</th>
-                <th className="p-4">Your Net Profit</th>
-                <th className="p-4">Courier Status</th>
-                <th className="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-purple-500/20">
-              {filtered.map((order) => (
-                <tr key={order.id} className="hover:bg-purple-950/30 transition">
-                  <td className="p-4">
-                    <p className="font-mono font-bold text-white">{order.orderNumber}</p>
-                    <p className="text-[11px] text-cyan-300/80 font-mono mt-0.5">
-                      {order.courier}: {order.trackingNumber}
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </p>
-                  </td>
-
-                  <td className="p-4">
-                    <p className="font-semibold text-slate-200">{order.customerName}</p>
-                    <p className="text-[11px] text-slate-400 font-mono">{order.customerPhone}</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {order.district}, {order.division}
-                    </p>
-                  </td>
-
-                  <td className="p-4">
-                    <div className="space-y-1">
-                      {order.items.map((it, idx) => (
-                        <div key={idx} className="text-slate-300">
-                          <span className="font-semibold text-cyan-300">{it.quantity}x</span> {it.productName}
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-
-                  <td className="p-4">
-                    <p className="font-bold text-white">৳{order.totalAmount}</p>
-                    <p className="text-[10px] text-slate-400">
-                      Incl. ৳{order.deliveryFee} delivery {order.packagingFee ? `+ ৳${order.packagingFee} pack` : ''}
-                    </p>
-                  </td>
-
-                  <td className="p-4">
-                    <div className="space-y-1">
-                      <span className="font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded inline-block shadow-xs">
-                        +৳{order.totalResellerProfit}
-                      </span>
-                      <p className="text-[10px] text-slate-400">
-                        {order.status === 'DELIVERED' ? 'Settled in Wallet' : 'In Pending'}
-                      </p>
-                    </div>
-                  </td>
-
-                  <td className="p-4">
-                    <StatusBadge status={order.status} />
-                  </td>
-
-                  <td className="p-4 text-right">
-                    <button
-                      onClick={() => onOpenTrackingModal(order.orderNumber)}
-                      className="px-3 py-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-cyan-300 font-semibold text-xs transition inline-flex items-center gap-1"
-                    >
-                      <Truck className="w-3.5 h-3.5" />
-                      <span>Track</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
+      {/* Orders Table or Empty State */}
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={orders.length === 0 ? "You haven't placed any orders yet" : "No orders found"}
+          description={
+            orders.length === 0
+              ? "Start promoting wholesale products to your customers and submit your first COD order to start earning profit!"
+              : "No orders match your filter criteria or search query. Try resetting your search."
+          }
+          actionLabel={orders.length === 0 ? "Place First Order" : "Reset Filters"}
+          onAction={orders.length === 0 ? onOpenManualOrder : () => { setSearchQuery(''); setFilterStatus('ALL'); }}
+        />
+      ) : (
+        <div className="galaxy-glass-card-static rounded-3xl border border-purple-500/30 overflow-hidden shadow-lg">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#120f26]/80 text-cyan-300 font-semibold border-b border-purple-500/30">
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-slate-400">
-                    No orders match your filter criteria.
-                  </td>
+                  <th className="p-4">Order / Tracking</th>
+                  <th className="p-4">Customer Details</th>
+                  <th className="p-4">Products</th>
+                  <th className="p-4">Amount & COD</th>
+                  <th className="p-4">Your Net Profit</th>
+                  <th className="p-4">Courier Status</th>
+                  <th className="p-4 text-right">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-purple-500/20">
+                {filtered.map((order) => (
+                  <tr key={order.id} className="hover:bg-purple-950/30 transition">
+                    <td className="p-4">
+                      <p className="font-mono font-bold text-white">{order.orderNumber}</p>
+                      <p className="text-[11px] text-cyan-300/80 font-mono mt-0.5">
+                        {order.courier || order.courierName}: {order.trackingNumber}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </p>
+                    </td>
+
+                    <td className="p-4">
+                      <p className="font-semibold text-slate-200">{order.customerName}</p>
+                      <p className="text-[11px] text-slate-400 font-mono">{order.customerPhone}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {order.district}, {order.division}
+                      </p>
+                    </td>
+
+                    <td className="p-4">
+                      <div className="space-y-1">
+                        {order.items.map((it, idx) => (
+                          <div key={idx} className="text-slate-300">
+                            <span className="font-semibold text-cyan-300">{it.quantity}x</span> {it.productName}
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+
+                    <td className="p-4">
+                      <p className="font-bold text-white">৳{order.totalAmount}</p>
+                      <p className="text-[10px] text-slate-400">
+                        Incl. ৳{order.deliveryFee} delivery {order.packagingFee ? `+ ৳${order.packagingFee} pack` : ''}
+                      </p>
+                    </td>
+
+                    <td className="p-4">
+                      <div className="space-y-1">
+                        <span className="font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded inline-block shadow-xs">
+                          +৳{order.totalResellerProfit}
+                        </span>
+                        <p className="text-[10px] text-slate-400">
+                          {order.status === 'DELIVERED' ? 'Settled in Wallet' : 'In Pending'}
+                        </p>
+                      </div>
+                    </td>
+
+                    <td className="p-4">
+                      <StatusBadge status={order.status} />
+                    </td>
+
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={() => onOpenTrackingModal(order.orderNumber)}
+                        className="px-3 py-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900 border border-purple-500/30 text-cyan-300 font-semibold text-xs transition inline-flex items-center gap-1"
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>Track</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
