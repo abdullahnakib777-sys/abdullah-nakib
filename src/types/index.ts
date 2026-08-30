@@ -367,6 +367,8 @@ export interface FraudAlert {
 
 export type NotificationTargetType = 'ALL' | 'SELECTED' | 'INDIVIDUAL';
 export type NotificationPriority = 'NORMAL' | 'HIGH' | 'URGENT';
+export type NotificationDisplayType = 'TOP_CAROUSEL' | 'POPUP_ON_LOGIN' | 'BOTH';
+export type NotificationActionType = 'PRODUCT' | 'ROUTE' | 'EXTERNAL_LINK';
 
 export interface MarketingNotification {
   id: string;
@@ -379,13 +381,18 @@ export interface MarketingNotification {
   targetResellerIds?: string[];
   badge?: string;
   badgeBn?: string;
+  displayType?: NotificationDisplayType;
+  actionType?: NotificationActionType;
+  productId?: string;
   actionUrl?: string;
   actionLabel?: string;
   actionLabelBn?: string;
   priority: NotificationPriority;
   popupOnLogin?: boolean;
+  isActive?: boolean;
   readBy: string[];
   dismissedBy?: string[];
   createdAt: string;
+  updatedAt?: string;
   createdBy?: string;
 }

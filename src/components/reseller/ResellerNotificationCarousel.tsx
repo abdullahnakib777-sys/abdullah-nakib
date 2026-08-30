@@ -39,7 +39,14 @@ export const ResellerNotificationCarousel: React.FC<ResellerNotificationCarousel
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
-  const activeList = notifications.filter((n) => !n.dismissedBy?.includes(resellerId || ''));
+  const activeList = notifications.filter(
+    (n) =>
+      n.isActive !== false &&
+      (n.displayType === 'TOP_CAROUSEL' ||
+        n.displayType === 'BOTH' ||
+        (!n.displayType && !n.popupOnLogin)) &&
+      !n.dismissedBy?.includes(resellerId || '')
+  );
 
   // Auto slide effect every 5 seconds if not paused
   useEffect(() => {

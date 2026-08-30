@@ -1119,11 +1119,15 @@ const INITIAL_NOTIFICATIONS: MarketingNotification[] = [
     targetType: 'ALL',
     badge: '🔥 HOT CAMPAIGN',
     badgeBn: '🔥 মেগা ক্যাম্পেইন',
-    actionUrl: 'products',
+    displayType: 'TOP_CAROUSEL',
+    actionType: 'PRODUCT',
+    productId: 'prod-01',
+    actionUrl: 'product:prod-01',
     actionLabel: 'Sell T900 Watch Now',
     actionLabelBn: 'এখনই ওয়াচ সেল করুন',
     priority: 'URGENT',
-    popupOnLogin: true,
+    popupOnLogin: false,
+    isActive: true,
     readBy: [],
     createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
     createdBy: 'Master Admin (Nakib Abdullah)',
@@ -1138,17 +1142,44 @@ const INITIAL_NOTIFICATIONS: MarketingNotification[] = [
     targetType: 'ALL',
     badge: '✨ NEW STOCK',
     badgeBn: '✨ নতুন স্টক',
-    actionUrl: 'products',
-    actionLabel: 'View Kitchen Catalog',
-    actionLabelBn: 'কিচেন ক্যাটালগ দেখুন',
+    displayType: 'TOP_CAROUSEL',
+    actionType: 'PRODUCT',
+    productId: 'prod-03',
+    actionUrl: 'product:prod-03',
+    actionLabel: 'Sell Electric Chopper',
+    actionLabelBn: 'ফুড চপার সেল করুন',
     priority: 'HIGH',
     popupOnLogin: false,
+    isActive: true,
     readBy: ['rsl-founder'],
     createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
     createdBy: 'Master Admin (Nakib Abdullah)',
   },
   {
     id: 'notif-03',
+    title: '🚀 ধামাকা অফার: M10 TWS Wireless Earbuds Pro ফ্ল্যাশ সেল',
+    titleBn: '🚀 ধামাকা অফার: M10 TWS Wireless Earbuds Pro ফ্ল্যাশ সেল',
+    message: 'হট সেলিং M10 TWS ইয়ারবাডস পাইকারি রেট মাত্র ৩২০ টাকা! সরাসরি কাস্টমারদের কাছে ৭০০-৯০০ টাকায় বিক্রি করে প্রতি পিসে ৪০০+ টাকা নিট প্রফিট করুন।',
+    messageBn: 'হট সেলিং M10 TWS ইয়ারবাডস পাইকারি রেট মাত্র ৩২০ টাকা! সরাসরি কাস্টমারদের কাছে ৭০০-৯০০ টাকায় বিক্রি করে প্রতি পিসে ৪০০+ টাকা নিট প্রফিট করুন।',
+    posterImage: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=1200&auto=format&fit=crop&q=80',
+    targetType: 'ALL',
+    badge: '🎧 POPUP ALERT',
+    badgeBn: '🎧 স্পেশাল অ্যালার্ট',
+    displayType: 'POPUP_ON_LOGIN',
+    actionType: 'PRODUCT',
+    productId: 'prod-02',
+    actionUrl: 'product:prod-02',
+    actionLabel: 'Sell M10 Earbuds Now',
+    actionLabelBn: 'এখনই ইয়ারবাডস সেল করুন',
+    priority: 'URGENT',
+    popupOnLogin: true,
+    isActive: true,
+    readBy: [],
+    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+    createdBy: 'Master Admin (Nakib Abdullah)',
+  },
+  {
+    id: 'notif-04',
     title: '💸 বিকাশ ও নগদ ইনস্ট্যান্ট উইথড্রয়াল সেটেলমেন্ট আপডেট',
     titleBn: '💸 বিকাশ ও নগদ ইনস্ট্যান্ট উইথড্রয়াল সেটেলমেন্ট আপডেট',
     message: 'সকল অ্যাপ্রুভড অর্ডার উইথড্রয়াল রিকোয়েস্ট প্রতিদিন রাত ৮টার মধ্যে বিকাশ ও নগদে সরাসরি পরিশোধ করা হচ্ছে। আপনার বন্ধুদের রেফার করে জিতে নিন প্রতি ভেরিফায়েড রেসিলারে ২০০ টাকা রিওয়ার্ড!',
@@ -1157,11 +1188,14 @@ const INITIAL_NOTIFICATIONS: MarketingNotification[] = [
     targetType: 'ALL',
     badge: '💰 FAST PAYOUT',
     badgeBn: '💰 দ্রুত পেমেন্ট',
+    displayType: 'BOTH',
+    actionType: 'ROUTE',
     actionUrl: 'wallet',
     actionLabel: 'Check Your Wallet',
     actionLabelBn: 'ওয়ালেট চেক করুন',
     priority: 'NORMAL',
     popupOnLogin: false,
+    isActive: true,
     readBy: ['rsl-founder'],
     createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
     createdBy: 'Master Admin (Nakib Abdullah)',
@@ -2785,7 +2819,7 @@ class Database {
 
   // --- Marketing Notifications & Broadcasts ---
   public getNotifications(resellerId?: string): MarketingNotification[] {
-    const all = this.data.notifications || [];
+    const all = (this.data.notifications || []).filter((n) => n.isActive !== false);
     if (!resellerId) {
       return all.filter((n) => n.targetType === 'ALL');
     }
@@ -2803,6 +2837,7 @@ class Database {
   }
 
   public createNotification(data: Partial<MarketingNotification>, actor?: User): MarketingNotification {
+    const displayType = data.displayType || (data.popupOnLogin ? 'POPUP_ON_LOGIN' : 'TOP_CAROUSEL');
     const newNotif: MarketingNotification = {
       id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       title: data.title || '📢 New Marketing Campaign Notice',
@@ -2814,11 +2849,15 @@ class Database {
       targetResellerIds: data.targetResellerIds || [],
       badge: data.badge || '📢 ANNOUNCEMENT',
       badgeBn: data.badgeBn || '📢 নোটিশ',
-      actionUrl: data.actionUrl || 'products',
-      actionLabel: data.actionLabel || 'View Catalog',
-      actionLabelBn: data.actionLabelBn || 'ক্যাটালগ দেখুন',
+      displayType,
+      actionType: data.actionType || (data.productId ? 'PRODUCT' : 'ROUTE'),
+      productId: data.productId,
+      actionUrl: data.actionUrl || (data.productId ? `product:${data.productId}` : 'products'),
+      actionLabel: data.actionLabel || 'Sell Now',
+      actionLabelBn: data.actionLabelBn || 'এখনই সেল করুন',
       priority: data.priority || 'NORMAL',
-      popupOnLogin: Boolean(data.popupOnLogin),
+      popupOnLogin: displayType === 'POPUP_ON_LOGIN' || displayType === 'BOTH' || Boolean(data.popupOnLogin),
+      isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
       readBy: [],
       createdAt: new Date().toISOString(),
       createdBy: actor ? `${actor.name} (${actor.role})` : 'System Admin',
@@ -2837,12 +2876,60 @@ class Database {
         actorRole: actor.role,
         targetType: 'NOTIFICATION',
         targetId: newNotif.id,
-        details: `Sent notification "${newNotif.title}" (Target: ${newNotif.targetType}, Priority: ${newNotif.priority})`,
+        details: `Sent notification "${newNotif.title}" (Type: ${newNotif.displayType}, Priority: ${newNotif.priority})`,
       });
     }
 
     this.save();
     return newNotif;
+  }
+
+  public updateNotification(
+    notificationId: string,
+    data: Partial<MarketingNotification>,
+    actor?: User
+  ): MarketingNotification | null {
+    if (!this.data.notifications) return null;
+    const notif = this.data.notifications.find((n) => n.id === notificationId);
+    if (!notif) return null;
+
+    if (data.title !== undefined) notif.title = data.title;
+    if (data.titleBn !== undefined) notif.titleBn = data.titleBn;
+    if (data.message !== undefined) notif.message = data.message;
+    if (data.messageBn !== undefined) notif.messageBn = data.messageBn;
+    if (data.posterImage !== undefined) notif.posterImage = data.posterImage;
+    if (data.targetType !== undefined) notif.targetType = data.targetType;
+    if (data.targetResellerIds !== undefined) notif.targetResellerIds = data.targetResellerIds;
+    if (data.badge !== undefined) notif.badge = data.badge;
+    if (data.badgeBn !== undefined) notif.badgeBn = data.badgeBn;
+    if (data.displayType !== undefined) {
+      notif.displayType = data.displayType;
+      notif.popupOnLogin = data.displayType === 'POPUP_ON_LOGIN' || data.displayType === 'BOTH';
+    }
+    if (data.actionType !== undefined) notif.actionType = data.actionType;
+    if (data.productId !== undefined) notif.productId = data.productId;
+    if (data.actionUrl !== undefined) notif.actionUrl = data.actionUrl;
+    if (data.actionLabel !== undefined) notif.actionLabel = data.actionLabel;
+    if (data.actionLabelBn !== undefined) notif.actionLabelBn = data.actionLabelBn;
+    if (data.priority !== undefined) notif.priority = data.priority;
+    if (data.popupOnLogin !== undefined) notif.popupOnLogin = Boolean(data.popupOnLogin);
+    if (data.isActive !== undefined) notif.isActive = Boolean(data.isActive);
+    notif.updatedAt = new Date().toISOString();
+
+    if (actor) {
+      this.logAudit({
+        action: 'UPDATE_NOTIFICATION',
+        actorId: actor.id,
+        actorName: actor.name,
+        actorRole: actor.role,
+        targetType: 'NOTIFICATION',
+        targetId: notif.id,
+        details: `Updated marketing poster/notification "${notif.title}"`,
+      });
+    }
+
+    this.save();
+    return notif;
   }
 
   public markNotificationRead(notificationId: string, resellerId: string): boolean {

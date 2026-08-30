@@ -1059,8 +1059,9 @@ async function startServer() {
   app.get('/api/v1/notifications', (req: Request, res: Response) => {
     try {
       const user = getAuthenticatedUser(req);
+      const queryResellerId = req.query.resellerId ? String(req.query.resellerId) : undefined;
       const reseller = user ? db.getResellerByUserId(user.id) : undefined;
-      const resellerId = reseller?.id || (user?.role === 'RESELLER' ? user.id : undefined);
+      const resellerId = queryResellerId || reseller?.id || (user?.role === 'RESELLER' ? user.id : undefined);
       const notifications = db.getNotifications(resellerId);
       const unreadCount = notifications.filter(
         (n) => !resellerId || !n.readBy || !n.readBy.includes(resellerId)
@@ -1094,7 +1095,26 @@ async function startServer() {
         return res.status(403).json({ error: 'Admin access required' });
       }
 
-      const { title, message, posterImage, targetType, targetResellerIds, badge, badgeBn, actionUrl, actionLabel, actionLabelBn, priority, popupOnLogin, titleBn, messageBn } = req.body;
+      const {
+        title,
+        titleBn,
+        message,
+        messageBn,
+        posterImage,
+        targetType,
+        targetResellerIds,
+        badge,
+        badgeBn,
+        displayType,
+        actionType,
+        productId,
+        actionUrl,
+        actionLabel,
+        actionLabelBn,
+        priority,
+        popupOnLogin,
+        isActive,
+      } = req.body;
 
       if (!title || !posterImage) {
         return res.status(400).json({ error: 'Notification title and marketing poster image URL are required' });
@@ -1111,11 +1131,15 @@ async function startServer() {
           targetResellerIds: Array.isArray(targetResellerIds) ? targetResellerIds : [],
           badge,
           badgeBn,
+          displayType: displayType || (popupOnLogin ? 'POPUP_ON_LOGIN' : 'TOP_CAROUSEL'),
+          actionType,
+          productId,
           actionUrl,
           actionLabel,
           actionLabelBn,
           priority: priority || 'NORMAL',
           popupOnLogin: Boolean(popupOnLogin),
+          isActive: isActive !== undefined ? Boolean(isActive) : true,
         },
         user
       );
@@ -1132,12 +1156,35 @@ async function startServer() {
     }
   });
 
+  // Admin: Update existing notification / marketing poster
+  app.put('/api/v1/admin/notifications/:id', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const updated = db.updateNotification(req.params.id, req.body, user);
+      if (!updated) {
+        return res.status(404).json({ error: 'Notification not found' });
+      }
+
+      res.json({
+        success: true,
+        notification: updated,
+        message: 'Notification / poster updated successfully!',
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to update notification' });
+    }
+  });
+
   // Reseller: Mark single notification as read
   app.post('/api/v1/notifications/:id/read', (req: Request, res: Response) => {
     try {
       const user = getAuthenticatedUser(req);
       const reseller = user ? db.getResellerByUserId(user.id) : undefined;
-      const resellerId = reseller?.id || (user?.role === 'RESELLER' ? user.id : 'rsl-founder');
+      const resellerId = req.body?.resellerId || reseller?.id || (user?.role === 'RESELLER' ? user.id : 'rsl-founder');
       const success = db.markNotificationRead(req.params.id, resellerId);
       res.json({ success });
     } catch (err: any) {
@@ -1150,7 +1197,7 @@ async function startServer() {
     try {
       const user = getAuthenticatedUser(req);
       const reseller = user ? db.getResellerByUserId(user.id) : undefined;
-      const resellerId = reseller?.id || (user?.role === 'RESELLER' ? user.id : 'rsl-founder');
+      const resellerId = req.body?.resellerId || reseller?.id || (user?.role === 'RESELLER' ? user.id : 'rsl-founder');
       const success = db.markAllNotificationsRead(resellerId);
       res.json({ success });
     } catch (err: any) {

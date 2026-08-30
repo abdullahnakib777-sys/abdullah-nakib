@@ -63,7 +63,8 @@ export const ResellerDashboard: React.FC<{
       // Check if there is an unread popup notification that needs to be shown on login
       const unreadPopup = list.find(
         (n: MarketingNotification) =>
-          n.popupOnLogin &&
+          n.isActive !== false &&
+          (n.displayType === 'POPUP_ON_LOGIN' || n.displayType === 'BOTH' || n.popupOnLogin) &&
           (!n.readBy || !n.readBy.includes(reseller?.id))
       );
 
@@ -74,6 +75,38 @@ export const ResellerDashboard: React.FC<{
     } catch (err) {
       console.error('Failed to load notifications:', err);
     }
+  };
+
+  const handleActionRedirect = (actionUrl?: string) => {
+    if (!actionUrl) return;
+
+    if (actionUrl.startsWith('http://') || actionUrl.startsWith('https://')) {
+      window.open(actionUrl, '_blank');
+      return;
+    }
+
+    if (actionUrl.startsWith('product:')) {
+      const prodId = actionUrl.replace('product:', '');
+      const product = products.find((p) => p.id === prodId);
+      if (product && onOpenManualOrder) {
+        onOpenManualOrder(product);
+        return;
+      }
+      onNavigateTab('products');
+      return;
+    }
+
+    if (actionUrl.startsWith('prod-')) {
+      const product = products.find((p) => p.id === actionUrl);
+      if (product && onOpenManualOrder) {
+        onOpenManualOrder(product);
+        return;
+      }
+      onNavigateTab('products');
+      return;
+    }
+
+    onNavigateTab(actionUrl);
   };
 
   const handleMarkAsRead = async (id: string) => {
@@ -181,7 +214,7 @@ export const ResellerDashboard: React.FC<{
       <ResellerNotificationCarousel
         notifications={notifications}
         resellerId={reseller.id}
-        onNavigateToAction={(actionUrl) => onNavigateTab(actionUrl)}
+        onNavigateToAction={handleActionRedirect}
       />
 
       {/* KPI Cards Grid */}
@@ -432,7 +465,7 @@ export const ResellerDashboard: React.FC<{
         notification={activePopupNotification}
         onClose={() => setIsPopupOpen(false)}
         onMarkAsRead={handleMarkAsRead}
-        onNavigateToAction={(actionUrl) => onNavigateTab(actionUrl)}
+        onNavigateToAction={handleActionRedirect}
       />
 
       {/* Reseller Notifications Hub Modal */}
@@ -443,7 +476,7 @@ export const ResellerDashboard: React.FC<{
         resellerId={reseller.id}
         onMarkAsRead={handleMarkAsRead}
         onMarkAllAsRead={handleMarkAllAsRead}
-        onNavigateToAction={(actionUrl) => onNavigateTab(actionUrl)}
+        onNavigateToAction={handleActionRedirect}
       />
     </div>
   );

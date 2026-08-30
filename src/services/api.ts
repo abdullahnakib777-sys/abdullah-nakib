@@ -457,17 +457,21 @@ export const api = {
     }),
 
   // Marketing Notifications & Broadcasts
-  getNotifications: () =>
-    apiFetch<{ notifications: MarketingNotification[]; unreadCount: number }>('/api/v1/notifications'),
+  getNotifications: (resellerId?: string) =>
+    apiFetch<{ notifications: MarketingNotification[]; unreadCount: number }>(
+      `/api/v1/notifications${resellerId ? `?resellerId=${encodeURIComponent(resellerId)}` : ''}`
+    ),
 
-  markNotificationRead: (id: string) =>
+  markNotificationRead: (id: string, resellerId?: string) =>
     apiFetch<{ success: boolean }>(`/api/v1/notifications/${id}/read`, {
       method: 'POST',
+      body: JSON.stringify({ resellerId }),
     }),
 
-  markAllNotificationsRead: () =>
+  markAllNotificationsRead: (resellerId?: string) =>
     apiFetch<{ success: boolean }>('/api/v1/notifications/mark-all-read', {
       method: 'POST',
+      body: JSON.stringify({ resellerId }),
     }),
 
   adminGetNotifications: () =>
@@ -476,6 +480,12 @@ export const api = {
   adminSendNotification: (body: Partial<MarketingNotification>) =>
     apiFetch<{ success: boolean; notification: MarketingNotification; message: string }>('/api/v1/admin/notifications', {
       method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  adminUpdateNotification: (id: string, body: Partial<MarketingNotification>) =>
+    apiFetch<{ success: boolean; notification: MarketingNotification; message: string }>(`/api/v1/admin/notifications/${id}`, {
+      method: 'PUT',
       body: JSON.stringify(body),
     }),
 
