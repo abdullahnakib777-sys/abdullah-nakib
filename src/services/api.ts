@@ -405,7 +405,7 @@ export const api = {
     }),
 
   updateSettings: (body: Partial<PlatformSettings>) =>
-    apiFetch<{ settings: PlatformSettings }>('/api/v1/admin/settings', {
+    apiFetch<{ settings: PlatformSettings; message?: string }>('/api/v1/admin/settings', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
@@ -612,5 +612,20 @@ export const api = {
   adminDeleteNotification: (id: string) =>
     apiFetch<{ success: boolean; message: string }>(`/api/v1/admin/notifications/${id}`, {
       method: 'DELETE',
+    }),
+
+  // Admin Settings & Telegram Alerts
+  getSettings: () =>
+    apiFetch<{ settings: PlatformSettings }>('/api/v1/admin/settings'),
+
+  testTelegramNotification: (body?: { botToken?: string; chatId?: string }) =>
+    apiFetch<{ success: boolean; message: string }>('/api/v1/admin/telegram/test', {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    }),
+
+  sendDailyReportTelegram: () =>
+    apiFetch<{ success: boolean; message: string; summary?: any }>('/api/v1/admin/telegram/send-daily-report', {
+      method: 'POST',
     }),
 };

@@ -1220,6 +1220,13 @@ const INITIAL_SETTINGS: PlatformSettings = {
   bkashNumber: '01333855344',
   nagadNumber: '01576443668',
   rocketNumber: '01576443668',
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
+  telegramChatId: process.env.TELEGRAM_CHAT_ID || '',
+  telegramNotificationsEnabled: true,
+  telegramNotifyOnNewReseller: true,
+  telegramNotifyOnNewOrder: true,
+  telegramDailyReportEnabled: true,
+  telegramDailyReportHour: 21, // 9:00 PM BD time
 };
 
 const INITIAL_NOTIFICATIONS: MarketingNotification[] = [

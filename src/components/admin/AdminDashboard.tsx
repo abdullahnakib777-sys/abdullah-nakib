@@ -62,6 +62,15 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  ArrowUpDown,
+  SlidersHorizontal,
+  RotateCcw,
+  Filter,
+  Send,
+  Bot,
+  BellRing,
+  HelpCircle,
+  MessageSquare,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -83,9 +92,13 @@ export const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Reseller Table Filtering & Search
+  // Reseller Table Filtering, Date Filter & Sorting
   const [resellerFilter, setResellerFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'HIGH_XP'>('ALL');
   const [resellerSearchQuery, setResellerSearchQuery] = useState('');
+  const [resellerDateFilter, setResellerDateFilter] = useState<'ALL' | 'TODAY' | 'YESTERDAY' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'THIS_MONTH' | 'CUSTOM'>('ALL');
+  const [resellerStartDate, setResellerStartDate] = useState<string>('');
+  const [resellerEndDate, setResellerEndDate] = useState<string>('');
+  const [resellerSortBy, setResellerSortBy] = useState<'NEWEST_FIRST' | 'OLDEST_FIRST' | 'XP_DESC' | 'ORDERS_DESC' | 'SALES_DESC'>('NEWEST_FIRST');
   const [selectedResellerForOrders, setSelectedResellerForOrders] = useState<AdminResellerItem | null>(null);
   const [resellerOrdersStatusFilter, setResellerOrdersStatusFilter] = useState<string>('ALL');
 
@@ -223,6 +236,101 @@ export const AdminDashboard: React.FC = () => {
       setPassChangeError(err.message || 'Failed to update admin credentials. Please verify your current password.');
     } finally {
       setIsChangingPass(false);
+    }
+  };
+
+  // Telegram Bot Notification Settings
+  const [telegramBotToken, setTelegramBotToken] = useState('');
+  const [telegramChatId, setTelegramChatId] = useState('');
+  const [telegramNotificationsEnabled, setTelegramNotificationsEnabled] = useState(true);
+  const [telegramNotifyOnNewReseller, setTelegramNotifyOnNewReseller] = useState(true);
+  const [telegramNotifyOnNewOrder, setTelegramNotifyOnNewOrder] = useState(true);
+  const [telegramDailyReportEnabled, setTelegramDailyReportEnabled] = useState(true);
+  const [telegramDailyReportHour, setTelegramDailyReportHour] = useState(21);
+  const [showBotToken, setShowBotToken] = useState(false);
+
+  const [isSavingTelegram, setIsSavingTelegram] = useState(false);
+  const [telegramSaveSuccess, setTelegramSaveSuccess] = useState<string | null>(null);
+  const [telegramSaveError, setTelegramSaveError] = useState<string | null>(null);
+
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+  const [telegramTestFeedback, setTelegramTestFeedback] = useState<string | null>(null);
+  const [telegramTestError, setTelegramTestError] = useState<string | null>(null);
+
+  const [isSendingDailyReport, setIsSendingDailyReport] = useState(false);
+  const [dailyReportFeedback, setDailyReportFeedback] = useState<string | null>(null);
+  const [dailyReportError, setDailyReportError] = useState<string | null>(null);
+
+  // Sync settings whenever statsData changes
+  useEffect(() => {
+    if (statsData?.settings) {
+      const s = statsData.settings;
+      if (s.telegramBotToken !== undefined) setTelegramBotToken(s.telegramBotToken);
+      if (s.telegramChatId !== undefined) setTelegramChatId(s.telegramChatId);
+      if (s.telegramNotificationsEnabled !== undefined) setTelegramNotificationsEnabled(s.telegramNotificationsEnabled);
+      if (s.telegramNotifyOnNewReseller !== undefined) setTelegramNotifyOnNewReseller(s.telegramNotifyOnNewReseller);
+      if (s.telegramNotifyOnNewOrder !== undefined) setTelegramNotifyOnNewOrder(s.telegramNotifyOnNewOrder);
+      if (s.telegramDailyReportEnabled !== undefined) setTelegramDailyReportEnabled(s.telegramDailyReportEnabled);
+      if (s.telegramDailyReportHour !== undefined) setTelegramDailyReportHour(s.telegramDailyReportHour);
+    }
+  }, [statsData?.settings]);
+
+  const handleSaveTelegramSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingTelegram(true);
+    setTelegramSaveSuccess(null);
+    setTelegramSaveError(null);
+    try {
+      const res = await api.updateSettings({
+        telegramBotToken: telegramBotToken.trim(),
+        telegramChatId: telegramChatId.trim(),
+        telegramNotificationsEnabled,
+        telegramNotifyOnNewReseller,
+        telegramNotifyOnNewOrder,
+        telegramDailyReportEnabled,
+        telegramDailyReportHour: Number(telegramDailyReportHour),
+      });
+      setTelegramSaveSuccess(res.message || 'Telegram notification settings saved and updated successfully!');
+      triggerLevelUpCelebration();
+      loadAllAdminData();
+    } catch (err: any) {
+      setTelegramSaveError(err.message || 'Failed to save Telegram settings.');
+    } finally {
+      setIsSavingTelegram(false);
+    }
+  };
+
+  const handleTestTelegramNotification = async () => {
+    setIsTestingTelegram(true);
+    setTelegramTestFeedback(null);
+    setTelegramTestError(null);
+    try {
+      const res = await api.testTelegramNotification({
+        botToken: telegramBotToken.trim() || undefined,
+        chatId: telegramChatId.trim() || undefined,
+      });
+      setTelegramTestFeedback(res.message || 'Test message sent to your Telegram chat successfully! Check your Telegram app.');
+      triggerLevelUpCelebration();
+    } catch (err: any) {
+      setTelegramTestError(err.message || 'Failed to send test message. Please verify your Bot Token and Chat ID.');
+    } finally {
+      setIsTestingTelegram(false);
+    }
+  };
+
+  const handleDispatchDailyReport = async () => {
+    setIsSendingDailyReport(true);
+    setDailyReportFeedback(null);
+    setDailyReportError(null);
+    try {
+      const res = await api.sendDailyReportTelegram();
+      setDailyReportFeedback(res.message || 'Daily sales & performance report sent to your Telegram chat successfully!');
+      triggerLevelUpCelebration();
+      loadAllAdminData();
+    } catch (err: any) {
+      setDailyReportError(err.message || 'Failed to dispatch daily report. Check Telegram settings.');
+    } finally {
+      setIsSendingDailyReport(false);
     }
   };
 
@@ -755,35 +863,150 @@ export const AdminDashboard: React.FC = () => {
               createdAt: r.createdAt || new Date().toISOString(),
             }));
 
-        const filteredList = rawList.filter((r) => {
-          // Search query matching
-          const q = resellerSearchQuery.toLowerCase().trim();
-          const matchesQuery =
-            !q ||
-            r.storeName?.toLowerCase().includes(q) ||
-            r.ownerName?.toLowerCase().includes(q) ||
-            r.whatsappNumber?.includes(q) ||
-            r.email?.toLowerCase().includes(q) ||
-            r.district?.toLowerCase().includes(q) ||
-            r.referralCode?.toLowerCase().includes(q);
+        // Date filtering helper
+        const isDateMatching = (createdAtStr?: string) => {
+          if (resellerDateFilter === 'ALL') return true;
+          if (!createdAtStr) return false;
 
-          if (!matchesQuery) return false;
+          const createdDate = new Date(createdAtStr);
+          const createdTime = createdDate.getTime();
+          if (isNaN(createdTime)) return false;
 
-          if (resellerFilter === 'ACTIVE') {
-            return r.status === 'ACTIVE' || r.verificationFeePaid || r.adminApprovedFree;
+          const now = new Date();
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+          const endOfToday = startOfToday + 86400000 - 1;
+          const startOfYesterday = startOfToday - 86400000;
+          const endOfYesterday = startOfToday - 1;
+          const sevenDaysAgo = startOfToday - 6 * 86400000;
+          const thirtyDaysAgo = startOfToday - 29 * 86400000;
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+          if (resellerDateFilter === 'TODAY') {
+            return createdTime >= startOfToday && createdTime <= endOfToday;
           }
-          if (resellerFilter === 'PENDING') {
-            return r.status === 'PENDING' && !r.adminApprovedFree && !r.verificationFeePaid;
+          if (resellerDateFilter === 'YESTERDAY') {
+            return createdTime >= startOfYesterday && createdTime <= endOfYesterday;
           }
-          if (resellerFilter === 'HIGH_XP') {
-            return (r.level || 1) >= 2 || (r.xp || 0) >= 500;
+          if (resellerDateFilter === 'LAST_7_DAYS') {
+            return createdTime >= sevenDaysAgo;
+          }
+          if (resellerDateFilter === 'LAST_30_DAYS') {
+            return createdTime >= thirtyDaysAgo;
+          }
+          if (resellerDateFilter === 'THIS_MONTH') {
+            return createdTime >= startOfMonth;
+          }
+          if (resellerDateFilter === 'CUSTOM') {
+            if (resellerStartDate) {
+              const startTime = new Date(resellerStartDate).setHours(0, 0, 0, 0);
+              if (createdTime < startTime) return false;
+            }
+            if (resellerEndDate) {
+              const endTime = new Date(resellerEndDate).setHours(23, 59, 59, 999);
+              if (createdTime > endTime) return false;
+            }
+            return true;
           }
           return true;
-        });
+        };
+
+        const filteredList = rawList
+          .filter((r) => {
+            // Search query matching
+            const q = resellerSearchQuery.toLowerCase().trim();
+            const matchesQuery =
+              !q ||
+              r.storeName?.toLowerCase().includes(q) ||
+              r.ownerName?.toLowerCase().includes(q) ||
+              r.whatsappNumber?.includes(q) ||
+              r.email?.toLowerCase().includes(q) ||
+              r.district?.toLowerCase().includes(q) ||
+              r.referralCode?.toLowerCase().includes(q);
+
+            if (!matchesQuery) return false;
+
+            if (resellerFilter === 'ACTIVE') {
+              if (!(r.status === 'ACTIVE' || r.verificationFeePaid || r.adminApprovedFree)) return false;
+            } else if (resellerFilter === 'PENDING') {
+              if (!(r.status === 'PENDING' && !r.adminApprovedFree && !r.verificationFeePaid)) return false;
+            } else if (resellerFilter === 'HIGH_XP') {
+              if (!((r.level || 1) >= 2 || (r.xp || 0) >= 500)) return false;
+            }
+
+            return isDateMatching(r.createdAt);
+          })
+          .sort((a, b) => {
+            if (resellerSortBy === 'NEWEST_FIRST') {
+              const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return timeB - timeA;
+            }
+            if (resellerSortBy === 'OLDEST_FIRST') {
+              const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return timeA - timeB;
+            }
+            if (resellerSortBy === 'XP_DESC') {
+              return (b.xp || 0) - (a.xp || 0);
+            }
+            if (resellerSortBy === 'ORDERS_DESC') {
+              const ordersA = a.totalOrdersCount || a.deliveredOrdersCount || 0;
+              const ordersB = b.totalOrdersCount || b.deliveredOrdersCount || 0;
+              return ordersB - ordersA;
+            }
+            if (resellerSortBy === 'SALES_DESC') {
+              const salesA = a.totalSalesBdt || a.moneyMadeBdt || 0;
+              const salesB = b.totalSalesBdt || b.moneyMadeBdt || 0;
+              return salesB - salesA;
+            }
+            return 0;
+          });
 
         const activeCount = rawList.filter((r) => r.status === 'ACTIVE' || r.verificationFeePaid || r.adminApprovedFree).length;
         const pendingCount = rawList.filter((r) => r.status === 'PENDING' && !r.adminApprovedFree && !r.verificationFeePaid).length;
         const totalXpInSystem = rawList.reduce((sum, r) => sum + (r.xp || 0), 0);
+
+        const isAnyFilterActive =
+          Boolean(resellerSearchQuery.trim()) ||
+          resellerFilter !== 'ALL' ||
+          resellerDateFilter !== 'ALL' ||
+          Boolean(resellerStartDate) ||
+          Boolean(resellerEndDate) ||
+          resellerSortBy !== 'NEWEST_FIRST';
+
+        const formatJoinedDate = (dateStr?: string) => {
+          if (!dateStr) return { date: 'N/A', time: '', relative: '', isRecent: false };
+          try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return { date: 'N/A', time: '', relative: '', isRecent: false };
+
+            const now = new Date();
+            const isToday = d.toDateString() === now.toDateString();
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const isYesterday = d.toDateString() === yesterday.toDateString();
+
+            const formattedDate = d.toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            });
+
+            const formattedTime = d.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true,
+            });
+
+            let relative = '';
+            if (isToday) relative = 'Joined Today';
+            else if (isYesterday) relative = 'Joined Yesterday';
+
+            return { date: formattedDate, time: formattedTime, relative, isRecent: isToday || isYesterday };
+          } catch (e) {
+            return { date: 'N/A', time: '', relative: '', isRecent: false };
+          }
+        };
 
         return (
           <div className="space-y-5 animate-in fade-in duration-150">
@@ -866,40 +1089,167 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Filter & Search Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-              <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                <input
-                  type="text"
-                  placeholder="Search by store, owner, phone, district or referral code..."
-                  value={resellerSearchQuery}
-                  onChange={(e) => setResellerSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+            {/* Search, Status Tabs, Date Filter & Sorting Controls */}
+            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+              {/* Row 1: Search and Status Filters */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-lg">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Search by store, owner, phone, district, email or referral code..."
+                    value={resellerSearchQuery}
+                    onChange={(e) => setResellerSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {resellerSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setResellerSearchQuery('')}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 lg:pb-0">
+                  {[
+                    { key: 'ALL', label: `All Stores (${rawList.length})` },
+                    { key: 'ACTIVE', label: `Active (${activeCount})` },
+                    { key: 'PENDING', label: `Pending Fee (${pendingCount})` },
+                    { key: 'HIGH_XP', label: '⭐ Level 2+ Top Sellers' },
+                  ].map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setResellerFilter(f.key as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                        resellerFilter === f.key
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                {[
-                  { key: 'ALL', label: `All Stores (${rawList.length})` },
-                  { key: 'ACTIVE', label: `Active (${activeCount})` },
-                  { key: 'PENDING', label: `Pending Fee (${pendingCount})` },
-                  { key: 'HIGH_XP', label: '⭐ Level 2+ Top Sellers' },
-                ].map((f) => (
-                  <button
-                    key={f.key}
-                    type="button"
-                    onClick={() => setResellerFilter(f.key as any)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                      resellerFilter === f.key
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+              {/* Row 2: Date of Joining Filter Presets & Sorting Options */}
+              <div className="pt-3 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                {/* Date of Joining Filter */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1 text-slate-700 font-bold text-xs shrink-0 mr-1">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Joined Date:</span>
+                  </div>
+
+                  {[
+                    { key: 'ALL', label: 'All Time' },
+                    { key: 'TODAY', label: 'Today' },
+                    { key: 'YESTERDAY', label: 'Yesterday' },
+                    { key: 'LAST_7_DAYS', label: 'Last 7 Days' },
+                    { key: 'LAST_30_DAYS', label: 'Last 30 Days' },
+                    { key: 'THIS_MONTH', label: 'This Month' },
+                    { key: 'CUSTOM', label: 'Custom Range' },
+                  ].map((df) => (
+                    <button
+                      key={df.key}
+                      type="button"
+                      onClick={() => setResellerDateFilter(df.key as any)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                        resellerDateFilter === df.key
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {df.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Sort Order Selector */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+                    Sort:
+                  </span>
+                  <select
+                    value={resellerSortBy}
+                    onChange={(e) => setResellerSortBy(e.target.value as any)}
+                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   >
-                    {f.label}
-                  </button>
-                ))}
+                    <option value="NEWEST_FIRST">✨ Newest at Top (Latest Joined)</option>
+                    <option value="OLDEST_FIRST">📅 Oldest Joined First</option>
+                    <option value="XP_DESC">⚡ Highest XP First</option>
+                    <option value="ORDERS_DESC">📦 Most Orders First</option>
+                    <option value="SALES_DESC">💰 Highest Sales (BDT)</option>
+                  </select>
+                </div>
               </div>
+
+              {/* Row 3: Custom Date Picker inputs & Filter Summary */}
+              {(resellerDateFilter === 'CUSTOM' || isAnyFilterActive) && (
+                <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70 p-3 rounded-2xl">
+                  {resellerDateFilter === 'CUSTOM' ? (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="font-semibold text-slate-600">From:</span>
+                      <input
+                        type="date"
+                        value={resellerStartDate}
+                        onChange={(e) => setResellerStartDate(e.target.value)}
+                        className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <span className="font-semibold text-slate-600">To:</span>
+                      <input
+                        type="date"
+                        value={resellerEndDate}
+                        onChange={(e) => setResellerEndDate(e.target.value)}
+                        className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      {(resellerStartDate || resellerEndDate) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setResellerStartDate('');
+                            setResellerEndDate('');
+                          }}
+                          className="text-[11px] text-rose-600 hover:text-rose-700 font-bold ml-1"
+                        >
+                          Clear Dates
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-600 font-medium">
+                      Showing <strong className="text-slate-900">{filteredList.length}</strong> of{' '}
+                      <strong className="text-slate-900">{rawList.length}</strong> resellers
+                      <span className="ml-2 text-slate-400">
+                        ({resellerSortBy === 'NEWEST_FIRST' ? 'Newest at Top' : resellerSortBy === 'OLDEST_FIRST' ? 'Oldest at Top' : resellerSortBy === 'XP_DESC' ? 'Highest XP' : resellerSortBy === 'ORDERS_DESC' ? 'Most Orders' : 'Highest Sales'})
+                      </span>
+                    </div>
+                  )}
+
+                  {isAnyFilterActive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResellerSearchQuery('');
+                        setResellerFilter('ALL');
+                        setResellerDateFilter('ALL');
+                        setResellerStartDate('');
+                        setResellerEndDate('');
+                        setResellerSortBy('NEWEST_FIRST');
+                      }}
+                      className="px-2.5 py-1 bg-white hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold transition inline-flex items-center gap-1 shadow-2xs"
+                    >
+                      <RotateCcw className="w-3 h-3 text-slate-500" />
+                      <span>Reset All Filters</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Reseller Directory Table */}
@@ -909,10 +1259,51 @@ export const AdminDashboard: React.FC = () => {
                   <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
                     <tr>
                       <th className="p-4">Store & Reseller</th>
+                      <th className="p-4">
+                        <button
+                          type="button"
+                          onClick={() => setResellerSortBy(resellerSortBy === 'NEWEST_FIRST' ? 'OLDEST_FIRST' : 'NEWEST_FIRST')}
+                          className="flex items-center gap-1.5 hover:text-indigo-600 transition group font-bold"
+                          title="Click to toggle Newest / Oldest joined date"
+                        >
+                          <span>Joined Date</span>
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600" />
+                        </button>
+                      </th>
                       <th className="p-4">Contact / Location</th>
-                      <th className="p-4">Rank & Level</th>
-                      <th className="p-4 text-center">Orders Made</th>
-                      <th className="p-4 text-right">Money Made (Sales)</th>
+                      <th className="p-4">
+                        <button
+                          type="button"
+                          onClick={() => setResellerSortBy(resellerSortBy === 'XP_DESC' ? 'NEWEST_FIRST' : 'XP_DESC')}
+                          className="flex items-center gap-1 hover:text-indigo-600 transition group font-bold"
+                          title="Sort by XP"
+                        >
+                          <span>Rank & Level</span>
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600" />
+                        </button>
+                      </th>
+                      <th className="p-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setResellerSortBy(resellerSortBy === 'ORDERS_DESC' ? 'NEWEST_FIRST' : 'ORDERS_DESC')}
+                          className="inline-flex items-center gap-1 hover:text-indigo-600 transition group font-bold"
+                          title="Sort by Orders"
+                        >
+                          <span>Orders Made</span>
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600" />
+                        </button>
+                      </th>
+                      <th className="p-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setResellerSortBy(resellerSortBy === 'SALES_DESC' ? 'NEWEST_FIRST' : 'SALES_DESC')}
+                          className="inline-flex items-center gap-1 hover:text-indigo-600 transition group font-bold"
+                          title="Sort by Gross Sales"
+                        >
+                          <span>Money Made (Sales)</span>
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600" />
+                        </button>
+                      </th>
                       <th className="p-4 text-right">Money Profited</th>
                       <th className="p-4 text-center">500 TK Status</th>
                       <th className="p-4 text-right">Actions</th>
@@ -925,6 +1316,7 @@ export const AdminDashboard: React.FC = () => {
                       const moneyMade = r.totalSalesBdt || r.moneyMadeBdt || Math.round((r.totalProfitEarned || 0) * 3.8);
                       const moneyProfited = r.totalProfitEarned || r.totalProfitEarnedBdt || r.moneyProfitedBdt || 0;
                       const isGoat = r.level === 4 || (r.xp >= 2001 && r.xp <= 5000);
+                      const joinedInfo = formatJoinedDate(r.createdAt);
 
                       return (
                         <tr key={r.id} className="hover:bg-slate-50/80 transition">
@@ -947,6 +1339,28 @@ export const AdminDashboard: React.FC = () => {
                                 {r.email && <p className="text-[10px] text-slate-400 font-mono">{r.email}</p>}
                                 <p className="text-[10px] text-indigo-600 font-mono mt-0.5">Code: {r.referralCode}</p>
                               </div>
+                            </div>
+                          </td>
+
+                          {/* Joined Date */}
+                          <td className="p-4 whitespace-nowrap">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1.5 font-bold text-slate-800 text-xs">
+                                <Calendar className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                <span>{joinedInfo.date}</span>
+                              </div>
+                              {joinedInfo.time && (
+                                <p className="text-[10px] text-slate-400 font-mono pl-5">
+                                  {joinedInfo.time}
+                                </p>
+                              )}
+                              {joinedInfo.relative && (
+                                <div className="pl-5 pt-0.5">
+                                  <span className="inline-block text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                                    ✨ {joinedInfo.relative}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </td>
 
@@ -1686,6 +2100,275 @@ export const AdminDashboard: React.FC = () => {
       {/* TAB 9: SETTINGS & LOGS */}
       {activeTab === 'settings' && (
         <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Telegram Realtime Notifications & Daily Reports Card */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-500 text-white flex items-center justify-center shadow-xs">
+                  <Send className="w-5 h-5 -rotate-12" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <span>Telegram Alerts &amp; Daily Sales Report</span>
+                    {telegramBotToken && telegramChatId ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-100 text-sky-800 border border-sky-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+                        Connected &amp; Live
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        Setup Required
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Receive instant notifications directly on your phone when new resellers join, orders are placed, plus automated daily sales recaps.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleTestTelegramNotification}
+                  disabled={isTestingTelegram || !telegramBotToken || !telegramChatId}
+                  className="px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold text-xs border border-sky-200 transition disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{isTestingTelegram ? 'Sending Test...' : 'Send Test Ping'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDispatchDailyReport}
+                  disabled={isSendingDailyReport || !telegramBotToken || !telegramChatId}
+                  className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>{isSendingDailyReport ? 'Dispatching...' : 'Send Today\'s Report Now'}</span>
+                </button>
+              </div>
+            </div>
+
+            {telegramSaveSuccess && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{telegramSaveSuccess}</span>
+              </div>
+            )}
+
+            {telegramSaveError && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{telegramSaveError}</span>
+              </div>
+            )}
+
+            {telegramTestFeedback && (
+              <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 text-sky-900 text-xs font-semibold flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />
+                <span>{telegramTestFeedback}</span>
+              </div>
+            )}
+
+            {telegramTestError && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{telegramTestError}</span>
+              </div>
+            )}
+
+            {dailyReportFeedback && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{dailyReportFeedback}</span>
+              </div>
+            )}
+
+            {dailyReportError && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{dailyReportError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveTelegramSettings} className="space-y-5">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Telegram Bot Token *
+                    </label>
+                    <span className="text-[11px] text-slate-400">From @BotFather</span>
+                  </div>
+                  <div className="relative">
+                    <Bot className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showBotToken ? 'text' : 'password'}
+                      placeholder="e.g. 7123456789:AAFxxx...yyy"
+                      value={telegramBotToken}
+                      onChange={(e) => setTelegramBotToken(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 text-xs font-mono bg-slate-50/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowBotToken(!showBotToken)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5"
+                    >
+                      {showBotToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Your Telegram Chat ID / User ID *
+                    </label>
+                    <span className="text-[11px] text-slate-400">From @userinfobot</span>
+                  </div>
+                  <div className="relative">
+                    <MessageSquare className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="text"
+                      placeholder="e.g. 589214712 (or group/channel ID)"
+                      value={telegramChatId}
+                      onChange={(e) => setTelegramChatId(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 text-xs font-mono font-bold bg-slate-50/50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Notification Toggles */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <BellRing className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Real-time Notification Triggers</span>
+                  </span>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={telegramNotificationsEnabled}
+                      onChange={(e) => setTelegramNotificationsEnabled(e.target.checked)}
+                      className="w-4 h-4 text-sky-600 rounded-sm border-slate-300 focus:ring-sky-500"
+                    />
+                    <span className="text-xs font-bold text-slate-700">Enable Notifications</span>
+                  </label>
+                </div>
+
+                <div className="grid sm:grid-cols-3 gap-3 pt-1">
+                  <label className="flex items-start gap-2.5 p-3 rounded-xl bg-white border border-slate-200 cursor-pointer hover:border-sky-300 transition">
+                    <input
+                      type="checkbox"
+                      checked={telegramNotifyOnNewReseller}
+                      onChange={(e) => setTelegramNotifyOnNewReseller(e.target.checked)}
+                      disabled={!telegramNotificationsEnabled}
+                      className="mt-0.5 w-4 h-4 text-sky-600 rounded-sm border-slate-300 focus:ring-sky-500"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">New Resellers</p>
+                      <p className="text-[11px] text-slate-500">Alert on new store signups with contact &amp; location</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 p-3 rounded-xl bg-white border border-slate-200 cursor-pointer hover:border-sky-300 transition">
+                    <input
+                      type="checkbox"
+                      checked={telegramNotifyOnNewOrder}
+                      onChange={(e) => setTelegramNotifyOnNewOrder(e.target.checked)}
+                      disabled={!telegramNotificationsEnabled}
+                      className="mt-0.5 w-4 h-4 text-sky-600 rounded-sm border-slate-300 focus:ring-sky-500"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">New Reseller Orders</p>
+                      <p className="text-[11px] text-slate-500">Alert on order placement with items, price &amp; margin</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 p-3 rounded-xl bg-white border border-slate-200 cursor-pointer hover:border-sky-300 transition">
+                    <input
+                      type="checkbox"
+                      checked={telegramDailyReportEnabled}
+                      onChange={(e) => setTelegramDailyReportEnabled(e.target.checked)}
+                      disabled={!telegramNotificationsEnabled}
+                      className="mt-0.5 w-4 h-4 text-sky-600 rounded-sm border-slate-300 focus:ring-sky-500"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">Automated Daily Report</p>
+                      <p className="text-[11px] text-slate-500">Nightly sales, profit, active stores &amp; top item summary</p>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs border-t border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-slate-600 font-medium">Daily Report Dispatch Time:</span>
+                    <select
+                      value={telegramDailyReportHour}
+                      onChange={(e) => setTelegramDailyReportHour(Number(e.target.value))}
+                      disabled={!telegramDailyReportEnabled || !telegramNotificationsEnabled}
+                      className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg font-bold text-slate-800 text-xs"
+                    >
+                      <option value={18}>6:00 PM (18:00 BD Time)</option>
+                      <option value={19}>7:00 PM (19:00 BD Time)</option>
+                      <option value={20}>8:00 PM (20:00 BD Time)</option>
+                      <option value={21}>9:00 PM (21:00 BD Time - Recommended)</option>
+                      <option value={22}>10:00 PM (22:00 BD Time)</option>
+                      <option value={23}>11:00 PM (23:00 BD Time)</option>
+                    </select>
+                  </div>
+
+                  {statsData?.settings?.telegramLastDailyReportSentAt && (
+                    <span className="text-[11px] text-slate-400">
+                      Last daily report dispatched: {new Date(statsData.settings.telegramLastDailyReportSentAt).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick 3-Step Guide */}
+              <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 text-xs space-y-2">
+                <p className="font-bold text-sky-950 flex items-center gap-1.5">
+                  <HelpCircle className="w-4 h-4 text-sky-600" />
+                  <span>How to connect your Telegram in 1 minute:</span>
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-slate-600 pl-1 text-[11px]">
+                  <li>
+                    Open Telegram and search for <strong>@BotFather</strong>. Send <code className="bg-white px-1.5 py-0.5 rounded text-sky-700 font-mono">/newbot</code>, choose a bot name, and copy the <strong>HTTP API Token</strong> into the field above.
+                  </li>
+                  <li>
+                    Search for <strong>@userinfobot</strong> in Telegram and press <strong>Start</strong> to find your numeric <strong>Id</strong> (e.g. <code>589214712</code>).
+                  </li>
+                  <li>
+                    Open a chat with your newly created bot in Telegram and press <strong>/start</strong> so it can send messages to you.
+                  </li>
+                  <li>
+                    Paste your Bot Token and Chat ID above, click <strong>Save Telegram Settings</strong>, and then click <strong>Send Test Ping</strong> to verify!
+                  </li>
+                </ol>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={isSavingTelegram}
+                  className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-2"
+                >
+                  {isSavingTelegram ? (
+                    <span>Saving Settings...</span>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Save &amp; Sync Telegram Settings</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
           {/* Security & Master Admin Password */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">

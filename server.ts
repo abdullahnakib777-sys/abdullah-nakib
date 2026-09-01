@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import { db } from './server/db';
 import { ProfitEngine } from './server/profitEngine';
 import { AIService } from './server/aiService';
+import { TelegramService } from './server/telegramService';
+import { FirebaseSyncService } from './server/firebaseSync';
 import { User } from './src/types';
 
 dotenv.config();
@@ -227,6 +229,22 @@ async function startServer() {
       password: password || undefined,
     });
 
+    // Send real-time Telegram notification to Admin
+    TelegramService.notifyNewReseller({
+      name,
+      email,
+      phone,
+      storeName,
+      whatsappNumber: whatsappNumber || phone,
+      division,
+      district,
+      upazila: upazila || district,
+      address,
+      salesIntent,
+      referralCode: reseller.referralCode,
+      referredBy,
+    }).catch((err) => console.error('Telegram reseller notify error:', err));
+
     res.status(201).json({ user, reseller, token: user.id });
   });
 
@@ -415,6 +433,12 @@ async function startServer() {
         paymentMethod: paymentMethod || 'COD',
         courier,
       });
+
+      // Send real-time Telegram alert for new order
+      const associatedReseller = determinedResellerId ? db.getResellerById(determinedResellerId) : undefined;
+      TelegramService.notifyNewOrder(newOrder, associatedReseller).catch((err) =>
+        console.error('Telegram order notify error:', err)
+      );
 
       res.status(201).json({ order: newOrder });
     } catch (err: any) {
@@ -1265,6 +1289,16 @@ async function startServer() {
     }
   });
 
+  // Admin: Get Settings
+  app.get('/api/v1/admin/settings', (req: Request, res: Response) => {
+    try {
+      const settings = db.getSettings();
+      res.json({ settings });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to fetch settings' });
+    }
+  });
+
   // Admin: Settings Update
   app.post('/api/v1/admin/settings', (req: Request, res: Response) => {
     try {
@@ -1273,9 +1307,68 @@ async function startServer() {
         return res.status(403).json({ error: 'Admin permissions required' });
       }
       const settings = db.updateSettings(req.body, user);
-      res.json({ settings });
+      res.json({ settings, message: 'Settings saved successfully' });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.put('/api/v1/admin/settings', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const settings = db.updateSettings(req.body, user);
+      res.json({ settings, message: 'Settings saved successfully' });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Test Telegram Notification Connection
+  app.post('/api/v1/admin/telegram/test', async (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+
+      const { botToken, chatId } = req.body || {};
+      const result = await TelegramService.sendTestMessage(botToken, chatId);
+      if (result.success) {
+        res.json({ success: true, message: result.message });
+      } else {
+        res.status(400).json({ success: false, error: result.error || result.message });
+      }
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || 'Failed to send test message' });
+    }
+  });
+
+  // Admin: Manually trigger Daily Sales & Performance Report to Telegram
+  app.post('/api/v1/admin/telegram/send-daily-report', async (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+
+      const result = await TelegramService.sendDailyReport();
+      if (result.success) {
+        res.json({
+          success: true,
+          message: 'Daily business report dispatched to your Telegram chat successfully!',
+          summary: result.reportSummary,
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error || 'Failed to dispatch daily report to Telegram',
+        });
+      }
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || 'Internal server error' });
     }
   });
 
@@ -1475,8 +1568,41 @@ async function startServer() {
     });
   }
 
+  // Telegram Daily Sales Report Background Scheduler
+  const initTelegramScheduler = () => {
+    setInterval(async () => {
+      try {
+        const settings = db.getSettings();
+        if (settings.telegramDailyReportEnabled === false) return;
+        if (!settings.telegramBotToken && !process.env.TELEGRAM_BOT_TOKEN) return;
+        if (!settings.telegramChatId && !process.env.TELEGRAM_CHAT_ID) return;
+
+        // Current time in Bangladesh (UTC+6)
+        const now = new Date();
+        const bdHourStr = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Dhaka', hour12: false, hour: 'numeric' });
+        const currentBdHour = parseInt(bdHourStr, 10);
+        const targetHour = settings.telegramDailyReportHour ?? 21; // Default 9 PM (21:00)
+
+        const todayStr = now.toISOString().slice(0, 10);
+        const lastSentDate = settings.telegramLastDailyReportSentAt
+          ? new Date(settings.telegramLastDailyReportSentAt).toISOString().slice(0, 10)
+          : null;
+
+        // Trigger if current BD hour matches target and hasn't been sent yet today
+        if (currentBdHour === targetHour && lastSentDate !== todayStr) {
+          console.log(`[Telegram Cron] Triggering automated daily sales report for ${todayStr} (BD Hour: ${currentBdHour})...`);
+          await TelegramService.sendDailyReport();
+        }
+      } catch (err) {
+        console.error('[Telegram Cron] Error in daily report runner:', err);
+      }
+    }, 10 * 60 * 1000); // Check every 10 minutes
+  };
+
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Shadhin Reseller Server running on port ${PORT}`);
+    initTelegramScheduler();
+    FirebaseSyncService.startFirestoreListeners();
   });
 }
 

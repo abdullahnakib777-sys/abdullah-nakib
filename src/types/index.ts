@@ -387,6 +387,14 @@ export interface PlatformSettings {
   bkashNumber?: string;
   nagadNumber?: string;
   rocketNumber?: string;
+  telegramBotToken?: string;
+  telegramChatId?: string;
+  telegramNotificationsEnabled?: boolean;
+  telegramNotifyOnNewReseller?: boolean;
+  telegramNotifyOnNewOrder?: boolean;
+  telegramDailyReportEnabled?: boolean;
+  telegramDailyReportHour?: number;
+  telegramLastDailyReportSentAt?: string;
 }
 
 export interface AuditLog {
