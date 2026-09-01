@@ -17,6 +17,8 @@ import {
   AuditLog,
   FraudAlert,
   LeaderboardEntry,
+  LeaderboardOverride,
+  LeaderboardConfig,
   MarketingNotification,
 } from '../src/types';
 import { ProfitEngine } from './profitEngine';
@@ -41,6 +43,7 @@ export interface DatabaseSchema {
   academyLessons: AcademyLesson[];
   userLessonProgress: Record<string, string[]>; // resellerId -> lessonId[]
   settings: PlatformSettings;
+  leaderboardConfig?: LeaderboardConfig;
   auditLogs: AuditLog[];
   fraudAlerts: FraudAlert[];
   referralClicks: Record<string, number>;
@@ -1214,6 +1217,9 @@ const INITIAL_SETTINGS: PlatformSettings = {
   founderResellerId: 'rsl-founder',
   adminEmail: 'abdullahnakib777@gmail.com',
   adminPassword: 'admin1234',
+  bkashNumber: '01333855344',
+  nagadNumber: '01576443668',
+  rocketNumber: '01576443668',
 };
 
 const INITIAL_NOTIFICATIONS: MarketingNotification[] = [
@@ -1348,6 +1354,11 @@ class Database {
         'rsl-founder': ['les-01', 'les-02', 'les-03'],
       },
       settings: { ...INITIAL_SETTINGS },
+      leaderboardConfig: {
+        manualOverrides: {},
+        customEntries: [],
+        sortBy: 'custom',
+      },
       auditLogs: [
         {
           id: 'log-01',
@@ -1371,6 +1382,112 @@ class Database {
     };
   }
 
+  private mergeParsedData(parsed: Partial<DatabaseSchema>): DatabaseSchema {
+    const defaults = this.getDefaultData();
+    if (!parsed) return defaults;
+
+    // 1. Resellers: Guarantee XP, Level, delivered orders count, and profits are preserved and updated by Admin
+    const finalResellers = defaults.resellers.map((defReseller) => {
+      const existing = (parsed.resellers || []).find((r: ResellerProfile) => r.id === defReseller.id);
+      if (existing) {
+        return {
+          ...defReseller,
+          ...existing,
+          xp: existing.xp !== undefined ? existing.xp : defReseller.xp,
+          level: existing.level !== undefined ? existing.level : (defReseller.level || this.calculateResellerLevel(existing.xp !== undefined ? existing.xp : defReseller.xp)),
+          deliveredOrdersCount: existing.deliveredOrdersCount !== undefined ? Math.max(existing.deliveredOrdersCount, defReseller.deliveredOrdersCount || 0) : defReseller.deliveredOrdersCount,
+          totalOrdersCount: existing.totalOrdersCount !== undefined ? Math.max(existing.totalOrdersCount, defReseller.totalOrdersCount || 0) : defReseller.totalOrdersCount,
+          totalProfitEarned: existing.totalProfitEarned !== undefined ? Math.max(existing.totalProfitEarned, defReseller.totalProfitEarned || 0) : defReseller.totalProfitEarned,
+          totalProfitEarnedBdt: existing.totalProfitEarnedBdt !== undefined ? Math.max(existing.totalProfitEarnedBdt, defReseller.totalProfitEarnedBdt || 0) : defReseller.totalProfitEarnedBdt,
+          totalSalesBdt: existing.totalSalesBdt !== undefined ? Math.max(existing.totalSalesBdt, defReseller.totalSalesBdt || 0) : defReseller.totalSalesBdt,
+          status: existing.status || defReseller.status,
+          isVerified: existing.isVerified !== undefined ? existing.isVerified : defReseller.isVerified,
+          verificationFeePaid: existing.verificationFeePaid !== undefined ? existing.verificationFeePaid : defReseller.verificationFeePaid,
+        };
+      }
+      return defReseller;
+    });
+
+    const customResellers = (parsed.resellers || []).filter(
+      (r: ResellerProfile) => !defaults.resellers.some((dr) => dr.id === r.id)
+    );
+
+    // 2. Users
+    const finalUsers = defaults.users.map((defUser) => {
+      if (defUser.id === 'usr-founder') {
+        const existingFounderUser = (parsed.users || []).find((u: User) => u.id === 'usr-founder');
+        return existingFounderUser || defUser;
+      }
+      if (defUser.id === 'usr-rsl-001' || defUser.id === 'usr-rsl-002') {
+        const existingUser = (parsed.users || []).find((u: User) => u.id === defUser.id);
+        return existingUser ? { ...defUser, ...existingUser } : defUser;
+      }
+      const existing = (parsed.users || []).find((u: User) => u.id === defUser.id);
+      return existing ? { ...defUser, ...existing } : defUser;
+    });
+
+    const customUsers = (parsed.users || []).filter(
+      (u: User) => !defaults.users.some((du) => du.id === u.id)
+    );
+
+    // 3. Wallets
+    const finalWallets = { ...defaults.wallets, ...(parsed.wallets || {}) };
+    if (defaults.wallets['rsl-001'] && !parsed.wallets?.['rsl-001']) finalWallets['rsl-001'] = defaults.wallets['rsl-001'];
+    if (defaults.wallets['rsl-002'] && !parsed.wallets?.['rsl-002']) finalWallets['rsl-002'] = defaults.wallets['rsl-002'];
+    if (defaults.wallets['rsl-founder'] && !parsed.wallets?.['rsl-founder']) finalWallets['rsl-founder'] = defaults.wallets['rsl-founder'];
+
+    // 4. Orders: Always preserve ALL default demo orders
+    const defaultOrderIds = new Set(defaults.orders.map((o) => o.id));
+    const customUserOrders = (parsed.orders || []).filter((o: Order) => 
+      !defaultOrderIds.has(o.id) &&
+      o.resellerId !== 'rsl-001' &&
+      o.resellerId !== 'rsl-002' &&
+      o.resellerId !== 'rsl-founder' &&
+      !o.id.startsWith('ord-3')
+    );
+    const mergedOrders = [...defaults.orders, ...customUserOrders];
+
+    // 5. Products
+    const mergedProducts = (parsed.products && parsed.products.length > 0 ? parsed.products : defaults.products).map((p: Product, idx: number) => ({
+      ...p,
+      productCode: p.productCode || `MM-${1001 + idx}`,
+      isStockOut: p.isStockOut !== undefined ? p.isStockOut : (p.stock !== undefined && p.stock <= 0),
+      estimatedRestockDays: p.estimatedRestockDays || 3,
+      estimatedRestockDate: p.estimatedRestockDate || 'In 3-5 days',
+    }));
+
+    // 6. Settings with personal bkash, nagad, rocket numbers
+    const mergedSettings: PlatformSettings = {
+      ...defaults.settings,
+      ...(parsed.settings || {}),
+      bkashNumber: '01333855344',
+      nagadNumber: '01576443668',
+      rocketNumber: '01576443668',
+      supportPhone: '01333855344',
+      supportWhatsapp: '01333855344',
+    };
+
+    // 7. Leaderboard config & overrides
+    const mergedLeaderboardConfig: LeaderboardConfig = {
+      manualOverrides: (parsed.leaderboardConfig && parsed.leaderboardConfig.manualOverrides) || {},
+      customEntries: (parsed.leaderboardConfig && parsed.leaderboardConfig.customEntries) || [],
+      sortBy: (parsed.leaderboardConfig && parsed.leaderboardConfig.sortBy) || 'custom',
+    };
+
+    return {
+      ...defaults,
+      ...parsed,
+      users: [...finalUsers, ...customUsers],
+      resellers: [...finalResellers, ...customResellers],
+      products: mergedProducts,
+      orders: mergedOrders,
+      wallets: finalWallets,
+      settings: mergedSettings,
+      leaderboardConfig: mergedLeaderboardConfig,
+      notifications: (parsed.notifications && parsed.notifications.length > 0) ? parsed.notifications : defaults.notifications,
+    };
+  }
+
   private load() {
     try {
       if (!fs.existsSync(DATA_DIR)) {
@@ -1379,100 +1496,21 @@ class Database {
       if (fs.existsSync(DB_FILE)) {
         const fileContent = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(fileContent);
-        const defaults = this.getDefaultData();
-
-        // Ensure resellers dataset is complete with all 213 realistic entries
-        let finalResellers = defaults.resellers.map((defReseller) => {
-          if (defReseller.id === 'rsl-founder') {
-            // Keep existing founder store intact
-            const existingFounder = (parsed.resellers || []).find((r: ResellerProfile) => r.id === 'rsl-founder');
-            return existingFounder || defReseller;
-          }
-          if (defReseller.id === 'rsl-001' || defReseller.id === 'rsl-002') {
-            return defReseller;
-          }
-          // For demo resellers, incorporate the updated demo orders, profits, xp and status
-          const existing = (parsed.resellers || []).find((r: ResellerProfile) => r.id === defReseller.id);
-          if (existing) {
-            return {
-              ...defReseller,
-              ...existing,
-              deliveredOrdersCount: defReseller.deliveredOrdersCount,
-              totalOrdersCount: defReseller.totalOrdersCount,
-              totalProfitEarned: defReseller.totalProfitEarned,
-              totalProfitEarnedBdt: defReseller.totalProfitEarnedBdt,
-              level: defReseller.level,
-              xp: defReseller.xp,
-              status: defReseller.status,
-              isVerified: defReseller.isVerified,
-              verificationFeePaid: defReseller.verificationFeePaid,
-            };
-          }
-          return defReseller;
-        });
-
-        let finalUsers = defaults.users.map((defUser) => {
-          if (defUser.id === 'usr-founder') {
-            const existingFounderUser = (parsed.users || []).find((u: User) => u.id === 'usr-founder');
-            return existingFounderUser || defUser;
-          }
-          if (defUser.id === 'usr-rsl-001' || defUser.id === 'usr-rsl-002') {
-            return defUser;
-          }
-          const existing = (parsed.users || []).find((u: User) => u.id === defUser.id);
-          return existing ? { ...defUser, ...existing } : defUser;
-        });
-
-        let finalWallets = { ...defaults.wallets, ...(parsed.wallets || {}) };
-        if (defaults.wallets['rsl-001']) finalWallets['rsl-001'] = defaults.wallets['rsl-001'];
-        if (defaults.wallets['rsl-002']) finalWallets['rsl-002'] = defaults.wallets['rsl-002'];
-        if (defaults.wallets['rsl-founder']) finalWallets['rsl-founder'] = defaults.wallets['rsl-founder'];
-
-        // Merge custom user orders with defaults rich order dataset
-        const customUserOrders = (parsed.orders || []).filter((o: Order) => 
-          o.resellerId !== 'rsl-001' && o.resellerId !== 'rsl-002' && o.resellerId !== 'rsl-founder' && !o.id.startsWith('ord-3')
-        );
-        const mergedOrders = [...defaults.orders, ...customUserOrders];
-
-        // Ensure products have productCode, stock status, restock estimates
-        const mergedProducts = (parsed.products && parsed.products.length > 0 ? parsed.products : defaults.products).map((p: Product, idx: number) => ({
-          ...p,
-          productCode: p.productCode || `MM-${1001 + idx}`,
-          isStockOut: p.isStockOut !== undefined ? p.isStockOut : (p.stock !== undefined && p.stock <= 0),
-          estimatedRestockDays: p.estimatedRestockDays || 3,
-          estimatedRestockDate: p.estimatedRestockDate || 'In 3-5 days',
-        }));
-
-        this.data = {
-          ...defaults,
-          ...parsed,
-          users: finalUsers,
-          resellers: finalResellers,
-          products: mergedProducts,
-          orders: mergedOrders,
-          wallets: finalWallets,
-          settings: { ...defaults.settings, ...(parsed.settings || {}) },
-          notifications: (parsed.notifications && parsed.notifications.length > 0) ? parsed.notifications : defaults.notifications,
-        };
-        this.saveLocal();
+        this.data = this.mergeParsedData(parsed);
+        this.save();
       } else {
+        this.data = this.getDefaultData();
         this.save();
       }
       this.isLoaded = true;
 
-      // Attempt async cloud hydration in background
+      // Attempt async cloud hydration in background and save back merged data
       FirebaseSyncService.loadFromCloud()
         .then((cloudData) => {
           if (cloudData) {
-            this.data = {
-              ...this.getDefaultData(),
-              ...cloudData,
-              wallets: { ...this.getDefaultData().wallets, ...(cloudData.wallets || {}) },
-              settings: { ...this.getDefaultData().settings, ...(cloudData.settings || {}) },
-              notifications: (cloudData.notifications && cloudData.notifications.length > 0) ? cloudData.notifications : this.data.notifications,
-            };
-            this.saveLocal();
-            console.log('Database synced and hydrated with Cloud Firestore');
+            this.data = this.mergeParsedData(cloudData);
+            this.save();
+            console.log('Database safely merged and synced with Cloud Firestore');
           }
         })
         .catch((err) => {
@@ -1481,6 +1519,7 @@ class Database {
     } catch (err) {
       console.error('Error loading database file, using fallback defaults:', err);
       this.data = this.getDefaultData();
+      this.save();
     }
   }
 
@@ -2369,9 +2408,6 @@ class Database {
         };
         this.data.transactions.unshift(tx);
 
-        // Reward Reseller XP
-        this.awardResellerXp(order.resellerId, 250, 'Successful Delivered Order');
-
         // Increment successful sales count on products
         for (const item of order.items) {
           const product = this.getProductById(item.productId);
@@ -2603,25 +2639,43 @@ class Database {
     const reseller = this.getResellerById(resellerId);
     if (!reseller) return;
 
-    reseller.xp += amount;
+    reseller.xp = Math.max(0, (reseller.xp || 0) + amount);
     reseller.level = this.calculateResellerLevel(reseller.xp);
 
     this.save();
     return reseller;
   }
 
-  public awardResellerXpManual(resellerId: string, amount: number, reason: string, actor: User) {
+  public awardResellerXpManual(
+    resellerId: string,
+    amount: number,
+    reason: string,
+    actor: User,
+    mode: 'ADD' | 'DEDUCT' | 'SET' = 'ADD'
+  ) {
     const reseller = this.getResellerById(resellerId);
     if (!reseller) throw new Error('Reseller not found');
 
-    const prevXp = reseller.xp;
-    const prevLevel = reseller.level;
+    const prevXp = reseller.xp || 0;
+    const prevLevel = reseller.level || 1;
+    const cleanAmount = Number(amount) || 0;
 
-    reseller.xp += amount;
-    if (reseller.xp < 0) reseller.xp = 0;
+    if (mode === 'SET') {
+      reseller.xp = Math.max(0, Math.round(cleanAmount));
+    } else if (mode === 'DEDUCT') {
+      reseller.xp = Math.max(0, prevXp - Math.round(cleanAmount));
+    } else {
+      reseller.xp = Math.max(0, prevXp + Math.round(cleanAmount));
+    }
 
     reseller.level = this.calculateResellerLevel(reseller.xp);
     const leveledUp = reseller.level > prevLevel;
+
+    // Sync manual override customXp if exists
+    if (this.data.leaderboardConfig?.manualOverrides?.[resellerId]) {
+      this.data.leaderboardConfig.manualOverrides[resellerId].customXp = reseller.xp;
+      this.data.leaderboardConfig.manualOverrides[resellerId].customLevel = reseller.level;
+    }
 
     this.logAudit({
       action: 'AWARD_MANUAL_XP',
@@ -2630,7 +2684,7 @@ class Database {
       actorRole: actor.role,
       targetType: 'RESELLER',
       targetId: resellerId,
-      details: `Awarded +${amount} XP to ${reseller.storeName} (${reason}). New XP: ${reseller.xp}, Level: ${reseller.level}`,
+      details: `${mode === 'SET' ? 'Set exact XP' : mode === 'DEDUCT' ? `Deducted -${cleanAmount} XP` : `Awarded +${cleanAmount} XP`} to ${reseller.storeName} (${reason || 'Admin Manual Grant'}). New XP: ${reseller.xp}, Level: ${reseller.level}`,
     });
 
     this.save();
@@ -2641,8 +2695,9 @@ class Database {
       prevLevel,
       newLevel: reseller.level,
       leveledUp,
-      amount,
+      amount: cleanAmount,
       reason,
+      mode,
     };
   }
 
@@ -2717,6 +2772,12 @@ class Database {
   public getLeaderboard(period: 'weekly' | 'monthly' | 'allTime' = 'allTime'): LeaderboardEntry[] {
     const detailedResellers = this.getAllResellersWithDetails();
     const orders = this.data.orders || [];
+    const config = this.data.leaderboardConfig || {
+      manualOverrides: {},
+      customEntries: [],
+      sortBy: 'custom',
+    };
+    const overrides = config.manualOverrides || {};
 
     const now = Date.now();
     const oneWeekAgo = now - 7 * 86400000;
@@ -2736,7 +2797,7 @@ class Database {
     // Filter to active resellers or those with delivered orders or profit
     const activeResellers = detailedResellers.filter((r) => r.status === 'ACTIVE' || (r.deliveredOrdersCount || 0) > 0);
 
-    const entries: LeaderboardEntry[] = activeResellers.map((r, index) => {
+    const baseEntries: LeaderboardEntry[] = activeResellers.map((r) => {
       const resellerDeliveredOrders = orders.filter(
         (o) => o.resellerId === r.id && o.status === 'DELIVERED'
       );
@@ -2754,7 +2815,7 @@ class Database {
           profit = weeklyOrders.reduce((acc, o) => acc + (o.totalResellerProfit || 0), 0);
           sales = weeklyOrders.reduce((acc, o) => acc + (o.subtotal || 0), 0);
         } else {
-          // Direct proportion (22% of all-time activity)
+          // Direct proportion
           const weeklyRatio = 0.22;
           deliveredCount = Math.max(0, Math.round(deliveredCount * weeklyRatio));
           profit = Math.max(0, Math.round(profit * weeklyRatio));
@@ -2769,7 +2830,7 @@ class Database {
           profit = monthlyOrders.reduce((acc, o) => acc + (o.totalResellerProfit || 0), 0);
           sales = monthlyOrders.reduce((acc, o) => acc + (o.subtotal || 0), 0);
         } else {
-          // Direct proportion (55% of all-time activity)
+          // Direct proportion
           const monthlyRatio = 0.55;
           deliveredCount = Math.max(0, Math.round(deliveredCount * monthlyRatio));
           profit = Math.max(0, Math.round(profit * monthlyRatio));
@@ -2778,7 +2839,7 @@ class Database {
       }
 
       const currentRankLvl = r.level || this.calculateResellerLevel(r.xp || 100);
-      const badgesList =
+      const defaultBadges =
         currentRankLvl >= 7
           ? ['👑 Legend', '⭐ Verified', '🏆 Top Seller', '⚡ Elite']
           : currentRankLvl >= 5
@@ -2793,7 +2854,7 @@ class Database {
 
       const userName = r.ownerName || r.user?.name || r.storeName;
 
-      return {
+      const entry: LeaderboardEntry = {
         rank: 1,
         resellerId: r.id,
         displayName: r.isAnonymousOnLeaderboard ? 'Anonymous Seller' : r.storeName,
@@ -2815,19 +2876,284 @@ class Database {
         xp: r.xp || 100,
         isFounder: Boolean(r.user?.isFounder || r.id === 'rsl-founder' || (r as any).isFounder),
         streakDays: Math.min(30, Math.max(1, Math.floor(deliveredCount / 12) + (currentRankLvl >= 3 ? 3 : 1))),
-        badges: badgesList,
+        badges: defaultBadges,
         status: r.status,
       };
+
+      // Apply Manual Admin Overrides if present
+      const override = overrides[r.id];
+      if (override) {
+        entry.hasManualOverride = true;
+        if (override.isHidden) entry.isHidden = true;
+        if (override.isPinned) entry.isPinned = true;
+        if (override.pinnedRank !== undefined && override.pinnedRank > 0) entry.pinnedRank = override.pinnedRank;
+        if (override.customStoreName) {
+          entry.storeName = override.customStoreName;
+          entry.displayName = override.customStoreName;
+        }
+        if (override.customOwnerName) {
+          entry.ownerName = override.customOwnerName;
+          entry.userName = override.customOwnerName;
+        }
+        if (override.customLevel !== undefined) {
+          entry.level = override.customLevel;
+          entry.levelTitle = override.customLevelTitle || levelTitles[override.customLevel] || `Level ${override.customLevel}`;
+        } else if (override.customLevelTitle) {
+          entry.levelTitle = override.customLevelTitle;
+        }
+        if (override.customXp !== undefined) entry.xp = override.customXp;
+        if (override.customDeliveredOrders !== undefined) {
+          entry.deliveredOrders = override.customDeliveredOrders;
+          entry.deliveredOrdersCount = override.customDeliveredOrders;
+          entry.salesCount = override.customDeliveredOrders;
+          entry.successfulDeliveries = override.customDeliveredOrders;
+        }
+        if (override.customTotalProfit !== undefined) {
+          entry.totalProfit = override.customTotalProfit;
+          entry.profitAmount = override.customTotalProfit;
+        }
+        if (override.customTotalSales !== undefined) {
+          entry.totalRevenue = override.customTotalSales;
+          entry.totalSalesBdt = override.customTotalSales;
+        }
+        if (override.customBadges && override.customBadges.length > 0) {
+          entry.badges = override.customBadges;
+        }
+        if (override.isAnonymous !== undefined) {
+          entry.displayName = override.isAnonymous ? 'Anonymous Seller' : entry.storeName;
+        }
+      }
+
+      return entry;
     });
 
-    // Sort strictly by profit desc, then deliveries desc, then xp desc
-    entries.sort((a, b) => b.totalProfit - a.totalProfit || b.deliveredOrders - a.deliveredOrders || b.xp - a.xp);
+    // Filter out hidden entries
+    const visibleEntries = baseEntries.filter((e) => !e.isHidden);
 
-    entries.forEach((e, idx) => {
+    // Merge custom showcase entries
+    const customEntries = (config.customEntries || []).filter((ce) => !ce.isHidden);
+    const allCandidates = [...visibleEntries, ...customEntries];
+
+    // Separate pinned vs normal
+    const pinned = allCandidates.filter((e) => e.isPinned && typeof e.pinnedRank === 'number' && e.pinnedRank > 0);
+    const unpinned = allCandidates.filter((e) => !e.isPinned || typeof e.pinnedRank !== 'number' || e.pinnedRank <= 0);
+
+    // Sort unpinned
+    if (config.sortBy === 'xp') {
+      unpinned.sort((a, b) => b.xp - a.xp || b.totalProfit - a.totalProfit || b.deliveredOrders - a.deliveredOrders);
+    } else if (config.sortBy === 'orders') {
+      unpinned.sort((a, b) => b.deliveredOrders - a.deliveredOrders || b.totalProfit - a.totalProfit || b.xp - a.xp);
+    } else {
+      unpinned.sort((a, b) => b.totalProfit - a.totalProfit || b.deliveredOrders - a.deliveredOrders || b.xp - a.xp);
+    }
+
+    // Sort pinned by their pinnedRank asc
+    pinned.sort((a, b) => (a.pinnedRank || 999) - (b.pinnedRank || 999));
+
+    // Construct final list by inserting pinned items into their requested 1-indexed position
+    const finalList: LeaderboardEntry[] = [];
+    let unpinnedIdx = 0;
+    const totalCount = pinned.length + unpinned.length;
+
+    for (let currentRank = 1; currentRank <= totalCount; currentRank++) {
+      const pinForThisSlot = pinned.find((p) => p.pinnedRank === currentRank);
+      if (pinForThisSlot && !finalList.includes(pinForThisSlot)) {
+        finalList.push(pinForThisSlot);
+      } else if (unpinnedIdx < unpinned.length) {
+        finalList.push(unpinned[unpinnedIdx++]);
+      } else {
+        // Any remaining pinned
+        const remainingPin = pinned.find((p) => !finalList.includes(p));
+        if (remainingPin) finalList.push(remainingPin);
+      }
+    }
+
+    // Append any leftover unpinned items
+    while (unpinnedIdx < unpinned.length) {
+      finalList.push(unpinned[unpinnedIdx++]);
+    }
+
+    // Assign final sequential rank numbers
+    finalList.forEach((e, idx) => {
       e.rank = idx + 1;
     });
 
-    return entries;
+    return finalList;
+  }
+
+  public getLeaderboardAdmin(period: 'weekly' | 'monthly' | 'allTime' = 'allTime') {
+    const config = this.data.leaderboardConfig || {
+      manualOverrides: {},
+      customEntries: [],
+      sortBy: 'custom',
+    };
+    const leaderboard = this.getLeaderboard(period);
+    const allResellers = this.getAllResellersWithDetails();
+
+    return {
+      period,
+      leaderboard,
+      allResellers,
+      config,
+    };
+  }
+
+  public updateLeaderboardOverride(
+    resellerId: string,
+    overrides: LeaderboardOverride,
+    actor: User
+  ) {
+    if (!this.data.leaderboardConfig) {
+      this.data.leaderboardConfig = { manualOverrides: {}, customEntries: [], sortBy: 'custom' };
+    }
+    if (!this.data.leaderboardConfig.manualOverrides) {
+      this.data.leaderboardConfig.manualOverrides = {};
+    }
+
+    const prev = this.data.leaderboardConfig.manualOverrides[resellerId] || {};
+    this.data.leaderboardConfig.manualOverrides[resellerId] = {
+      ...prev,
+      ...overrides,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // If override changed core properties and reseller exists, sync to ResellerProfile
+    const reseller = this.getResellerById(resellerId);
+    if (reseller) {
+      if (overrides.customXp !== undefined) {
+        reseller.xp = Number(overrides.customXp);
+        reseller.level = this.calculateResellerLevel(reseller.xp);
+      }
+      if (overrides.customLevel !== undefined) {
+        reseller.level = Number(overrides.customLevel);
+      }
+      if (overrides.customStoreName) {
+        reseller.storeName = overrides.customStoreName;
+      }
+      if (overrides.customDeliveredOrders !== undefined) {
+        reseller.deliveredOrdersCount = Number(overrides.customDeliveredOrders);
+      }
+      if (overrides.customTotalProfit !== undefined) {
+        reseller.totalProfitEarned = Number(overrides.customTotalProfit);
+        (reseller as any).totalProfitEarnedBdt = Number(overrides.customTotalProfit);
+      }
+      if (overrides.customTotalSales !== undefined) {
+        (reseller as any).totalSalesBdt = Number(overrides.customTotalSales);
+      }
+    }
+
+    this.logAudit({
+      action: 'UPDATE_LEADERBOARD_OVERRIDE',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'LEADERBOARD',
+      targetId: resellerId,
+      details: `Updated leaderboard override for reseller ${reseller?.storeName || resellerId}`,
+    });
+
+    this.save();
+    return {
+      success: true,
+      resellerId,
+      override: this.data.leaderboardConfig.manualOverrides[resellerId],
+    };
+  }
+
+  public deleteLeaderboardOverride(resellerId: string, actor: User) {
+    if (this.data.leaderboardConfig?.manualOverrides?.[resellerId]) {
+      delete this.data.leaderboardConfig.manualOverrides[resellerId];
+      this.logAudit({
+        action: 'DELETE_LEADERBOARD_OVERRIDE',
+        actorId: actor.id,
+        actorName: actor.name,
+        actorRole: actor.role,
+        targetType: 'LEADERBOARD',
+        targetId: resellerId,
+        details: `Deleted leaderboard override for reseller ${resellerId}`,
+      });
+      this.save();
+    }
+    return { success: true, resellerId };
+  }
+
+  public addCustomLeaderboardEntry(entry: LeaderboardEntry, actor: User) {
+    if (!this.data.leaderboardConfig) {
+      this.data.leaderboardConfig = { manualOverrides: {}, customEntries: [], sortBy: 'custom' };
+    }
+    if (!this.data.leaderboardConfig.customEntries) {
+      this.data.leaderboardConfig.customEntries = [];
+    }
+
+    const cleanEntry: LeaderboardEntry = {
+      ...entry,
+      resellerId: entry.resellerId || `custom-${Date.now()}`,
+      hasManualOverride: true,
+    };
+
+    const existingIdx = this.data.leaderboardConfig.customEntries.findIndex(
+      (e) => e.resellerId === cleanEntry.resellerId
+    );
+    if (existingIdx >= 0) {
+      this.data.leaderboardConfig.customEntries[existingIdx] = cleanEntry;
+    } else {
+      this.data.leaderboardConfig.customEntries.push(cleanEntry);
+    }
+
+    this.logAudit({
+      action: 'ADD_CUSTOM_LEADERBOARD_ENTRY',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'LEADERBOARD',
+      targetId: cleanEntry.resellerId,
+      details: `Added custom leaderboard entry: ${cleanEntry.storeName}`,
+    });
+
+    this.save();
+    return cleanEntry;
+  }
+
+  public deleteCustomLeaderboardEntry(id: string, actor: User) {
+    if (this.data.leaderboardConfig?.customEntries) {
+      this.data.leaderboardConfig.customEntries = this.data.leaderboardConfig.customEntries.filter(
+        (e) => e.resellerId !== id
+      );
+      this.logAudit({
+        action: 'DELETE_CUSTOM_LEADERBOARD_ENTRY',
+        actorId: actor.id,
+        actorName: actor.name,
+        actorRole: actor.role,
+        targetType: 'LEADERBOARD',
+        targetId: id,
+        details: `Deleted custom leaderboard entry: ${id}`,
+      });
+      this.save();
+    }
+    return { success: true, id };
+  }
+
+  public saveLeaderboardConfig(config: Partial<LeaderboardConfig>, actor: User) {
+    if (!this.data.leaderboardConfig) {
+      this.data.leaderboardConfig = { manualOverrides: {}, customEntries: [], sortBy: 'custom' };
+    }
+    this.data.leaderboardConfig = {
+      ...this.data.leaderboardConfig,
+      ...config,
+    };
+
+    this.logAudit({
+      action: 'SAVE_LEADERBOARD_CONFIG',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'LEADERBOARD',
+      targetId: 'config',
+      details: `Updated leaderboard global configuration (sortBy: ${this.data.leaderboardConfig.sortBy})`,
+    });
+
+    this.save();
+    return this.data.leaderboardConfig;
   }
 
   public getAchievements(resellerId?: string) {
@@ -2884,9 +3210,6 @@ class Database {
             unlockedAt: new Date().toISOString(),
             claimed: true,
           });
-          // Award achievement XP
-          reseller.xp += ach.xpReward;
-          reseller.level = this.calculateResellerLevel(reseller.xp);
         }
       }
       this.save();
@@ -3302,10 +3625,6 @@ class Database {
     }
     if (!this.data.userLessonProgress[resellerId].includes(lessonId)) {
       this.data.userLessonProgress[resellerId].push(lessonId);
-      const lesson = this.data.academyLessons.find((l) => l.id === lessonId);
-      if (lesson) {
-        this.awardResellerXp(resellerId, lesson.xpReward, `Completed lesson: ${lesson.title}`);
-      }
       this.save();
     }
     return this.data.userLessonProgress[resellerId];

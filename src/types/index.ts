@@ -53,6 +53,7 @@ export interface ResellerProfile {
   totalOrdersCount?: number;
   totalProfitEarned?: number;
   totalProfitEarnedBdt?: number;
+  totalSalesBdt?: number;
   isAnonymousOnLeaderboard: boolean;
   createdAt: string;
 }
@@ -283,6 +284,33 @@ export interface LeaderboardEntry {
   streakDays: number;
   badges: string[];
   status?: string;
+  pinnedRank?: number;
+  isPinned?: boolean;
+  hasManualOverride?: boolean;
+  isHidden?: boolean;
+}
+
+export interface LeaderboardOverride {
+  pinnedRank?: number;
+  customStoreName?: string;
+  customOwnerName?: string;
+  customLevel?: number;
+  customLevelTitle?: string;
+  customXp?: number;
+  customDeliveredOrders?: number;
+  customTotalProfit?: number;
+  customTotalSales?: number;
+  customBadges?: string[];
+  isPinned?: boolean;
+  isHidden?: boolean;
+  isAnonymous?: boolean;
+  updatedAt?: string;
+}
+
+export interface LeaderboardConfig {
+  manualOverrides: Record<string, LeaderboardOverride>;
+  customEntries: LeaderboardEntry[];
+  sortBy: 'custom' | 'profit' | 'xp' | 'orders';
 }
 
 export interface Achievement {
@@ -356,6 +384,9 @@ export interface PlatformSettings {
   founderResellerId: string;
   adminEmail?: string;
   adminPassword?: string;
+  bkashNumber?: string;
+  nagadNumber?: string;
+  rocketNumber?: string;
 }
 
 export interface AuditLog {

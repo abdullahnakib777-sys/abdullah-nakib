@@ -110,15 +110,15 @@ export const ResellerVerificationModal: React.FC<ResellerVerificationModalProps>
             <div className="space-y-1 pt-1 text-[11px]">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-pink-600">bKash (Personal):</span>
-                <span className="font-mono font-bold text-slate-900">01712-345678</span>
+                <span className="font-mono font-black text-slate-900">01333855344</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-bold text-orange-600">Nagad (Personal):</span>
-                <span className="font-mono font-bold text-slate-900">01812-345678</span>
+                <span className="font-mono font-black text-slate-900">01576443668</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="font-bold text-purple-600">Rocket:</span>
-                <span className="font-mono font-bold text-slate-900">01912-345678-9</span>
+                <span className="font-bold text-purple-600">Rocket (Personal):</span>
+                <span className="font-mono font-black text-slate-900">01576443668</span>
               </div>
             </div>
           </div>

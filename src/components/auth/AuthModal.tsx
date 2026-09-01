@@ -1021,15 +1021,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <div className="space-y-1.5 bg-[#0e0c1f] p-3 rounded-xl border border-purple-500/30 text-[11px]">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-pink-400">bKash (Personal):</span>
-                        <span className="font-mono font-bold text-cyan-300">01712-345678</span>
+                        <span className="font-mono font-black text-cyan-300">01333855344</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-orange-400">Nagad (Personal):</span>
-                        <span className="font-mono font-bold text-cyan-300">01812-345678</span>
+                        <span className="font-mono font-black text-cyan-300">01576443668</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-purple-400">Rocket:</span>
-                        <span className="font-mono font-bold text-cyan-300">01912-345678-9</span>
+                        <span className="font-bold text-purple-400">Rocket (Personal):</span>
+                        <span className="font-mono font-black text-cyan-300">01576443668</span>
                       </div>
                     </div>
                   </div>

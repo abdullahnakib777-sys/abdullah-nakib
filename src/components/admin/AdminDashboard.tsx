@@ -18,6 +18,7 @@ import { triggerLevelUpCelebration } from '../common/ConfettiTrigger';
 import { BulkProductUploaderModal } from './BulkProductUploaderModal';
 import { AdminNotificationsManager } from './AdminNotificationsManager';
 import { AdminBadgesManager } from './AdminBadgesManager';
+import { AdminLeaderboardManager } from './AdminLeaderboardManager';
 import {
   ShieldCheck,
   TrendingUp,
@@ -66,7 +67,7 @@ import {
 export const AdminDashboard: React.FC = () => {
   const { isBn, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'orders' | 'resellers' | 'products' | 'notifications' | 'badges' | 'challenges' | 'academy' | 'withdrawals' | 'fraud' | 'settings'
+    'overview' | 'orders' | 'resellers' | 'products' | 'notifications' | 'badges' | 'challenges' | 'leaderboard' | 'academy' | 'withdrawals' | 'fraud' | 'settings'
   >('overview');
 
   const [statsData, setStatsData] = useState<any>(null);
@@ -91,6 +92,7 @@ export const AdminDashboard: React.FC = () => {
   // Manual Award XP Modal
   const [isAwardXpModalOpen, setIsAwardXpModalOpen] = useState(false);
   const [selectedResellerForXp, setSelectedResellerForXp] = useState<AdminResellerItem | null>(null);
+  const [awardXpMode, setAwardXpMode] = useState<'ADD' | 'DEDUCT' | 'SET'>('ADD');
   const [awardXpAmount, setAwardXpAmount] = useState<number>(100);
   const [awardXpReason, setAwardXpReason] = useState<string>('Completed Facebook & TikTok Viral Video Lesson');
   const [customXpReason, setCustomXpReason] = useState<string>('');
@@ -326,6 +328,7 @@ export const AdminDashboard: React.FC = () => {
 
   const handleOpenAwardXpModal = (reseller: AdminResellerItem) => {
     setSelectedResellerForXp(reseller);
+    setAwardXpMode('ADD');
     setAwardXpAmount(100);
     setAwardXpReason('Completed Facebook & TikTok Viral Video Lesson');
     setCustomXpReason('');
@@ -337,10 +340,11 @@ export const AdminDashboard: React.FC = () => {
     if (!selectedResellerForXp) return;
     setIsSubmittingXp(true);
     try {
-      const finalReason = awardXpReason === 'CUSTOM' ? (customXpReason || 'Custom Admin XP Award') : awardXpReason;
+      const finalReason = awardXpReason === 'CUSTOM' ? (customXpReason || 'Custom Admin XP Adjustment') : awardXpReason;
       const res = await api.awardResellerXp(selectedResellerForXp.id, {
         amount: Number(awardXpAmount),
         reason: finalReason,
+        mode: awardXpMode,
       });
 
       triggerLevelUpCelebration();
@@ -352,7 +356,7 @@ export const AdminDashboard: React.FC = () => {
         setAwardSuccessBanner(null);
       }, 6000);
     } catch (err: any) {
-      alert(err.message || 'Failed to award XP');
+      alert(err.message || 'Failed to update XP');
     } finally {
       setIsSubmittingXp(false);
     }
@@ -545,6 +549,7 @@ export const AdminDashboard: React.FC = () => {
           { id: 'overview', label: isBn ? '📊 অ্যানালিটিক্স' : '📊 Analytics' },
           { id: 'orders', label: isBn ? `📦 অর্ডার (${orders.length})` : `📦 Orders (${orders.length})` },
           { id: 'resellers', label: isBn ? `👥 রিসেলার ও এক্সপি (${allResellers.length > 0 ? allResellers.length : resellers.length})` : `👥 Resellers & XP (${allResellers.length > 0 ? allResellers.length : resellers.length})` },
+          { id: 'leaderboard', label: isBn ? '👑 লিডারবোর্ড কন্ট্রোল' : '👑 Leaderboard Control' },
           { id: 'products', label: isBn ? `🏷️ প্রোডাক্টস (${products.length})` : `🏷️ Products (${products.length})` },
           { id: 'notifications', label: isBn ? '📢 নোটিফিকেশন ও ব্যানার' : '📢 Notifications & Posters' },
           { id: 'badges', label: isBn ? '⭐ ব্যাজ ও সম্মাননা' : '⭐ Badges & Accolades' },
@@ -1418,6 +1423,13 @@ export const AdminDashboard: React.FC = () => {
           </div>
         );
       })()}
+
+      {/* TAB 4: LEADERBOARD MANAGER & RANKING CONTROL */}
+      {activeTab === 'leaderboard' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <AdminLeaderboardManager />
+        </div>
+      )}
 
       {/* TAB 4.5: NOTIFICATIONS & MARKETING POSTERS */}
       {activeTab === 'notifications' && (
@@ -2745,7 +2757,15 @@ export const AdminDashboard: React.FC = () => {
       {isAwardXpModalOpen && selectedResellerForXp && (() => {
         const currentXp = selectedResellerForXp.xp || 0;
         const currentLevel = selectedResellerForXp.level || 1;
-        const projectedXp = currentXp + Number(awardXpAmount || 0);
+        
+        let projectedXp = currentXp;
+        if (awardXpMode === 'ADD') {
+          projectedXp = currentXp + Number(awardXpAmount || 0);
+        } else if (awardXpMode === 'DEDUCT') {
+          projectedXp = Math.max(0, currentXp - Number(awardXpAmount || 0));
+        } else if (awardXpMode === 'SET') {
+          projectedXp = Math.max(0, Number(awardXpAmount || 0));
+        }
 
         let projectedLevel = 1;
         let projectedLevelName = 'Novice Reseller';
@@ -2764,6 +2784,7 @@ export const AdminDashboard: React.FC = () => {
         }
 
         const isLevelUp = projectedLevel > currentLevel;
+        const isLevelDown = projectedLevel < currentLevel;
 
         return (
           <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
@@ -2779,8 +2800,8 @@ export const AdminDashboard: React.FC = () => {
                     <Zap className="w-5 h-5 fill-amber-200 text-amber-200" />
                   </div>
                   <div>
-                    <h3 className="font-black text-sm">Award Gamification XP</h3>
-                    <p className="text-xs text-amber-100">Direct Admin Gamification Grant</p>
+                    <h3 className="font-black text-sm">Reseller XP Control & Gamification</h3>
+                    <p className="text-xs text-amber-100">Manual Admin XP Awarding, Deduction & Leveling</p>
                   </div>
                 </div>
                 <button
@@ -2815,9 +2836,9 @@ export const AdminDashboard: React.FC = () => {
                       <p className="font-mono font-bold text-white text-xs">{currentXp.toLocaleString()} XP</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <ArrowUpRight className="w-4 h-4 text-amber-400 animate-pulse" />
+                      <ArrowUpRight className={`w-4 h-4 ${isLevelDown ? 'text-rose-400 rotate-90' : 'text-amber-400 animate-pulse'}`} />
                       <div className="text-right">
-                        <span className="text-[10px] text-amber-300 font-bold">Projected XP</span>
+                        <span className="text-[10px] text-amber-300 font-bold">Projected New XP</span>
                         <p className="font-mono font-black text-amber-300 text-xs">
                           {projectedXp.toLocaleString()} XP ({projectedLevelName})
                         </p>
@@ -2828,58 +2849,113 @@ export const AdminDashboard: React.FC = () => {
                   {isLevelUp && (
                     <div className="p-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 text-slate-950 font-black text-[11px] text-center flex items-center justify-center gap-1.5 shadow-sm">
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>Instant Level Up Trigger: Level {currentLevel} ➔ Level {projectedLevel}!</span>
+                      <span>Instant Level Up: Level {currentLevel} ➔ Level {projectedLevel}!</span>
+                    </div>
+                  )}
+
+                  {isLevelDown && (
+                    <div className="p-2 rounded-xl bg-rose-500 text-white font-bold text-[11px] text-center">
+                      <span>Level Adjusted: Level {currentLevel} ➔ Level {projectedLevel}</span>
                     </div>
                   )}
                 </div>
 
-                {/* Quick XP Preset Selector */}
+                {/* Operation Mode Selector */}
                 <div>
-                  <label className="block font-bold text-slate-800 mb-1.5">Select XP Amount *</label>
+                  <label className="block font-bold text-slate-800 mb-1.5">Action Mode *</label>
                   <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { amount: 50, label: '+50 XP (Quiz / Task)' },
-                      { amount: 100, label: '+100 XP (Standard Lesson)' },
-                      { amount: 250, label: '+250 XP (Masterclass)' },
-                      { amount: 500, label: '+500 XP (Weekly Challenge)' },
-                      { amount: 1000, label: '+1000 XP (Super Bonus)' },
-                      { amount: 2000, label: '+2000 XP (Elite Award)' },
-                    ].map((preset) => (
-                      <button
-                        key={preset.amount}
-                        type="button"
-                        onClick={() => setAwardXpAmount(preset.amount)}
-                        className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center justify-center ${
-                          awardXpAmount === preset.amount
-                            ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span className="text-sm font-black font-mono">+{preset.amount}</span>
-                        <span className="text-[9px] font-medium opacity-90">{preset.label.split('(')[1]?.replace(')', '') || 'XP'}</span>
-                      </button>
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setAwardXpMode('ADD')}
+                      className={`p-2 rounded-xl border text-center font-bold transition flex items-center justify-center gap-1.5 ${
+                        awardXpMode === 'ADD'
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>➕</span>
+                      <span>Add XP</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAwardXpMode('DEDUCT')}
+                      className={`p-2 rounded-xl border text-center font-bold transition flex items-center justify-center gap-1.5 ${
+                        awardXpMode === 'DEDUCT'
+                          ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>➖</span>
+                      <span>Deduct XP</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAwardXpMode('SET')}
+                      className={`p-2 rounded-xl border text-center font-bold transition flex items-center justify-center gap-1.5 ${
+                        awardXpMode === 'SET'
+                          ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>🎯</span>
+                      <span>Set Exact</span>
+                    </button>
                   </div>
                 </div>
 
+                {/* Quick XP Preset Selector */}
+                {awardXpMode !== 'SET' && (
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1.5">Select Preset Amount</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { amount: 50, label: '50 XP (Task / Quiz)' },
+                        { amount: 100, label: '100 XP (Standard Lesson)' },
+                        { amount: 250, label: '250 XP (Masterclass)' },
+                        { amount: 500, label: '500 XP (Weekly Sprint)' },
+                        { amount: 1000, label: '1000 XP (Super Bonus)' },
+                        { amount: 2000, label: '2000 XP (Elite Recognition)' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.amount}
+                          type="button"
+                          onClick={() => setAwardXpAmount(preset.amount)}
+                          className={`p-2.5 rounded-xl border text-center font-bold transition flex flex-col items-center justify-center ${
+                            awardXpAmount === preset.amount
+                              ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className="text-sm font-black font-mono">
+                            {awardXpMode === 'DEDUCT' ? '-' : '+'}{preset.amount}
+                          </span>
+                          <span className="text-[9px] font-medium opacity-90">{preset.label.split('(')[1]?.replace(')', '') || 'XP'}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Custom Number Input */}
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Or Enter Exact XP Amount</label>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    {awardXpMode === 'SET' ? 'Enter Exact Target Total XP *' : 'Or Enter Custom XP Amount *'}
+                  </label>
                   <input
                     type="number"
-                    min={1}
-                    max={10000}
+                    min={0}
+                    max={100000}
                     step={10}
                     required
                     value={awardXpAmount}
-                    onChange={(e) => setAwardXpAmount(Math.max(1, Number(e.target.value)))}
+                    onChange={(e) => setAwardXpAmount(Math.max(0, Number(e.target.value)))}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold text-slate-900 focus:bg-white"
                   />
                 </div>
 
                 {/* Reason Dropdown & Presets */}
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Reason / Challenge / Lesson *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Reason / Note *</label>
                   <select
                     value={awardXpReason}
                     onChange={(e) => setAwardXpReason(e.target.value)}
@@ -2903,7 +2979,10 @@ export const AdminDashboard: React.FC = () => {
                     <option value="Special Performance & Store Motivation Boost">
                       ⭐ Special Performance & Store Motivation Boost
                     </option>
-                    <option value="CUSTOM">✍️ Custom Offline Lesson / Challenge Reason</option>
+                    <option value="Admin Manual Correction / Recalibration">
+                      ⚙️ Admin Manual Correction / Recalibration
+                    </option>
+                    <option value="CUSTOM">✍️ Custom Reason / Note</option>
                   </select>
                 </div>
 
@@ -2913,7 +2992,7 @@ export const AdminDashboard: React.FC = () => {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Attended Dhaka Reseller Workshop Masterclass"
+                      placeholder="e.g. Completed offline masterclass workshop"
                       value={customXpReason}
                       onChange={(e) => setCustomXpReason(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium"
@@ -2933,14 +3012,24 @@ export const AdminDashboard: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmittingXp}
-                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black rounded-xl shadow-md transition flex items-center gap-2"
+                    className={`px-6 py-2.5 font-black rounded-xl shadow-md transition flex items-center gap-2 ${
+                      awardXpMode === 'DEDUCT'
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                        : awardXpMode === 'SET'
+                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                        : 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950'
+                    }`}
                   >
                     {isSubmittingXp ? (
-                      <span>Awarding XP...</span>
+                      <span>Saving Changes...</span>
                     ) : (
                       <>
-                        <Zap className="w-4 h-4 fill-slate-950 text-slate-950" />
-                        <span>Confirm & Award +{awardXpAmount} XP</span>
+                        <Zap className="w-4 h-4 fill-current" />
+                        <span>
+                          {awardXpMode === 'ADD' && `Confirm & Award +${awardXpAmount} XP`}
+                          {awardXpMode === 'DEDUCT' && `Confirm & Deduct -${awardXpAmount} XP`}
+                          {awardXpMode === 'SET' && `Confirm & Set Exact ${awardXpAmount} XP`}
+                        </span>
                       </>
                     )}
                   </button>

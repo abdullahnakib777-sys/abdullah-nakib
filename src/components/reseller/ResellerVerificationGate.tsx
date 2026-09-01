@@ -231,7 +231,7 @@ export const ResellerVerificationGate: React.FC<ResellerVerificationGateProps> =
                   <div className="p-3 rounded-xl bg-white border border-pink-100 shadow-xs space-y-1">
                     <div className="flex items-center justify-between font-bold text-pink-600">
                       <span>bKash (Send Money - Personal)</span>
-                      <span className="font-mono text-slate-900 text-sm">01712-345678</span>
+                      <span className="font-mono text-slate-900 text-sm font-black">01333855344</span>
                     </div>
                     <p className="text-[10px] text-slate-400">Go to bKash App &gt; Send Money &gt; Enter 500 TK</p>
                   </div>
@@ -239,7 +239,7 @@ export const ResellerVerificationGate: React.FC<ResellerVerificationGateProps> =
                   <div className="p-3 rounded-xl bg-white border border-orange-100 shadow-xs space-y-1">
                     <div className="flex items-center justify-between font-bold text-orange-600">
                       <span>Nagad (Send Money - Personal)</span>
-                      <span className="font-mono text-slate-900 text-sm">01812-345678</span>
+                      <span className="font-mono text-slate-900 text-sm font-black">01576443668</span>
                     </div>
                     <p className="text-[10px] text-slate-400">Go to Nagad App &gt; Send Money &gt; Enter 500 TK</p>
                   </div>
@@ -247,7 +247,7 @@ export const ResellerVerificationGate: React.FC<ResellerVerificationGateProps> =
                   <div className="p-3 rounded-xl bg-white border border-purple-100 shadow-xs space-y-1">
                     <div className="flex items-center justify-between font-bold text-purple-600">
                       <span>Rocket (Send Money - Personal)</span>
-                      <span className="font-mono text-slate-900 text-sm">01912-345678-9</span>
+                      <span className="font-mono text-slate-900 text-sm font-black">01576443668</span>
                     </div>
                     <p className="text-[10px] text-slate-400">Go to Rocket App &gt; Send Money &gt; Enter 500 TK</p>
                   </div>

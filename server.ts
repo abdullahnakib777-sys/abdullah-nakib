@@ -868,7 +868,7 @@ async function startServer() {
     }
   });
 
-  // Admin: Award Manual XP to Reseller for Challenge/Lesson/Performance
+  // Admin: Award or Set Manual XP to Reseller
   app.post('/api/v1/admin/resellers/:id/award-xp', (req: Request, res: Response) => {
     try {
       const user = getAuthenticatedUser(req);
@@ -876,9 +876,9 @@ async function startServer() {
         return res.status(403).json({ error: 'Admin permissions required' });
       }
       const { id } = req.params;
-      const { amount, reason } = req.body;
+      const { amount, reason, mode } = req.body;
 
-      if (!amount || isNaN(Number(amount))) {
+      if (amount === undefined || isNaN(Number(amount))) {
         return res.status(400).json({ error: 'Valid XP amount is required' });
       }
 
@@ -886,16 +886,131 @@ async function startServer() {
         id,
         Number(amount),
         reason || 'Manual Admin XP Award',
-        user
+        user,
+        mode || 'ADD'
       );
 
       res.json({
         success: true,
         ...awardResult,
-        message: `Successfully awarded +${amount} XP to ${awardResult.reseller.storeName}! (New Level: ${awardResult.newLevel})`,
+        message: mode === 'SET' 
+          ? `Successfully set exact XP to ${awardResult.newXp} for ${awardResult.reseller.storeName}! (Level: ${awardResult.newLevel})`
+          : mode === 'DEDUCT'
+          ? `Successfully deducted -${amount} XP from ${awardResult.reseller.storeName}! (New XP: ${awardResult.newXp}, Level: ${awardResult.newLevel})`
+          : `Successfully awarded +${amount} XP to ${awardResult.reseller.storeName}! (New XP: ${awardResult.newXp}, Level: ${awardResult.newLevel})`,
       });
     } catch (err: any) {
       res.status(400).json({ error: err.message || 'Failed to award XP' });
+    }
+  });
+
+  // Admin: Get Leaderboard Data & Full Overrides Configuration
+  app.get('/api/v1/admin/leaderboard', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const { period } = req.query;
+      const data = db.getLeaderboardAdmin((period as any) || 'allTime');
+      res.json(data);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to fetch admin leaderboard' });
+    }
+  });
+
+  // Admin: Update/Set Leaderboard Override for a Reseller
+  app.post('/api/v1/admin/leaderboard/override', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const { resellerId, overrides } = req.body;
+      if (!resellerId) {
+        return res.status(400).json({ error: 'resellerId is required' });
+      }
+      const result = db.updateLeaderboardOverride(resellerId, overrides || {}, user);
+      res.json({
+        ...result,
+        message: 'Leaderboard override saved successfully!',
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to update leaderboard override' });
+    }
+  });
+
+  // Admin: Delete Leaderboard Override for a Reseller (Reset to auto)
+  app.delete('/api/v1/admin/leaderboard/override/:resellerId', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const { resellerId } = req.params;
+      const result = db.deleteLeaderboardOverride(resellerId, user);
+      res.json({
+        ...result,
+        message: 'Leaderboard override removed and reset to default calculation.',
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to delete leaderboard override' });
+    }
+  });
+
+  // Admin: Add Custom Showcase Reseller / VIP Entry
+  app.post('/api/v1/admin/leaderboard/custom-entry', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const entry = req.body;
+      if (!entry.storeName) {
+        return res.status(400).json({ error: 'Store name is required' });
+      }
+      const result = db.addCustomLeaderboardEntry(entry, user);
+      res.status(201).json({
+        entry: result,
+        message: 'Custom leaderboard showcase entry added successfully!',
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to add custom leaderboard entry' });
+    }
+  });
+
+  // Admin: Delete Custom Showcase Entry
+  app.delete('/api/v1/admin/leaderboard/custom-entry/:id', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const { id } = req.params;
+      const result = db.deleteCustomLeaderboardEntry(id, user);
+      res.json({
+        ...result,
+        message: 'Custom entry deleted successfully.',
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to delete custom entry' });
+    }
+  });
+
+  // Admin: Save Leaderboard Global Configuration
+  app.put('/api/v1/admin/leaderboard/config', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const config = db.saveLeaderboardConfig(req.body, user);
+      res.json({
+        config,
+        message: 'Leaderboard settings saved successfully!',
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || 'Failed to update leaderboard config' });
     }
   });
 

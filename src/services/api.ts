@@ -8,6 +8,8 @@ import {
   WalletTransaction,
   WithdrawalRequest,
   LeaderboardEntry,
+  LeaderboardOverride,
+  LeaderboardConfig,
   Achievement,
   UserAchievement,
   WeeklyChallenge,
@@ -443,7 +445,10 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  awardResellerXp: (resellerId: string, body: { amount: number; reason: string }) =>
+  awardResellerXp: (
+    resellerId: string,
+    body: { amount: number; reason?: string; mode?: 'ADD' | 'DEDUCT' | 'SET' }
+  ) =>
     apiFetch<{
       success: boolean;
       reseller: ResellerProfile;
@@ -452,11 +457,71 @@ export const api = {
       prevLevel: number;
       newLevel: number;
       leveledUp: boolean;
+      amount: number;
+      reason: string;
+      mode?: 'ADD' | 'DEDUCT' | 'SET';
       message: string;
     }>(`/api/v1/admin/resellers/${resellerId}/award-xp`, {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  // Admin Leaderboard Control APIs
+  getAdminLeaderboard: (period: 'weekly' | 'monthly' | 'allTime' = 'allTime') =>
+    apiFetch<{
+      period: string;
+      leaderboard: LeaderboardEntry[];
+      allResellers: ResellerProfile[];
+      config: LeaderboardConfig;
+    }>(`/api/v1/admin/leaderboard?period=${period}`),
+
+  adminOverrideLeaderboard: (body: {
+    resellerId: string;
+    overrides: Partial<LeaderboardOverride>;
+  }) =>
+    apiFetch<{
+      success: boolean;
+      resellerId: string;
+      override: LeaderboardOverride;
+      message: string;
+    }>('/api/v1/admin/leaderboard/override', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  adminDeleteLeaderboardOverride: (resellerId: string) =>
+    apiFetch<{ success: boolean; resellerId: string; message: string }>(
+      `/api/v1/admin/leaderboard/override/${encodeURIComponent(resellerId)}`,
+      {
+        method: 'DELETE',
+      }
+    ),
+
+  adminAddCustomLeaderboardEntry: (body: Partial<LeaderboardEntry>) =>
+    apiFetch<{ entry: LeaderboardEntry; message: string }>(
+      '/api/v1/admin/leaderboard/custom-entry',
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }
+    ),
+
+  adminDeleteCustomLeaderboardEntry: (id: string) =>
+    apiFetch<{ success: boolean; id: string; message: string }>(
+      `/api/v1/admin/leaderboard/custom-entry/${encodeURIComponent(id)}`,
+      {
+        method: 'DELETE',
+      }
+    ),
+
+  adminSaveLeaderboardConfig: (config: Partial<LeaderboardConfig>) =>
+    apiFetch<{ config: LeaderboardConfig; message: string }>(
+      '/api/v1/admin/leaderboard/config',
+      {
+        method: 'PUT',
+        body: JSON.stringify(config),
+      }
+    ),
 
   getAdminUsers: () =>
     apiFetch<{ users: User[] }>('/api/v1/admin/users'),
