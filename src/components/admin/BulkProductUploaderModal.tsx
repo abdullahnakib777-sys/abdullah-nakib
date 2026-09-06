@@ -380,7 +380,7 @@ export const BulkProductUploaderModal: React.FC<BulkProductUploaderModalProps> =
                 value={csvText}
                 onChange={(e) => handleParseText(e.target.value)}
                 placeholder={`"194.25","700","https://.../img.jpg","Blue Heart Bottle Locket","833","133","বিস্তারিত বাংলা বিবরণ..."`}
-                className="w-full h-32 p-3 font-mono text-[11px] bg-slate-50 border border-slate-200 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                className="w-full h-32 p-3 font-mono text-[11px] text-slate-950 font-medium bg-slate-50 border border-slate-200 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
               />
             </div>
           </div>

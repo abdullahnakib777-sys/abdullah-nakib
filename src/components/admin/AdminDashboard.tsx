@@ -987,7 +987,7 @@ export const AdminDashboard: React.FC = () => {
                   placeholder="Search by store, owner, phone, district or referral code..."
                   value={resellerSearchQuery}
                   onChange={(e) => setResellerSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-950 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -1287,7 +1287,7 @@ export const AdminDashboard: React.FC = () => {
                   placeholder="Search by code (#MM-1001), name or category..."
                   value={productSearchQuery}
                   onChange={(e) => setProductSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-950 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -1296,7 +1296,7 @@ export const AdminDashboard: React.FC = () => {
                 <select
                   value={productCategoryFilter}
                   onChange={(e) => setProductCategoryFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="all">All Categories</option>
                   <option value="gadgets">Electronics & Gadgets</option>
@@ -2195,7 +2195,7 @@ export const AdminDashboard: React.FC = () => {
                 <select
                   value={newOrderStatus}
                   onChange={(e) => setNewOrderStatus(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-950 focus:bg-white"
                 >
                   <option value="PENDING">PENDING (Review)</option>
                   <option value="CONFIRMED">CONFIRMED (Call verified)</option>
@@ -2214,7 +2214,7 @@ export const AdminDashboard: React.FC = () => {
                   placeholder="e.g. Dispatched via Steadfast / Pathao"
                   value={statusNote}
                   onChange={(e) => setStatusNote(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                 />
               </div>
 
@@ -2254,7 +2254,7 @@ export const AdminDashboard: React.FC = () => {
                   placeholder="e.g. 9KL2M899"
                   value={payoutTrxId}
                   onChange={(e) => setPayoutTrxId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono uppercase"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono uppercase text-slate-950 font-bold focus:bg-white"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2">
@@ -2304,7 +2304,7 @@ export const AdminDashboard: React.FC = () => {
                     required
                     value={newProduct.name}
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                   />
                 </div>
               </div>
@@ -2317,7 +2317,7 @@ export const AdminDashboard: React.FC = () => {
                   placeholder="e.g. প্রিমিয়াম ওয়্যারলেস ইয়ারবাডস"
                   value={newProduct.nameBn}
                   onChange={(e) => setNewProduct({ ...newProduct, nameBn: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                 />
               </div>
 
@@ -2335,7 +2335,7 @@ export const AdminDashboard: React.FC = () => {
                       else if (val.includes('Baby')) slug = 'baby';
                       setNewProduct({ ...newProduct, category: val, categorySlug: slug });
                     }}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                   >
                     <option value="Electronics & Gadgets">Electronics & Gadgets</option>
                     <option value="Smart Kitchen & Living">Smart Kitchen & Living</option>
@@ -2357,7 +2357,7 @@ export const AdminDashboard: React.FC = () => {
                         isStockOut: val <= 0,
                       });
                     }}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono text-slate-950 focus:bg-white"
                   />
                 </div>
               </div>
@@ -2445,7 +2445,7 @@ export const AdminDashboard: React.FC = () => {
                   type="text"
                   value={newProduct.images?.[0] || ''}
                   onChange={(e) => setNewProduct({ ...newProduct, images: [e.target.value] })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                 />
               </div>
 
@@ -2455,7 +2455,7 @@ export const AdminDashboard: React.FC = () => {
                   rows={3}
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                 />
               </div>
 
@@ -2508,7 +2508,7 @@ export const AdminDashboard: React.FC = () => {
                     required
                     value={editingProduct.name}
                     onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                   />
                 </div>
               </div>
@@ -2520,7 +2520,7 @@ export const AdminDashboard: React.FC = () => {
                   required
                   value={editingProduct.nameBn || ''}
                   onChange={(e) => setEditingProduct({ ...editingProduct, nameBn: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                 />
               </div>
 
@@ -2538,7 +2538,7 @@ export const AdminDashboard: React.FC = () => {
                       else if (val.includes('Baby')) slug = 'baby';
                       setEditingProduct({ ...editingProduct, category: val, categorySlug: slug });
                     }}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                   >
                     <option value="Electronics & Gadgets">Electronics & Gadgets</option>
                     <option value="Smart Kitchen & Living">Smart Kitchen & Living</option>
@@ -2560,7 +2560,7 @@ export const AdminDashboard: React.FC = () => {
                         isStockOut: val <= 0,
                       });
                     }}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono text-slate-950 focus:bg-white"
                   />
                 </div>
               </div>
@@ -2652,7 +2652,7 @@ export const AdminDashboard: React.FC = () => {
                     newImgs[0] = e.target.value;
                     setEditingProduct({ ...editingProduct, images: newImgs });
                   }}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                 />
               </div>
 
@@ -2662,7 +2662,7 @@ export const AdminDashboard: React.FC = () => {
                   rows={3}
                   value={editingProduct.description || ''}
                   onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                 />
               </div>
 
@@ -2756,7 +2756,7 @@ export const AdminDashboard: React.FC = () => {
                   placeholder="e.g. Daily 3 Deliveries Sprint"
                   value={newChallenge.title}
                   onChange={(e) => setNewChallenge({ ...newChallenge, title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                 />
               </div>
 
@@ -2765,7 +2765,7 @@ export const AdminDashboard: React.FC = () => {
                 <select
                   value={newChallenge.frequency}
                   onChange={(e) => setNewChallenge({ ...newChallenge, frequency: e.target.value as any })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-950 focus:bg-white"
                 >
                   <option value="DAILY">DAILY (24 Hours Sprint)</option>
                   <option value="WEEKLY">WEEKLY (7 Days Sprint)</option>
@@ -2779,7 +2779,7 @@ export const AdminDashboard: React.FC = () => {
                   <select
                     value={newChallenge.metric}
                     onChange={(e) => setNewChallenge({ ...newChallenge, metric: e.target.value as any })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-950 focus:bg-white"
                   >
                     <option value="DELIVERIES">Delivered Orders Count</option>
                     <option value="SALES_BDT">Total Sales (BDT)</option>
@@ -2795,7 +2795,7 @@ export const AdminDashboard: React.FC = () => {
                     min={1}
                     value={newChallenge.targetCount}
                     onChange={(e) => setNewChallenge({ ...newChallenge, targetCount: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-950 focus:bg-white"
                   />
                 </div>
               </div>
@@ -2809,7 +2809,7 @@ export const AdminDashboard: React.FC = () => {
                     step={50}
                     value={newChallenge.rewardXp}
                     onChange={(e) => setNewChallenge({ ...newChallenge, rewardXp: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-amber-600"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-amber-600 focus:bg-white"
                   />
                 </div>
 
@@ -2820,7 +2820,7 @@ export const AdminDashboard: React.FC = () => {
                     step={50}
                     value={newChallenge.rewardBonusBdt}
                     onChange={(e) => setNewChallenge({ ...newChallenge, rewardBonusBdt: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-700"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-700 focus:bg-white"
                   />
                 </div>
               </div>
@@ -2831,7 +2831,7 @@ export const AdminDashboard: React.FC = () => {
                   rows={2}
                   value={newChallenge.description}
                   onChange={(e) => setNewChallenge({ ...newChallenge, description: e.target.value })}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                 />
               </div>
 
@@ -2926,7 +2926,7 @@ export const AdminDashboard: React.FC = () => {
                     placeholder="e.g. Facebook Marketplace Mastery"
                     value={newLesson.courseTitle}
                     onChange={(e) => setNewLesson({ ...newLesson, courseTitle: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                   />
                 </div>
 
@@ -2938,7 +2938,7 @@ export const AdminDashboard: React.FC = () => {
                     placeholder="https://www.youtube.com/watch?v=... or youtu.be/..."
                     value={newLesson.youtubeUrl}
                     onChange={(e) => setNewLesson({ ...newLesson, youtubeUrl: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-slate-950 font-medium focus:bg-white"
                   />
                 </div>
               </div>
@@ -2951,7 +2951,7 @@ export const AdminDashboard: React.FC = () => {
                     required
                     value={newLesson.title}
                     onChange={(e) => setNewLesson({ ...newLesson, title: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                   />
                 </div>
 
@@ -2962,7 +2962,7 @@ export const AdminDashboard: React.FC = () => {
                     required
                     value={newLesson.titleBn}
                     onChange={(e) => setNewLesson({ ...newLesson, titleBn: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                   />
                 </div>
               </div>
@@ -2974,7 +2974,7 @@ export const AdminDashboard: React.FC = () => {
                     type="number"
                     value={newLesson.durationMinutes}
                     onChange={(e) => setNewLesson({ ...newLesson, durationMinutes: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                   />
                 </div>
 
@@ -2986,7 +2986,7 @@ export const AdminDashboard: React.FC = () => {
                     step={50}
                     value={newLesson.xpReward}
                     onChange={(e) => setNewLesson({ ...newLesson, xpReward: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-amber-600"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-amber-600 focus:bg-white"
                   />
                 </div>
               </div>
@@ -2997,7 +2997,7 @@ export const AdminDashboard: React.FC = () => {
                   rows={3}
                   value={newLesson.description}
                   onChange={(e) => setNewLesson({ ...newLesson, description: e.target.value })}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-950 font-medium focus:bg-white"
                 />
               </div>
 

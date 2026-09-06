@@ -7,6 +7,12 @@
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
   }
+
+  input,
+  textarea,
+  select {
+    color: #090d16;
+  }
 }
 
 /* Galaxy & Night Sky Theme Keyframe Animations */
@@ -191,17 +197,61 @@
   box-shadow: 0 16px 48px -8px rgba(0, 0, 0, 0.8), 0 0 24px 0 rgba(139, 92, 246, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.2);
 }
 
+/* ========================================================================= */
+/* UNIVERSAL HIGH-CONTRAST TYPING RULE: ALL INPUTS/TEXTAREAS IN SOLID BLACK  */
+/* Ensures typed text is never white on white, but always 100% visible black */
+/* ========================================================================= */
+input,
+textarea,
+select,
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  color: #090d16 !important;
+  -webkit-text-fill-color: #090d16 !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+/* Clear, high-contrast placeholder in medium slate */
+input::placeholder,
+textarea::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
+}
+
+/* Ensure select dropdown options have white background and black text */
+select option {
+  background-color: #ffffff !important;
+  color: #090d16 !important;
+}
+
 /* High-Contrast Input Styling with solid black font for typing legibility */
 .galaxy-glass-input {
   background: #ffffff !important;
   border: 1.5px solid rgba(139, 92, 246, 0.35);
   color: #090d16 !important;
+  -webkit-text-fill-color: #090d16 !important;
   font-weight: 600;
   transition: all 0.2s ease;
 }
 
 .galaxy-glass-input::placeholder {
   color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
   font-weight: 400;
 }
 
@@ -209,7 +259,8 @@
   background: #ffffff !important;
   border-color: rgba(6, 182, 212, 0.9) !important;
   box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.25) !important;
-  color: #020617 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
   outline: none;
 }
 
@@ -217,8 +268,13 @@
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-text-fill-color: #090d16 !important;
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active {
+  -webkit-text-fill-color: #000000 !important;
+  color: #000000 !important;
   box-shadow: 0 0 0 1000px #ffffff inset !important;
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
   font-weight: 600 !important;
