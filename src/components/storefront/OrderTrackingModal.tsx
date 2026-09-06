@@ -87,7 +87,7 @@ export const OrderTrackingModal: React.FC<{
                 placeholder="Enter Order # (e.g. ORD-2026-8801) or Tracking #"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono"
+                className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-white text-slate-900 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono font-semibold"
               />
             </div>
             <button

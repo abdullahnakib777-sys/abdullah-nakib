@@ -425,7 +425,7 @@ export const WalletView: React.FC<{
                   placeholder="01XXXXXXXXX"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                 />
               </div>
 
@@ -437,7 +437,7 @@ export const WalletView: React.FC<{
                       type="text"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                      className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                     />
                   </div>
                   <div>
@@ -446,7 +446,7 @@ export const WalletView: React.FC<{
                       type="text"
                       value={accountName}
                       onChange={(e) => setAccountName(e.target.value)}
-                      className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                      className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                     />
                   </div>
                 </>

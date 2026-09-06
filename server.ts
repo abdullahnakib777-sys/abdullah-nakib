@@ -6,6 +6,7 @@ import { db } from './server/db';
 import { ProfitEngine } from './server/profitEngine';
 import { AIService } from './server/aiService';
 import { TelegramService } from './server/telegramService';
+import { OtpService } from './server/otpService';
 import { FirebaseSyncService } from './server/firebaseSync';
 import { User } from './src/types';
 
@@ -58,21 +59,69 @@ async function startServer() {
     res.json({ accounts });
   });
 
-  // Auth: Admin Dedicated Login
-  app.post('/api/v1/auth/admin-login', (req: Request, res: Response) => {
-    const { adminId, password } = req.body;
+  // Auth: Admin Send Telegram OTP for Login
+  app.post(['/api/v1/auth/admin-send-otp', '/api/v1/auth/admin/send-telegram-otp'], async (req: Request, res: Response) => {
+    try {
+      const { adminId } = req.body;
+      const settings = db.getSettings();
+      const adminEmail = settings.adminEmail || process.env.ADMIN_EMAIL || 'abdullahnakib777@gmail.com';
 
-    if (!adminId || !password) {
-      return res.status(400).json({ error: 'Admin ID / Email and Password are required' });
+      // Verify that the requested ID corresponds to admin
+      const cleanInput = (adminId ? String(adminId).trim() : 'admin').toLowerCase();
+      const isMatch =
+        cleanInput === 'admin' ||
+        cleanInput === 'founder' ||
+        cleanInput === adminEmail.toLowerCase() ||
+        db.getUsers().some((u) => u.role === 'ADMIN' && (u.email?.toLowerCase() === cleanInput || u.id === cleanInput));
+
+      if (!isMatch) {
+        return res.status(403).json({
+          error: 'Unrecognized Admin ID or Email. Only authorized administrator can request a login OTP.',
+        });
+      }
+
+      const result = await OtpService.createAndSendAdminOtp({
+        adminEmail,
+        purpose: 'ADMIN_LOGIN_2FA',
+      });
+
+      res.json(result);
+    } catch (err: any) {
+      console.error('Error dispatching admin login OTP:', err);
+      res.status(500).json({ error: err.message || 'Failed to dispatch Telegram OTP. Please try again.' });
     }
+  });
 
-    const cleanId = String(adminId).trim();
-    const cleanPass = String(password).trim();
+  // Auth: Admin Dedicated Login (Verified by Telegram OTP — No PIN required)
+  app.post('/api/v1/auth/admin-login', (req: Request, res: Response) => {
+    const { adminId, otp, password } = req.body;
 
-    const isValid = db.verifyAdminCredentials(cleanId, cleanPass);
+    const cleanId = (adminId ? String(adminId).trim() : 'admin').toLowerCase();
+    const cleanOtp = otp ? String(otp).trim() : '';
 
-    if (!isValid) {
-      return res.status(401).json({ error: 'Invalid Admin Email or Password. Access Denied.' });
+    // If OTP is provided, verify purely via Telegram OTP without needing any PIN/password
+    if (cleanOtp) {
+      const verifyResult = OtpService.verifyAdminOtp({
+        otp: cleanOtp,
+        purpose: 'ADMIN_LOGIN_2FA',
+      });
+
+      if (!verifyResult.valid) {
+        return res.status(401).json({
+          error: verifyResult.error || 'Invalid or expired Telegram OTP code. Please request a fresh OTP.',
+        });
+      }
+    } else if (password) {
+      // Fallback only if password provided without OTP (e.g., automated scripts)
+      const isValid = db.verifyAdminCredentials(cleanId, String(password).trim());
+      if (!isValid) {
+        return res.status(401).json({ error: 'Telegram OTP is required for Admin Login. Please enter the OTP sent to Telegram.' });
+      }
+    } else {
+      return res.status(400).json({
+        error: 'Telegram OTP code is required for Admin Login. Please click "Send OTP to Telegram" to receive your 6-digit code.',
+        requiresOtp: true,
+      });
     }
 
     const adminUser = db.getUsers().find((u) => u.role === 'ADMIN') || db.getUserById('usr-founder');
@@ -86,8 +135,26 @@ async function startServer() {
       user: adminUser,
       reseller,
       token: adminUser.id,
-      message: 'Master Admin authenticated successfully',
+      message: 'Master Admin authenticated successfully via Telegram OTP',
     });
+  });
+
+  // Admin: Request OTP for Security Actions (e.g. Password Change)
+  app.post('/api/v1/admin/request-otp', async (req: Request, res: Response) => {
+    try {
+      const { purpose = 'ADMIN_PASSWORD_CHANGE' } = req.body;
+      const settings = db.getSettings();
+      const adminEmail = settings.adminEmail || 'abdullahnakib777@gmail.com';
+
+      const result = await OtpService.createAndSendAdminOtp({
+        adminEmail,
+        purpose,
+      });
+
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to dispatch Security OTP' });
+    }
   });
 
   // Admin: Change Admin Password & Email

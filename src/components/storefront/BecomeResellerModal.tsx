@@ -130,7 +130,7 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
                 placeholder="e.g. Nusrat Jahan"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
               />
             </div>
             <div>
@@ -141,7 +141,7 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
                 placeholder="01XXXXXXXXX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
               />
             </div>
           </div>
@@ -155,7 +155,7 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
                 placeholder="e.g. Trendy Cart BD"
                 value={storeName}
                 onChange={(e) => setStoreName(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
               />
             </div>
             <div>
@@ -165,7 +165,7 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
                 placeholder="facebook.com/yourpage (optional)"
                 value={facebookPage}
                 onChange={(e) => setFacebookPage(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
               />
             </div>
           </div>
@@ -176,10 +176,10 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
               <select
                 value={division}
                 onChange={(e) => handleDivisionChange(e.target.value)}
-                className="w-full px-2.5 py-2 text-xs bg-white border border-slate-300 rounded-xl"
+                className="w-full px-2.5 py-2 text-xs bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
               >
                 {Object.keys(BANGLADESH_DIVISIONS).map((div) => (
-                  <option key={div} value={div}>
+                  <option key={div} value={div} className="bg-white text-slate-900">
                     {div}
                   </option>
                 ))}
@@ -190,10 +190,10 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
               <select
                 value={district}
                 onChange={(e) => handleDistrictChange(e.target.value)}
-                className="w-full px-2.5 py-2 text-xs bg-white border border-slate-300 rounded-xl"
+                className="w-full px-2.5 py-2 text-xs bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
               >
                 {Object.keys(currentDistricts).map((dist) => (
-                  <option key={dist} value={dist}>
+                  <option key={dist} value={dist} className="bg-white text-slate-900">
                     {currentDistricts[dist].name}
                   </option>
                 ))}
@@ -204,10 +204,10 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
               <select
                 value={upazila}
                 onChange={(e) => setUpazila(e.target.value)}
-                className="w-full px-2.5 py-2 text-xs bg-white border border-slate-300 rounded-xl"
+                className="w-full px-2.5 py-2 text-xs bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
               >
                 {currentUpazilas.map((u) => (
-                  <option key={u} value={u}>
+                  <option key={u} value={u} className="bg-white text-slate-900">
                     {u}
                   </option>
                 ))}
@@ -223,7 +223,7 @@ export const BecomeResellerModal: React.FC<{ isOpen: boolean; onClose: () => voi
               placeholder="House, Road, Area for verification"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+              className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
             />
           </div>
 

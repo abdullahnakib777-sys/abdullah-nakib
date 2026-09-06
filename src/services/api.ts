@@ -72,8 +72,34 @@ export const api = {
   getDemoAccounts: () =>
     apiFetch<{ accounts: { user: User; reseller?: ResellerProfile }[] }>('/api/v1/auth/demo-accounts'),
 
-  loginAdmin: (body: { adminId: string; password?: string }) =>
+  loginAdmin: (body: { adminId: string; otp?: string; password?: string }) =>
     apiFetch<{ user: User; reseller?: ResellerProfile; token: string; message: string }>('/api/v1/auth/admin-login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  adminSendOtp: (body?: { adminId?: string }) =>
+    apiFetch<{
+      success: boolean;
+      message: string;
+      channelStatus: { telegram: boolean; email: boolean };
+      maskedEmail: string;
+      devOtp?: string;
+      expiresInMinutes: number;
+    }>('/api/v1/auth/admin-send-otp', {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    }),
+
+  adminRequestOtp: (body: { purpose: 'ADMIN_PASSWORD_CHANGE' | 'ADMIN_FORGOT_PASSWORD' | 'ADMIN_LOGIN_2FA' }) =>
+    apiFetch<{
+      success: boolean;
+      message: string;
+      channelStatus: { telegram: boolean; email: boolean };
+      maskedEmail: string;
+      devOtp?: string;
+      expiresInMinutes: number;
+    }>('/api/v1/admin/request-otp', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
@@ -565,7 +591,13 @@ export const api = {
       method: 'DELETE',
     }),
 
-  adminChangePassword: (body: { currentPassword?: string; newPassword: string; newEmail?: string }) =>
+  adminChangePassword: (body: { currentPassword?: string; newPassword: string; newEmail?: string; otp?: string }) =>
+    apiFetch<{ success: boolean; message: string; adminEmail?: string }>('/api/v1/admin/change-password', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  adminVerifyOtpAndResetPassword: (body: { otp: string; newPassword: string; newEmail?: string; purpose?: string }) =>
     apiFetch<{ success: boolean; message: string; adminEmail?: string }>('/api/v1/admin/change-password', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -619,6 +651,12 @@ export const api = {
     apiFetch<{ settings: PlatformSettings }>('/api/v1/admin/settings'),
 
   testTelegramNotification: (body?: { botToken?: string; chatId?: string }) =>
+    apiFetch<{ success: boolean; message: string }>('/api/v1/admin/telegram/test', {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    }),
+
+  adminTestTelegramBot: (body?: { botToken?: string; chatId?: string }) =>
     apiFetch<{ success: boolean; message: string }>('/api/v1/admin/telegram/test', {
       method: 'POST',
       body: JSON.stringify(body || {}),

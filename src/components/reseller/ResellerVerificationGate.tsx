@@ -292,7 +292,7 @@ export const ResellerVerificationGate: React.FC<ResellerVerificationGateProps> =
                     placeholder="01XXXXXXXXX"
                     value={paySenderPhone}
                     onChange={(e) => setPaySenderPhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:ring-2 focus:ring-emerald-500 outline-hidden"
                   />
                 </div>
 
@@ -304,7 +304,7 @@ export const ResellerVerificationGate: React.FC<ResellerVerificationGateProps> =
                     placeholder="e.g. 9K72LM8Q"
                     value={payTrxId}
                     onChange={(e) => setPayTrxId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-emerald-500 outline-hidden"
                   />
                 </div>
 

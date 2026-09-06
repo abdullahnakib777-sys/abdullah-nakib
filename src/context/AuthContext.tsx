@@ -9,7 +9,15 @@ interface AuthContextType {
   demoAccounts: { user: User; reseller?: ResellerProfile }[];
   loginWithCredentials: (emailOrPhone: string, password?: string) => Promise<void>;
   resetPin: (phoneOrEmail: string, newPin: string) => Promise<void>;
-  loginAdmin: (adminId: string, password?: string) => Promise<void>;
+  loginAdmin: (adminId: string, otp?: string, password?: string) => Promise<void>;
+  sendAdminOtp: (adminId?: string) => Promise<{
+    success: boolean;
+    message: string;
+    channelStatus?: { telegram: boolean; email: boolean };
+    maskedEmail?: string;
+    devOtp?: string;
+    expiresInMinutes?: number;
+  }>;
   loginWithUserId: (userId: string) => Promise<void>;
   registerCustomer: (name: string, phone: string, email?: string, password?: string) => Promise<void>;
   registerReseller: (data: {
@@ -113,10 +121,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginAdmin = async (adminId: string, password?: string) => {
+  const sendAdminOtp = async (adminId?: string) => {
+    return await api.adminSendOtp({ adminId });
+  };
+
+  const loginAdmin = async (adminId: string, otp?: string, password?: string) => {
     setIsLoading(true);
     try {
-      const res = await api.loginAdmin({ adminId, password });
+      const res = await api.loginAdmin({ adminId, otp, password });
       setUser(res.user);
       setReseller(res.reseller || null);
       setApiAuthToken(res.token);
@@ -223,6 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithCredentials,
         resetPin,
         loginAdmin,
+        sendAdminOtp,
         loginWithUserId,
         registerCustomer,
         registerReseller,

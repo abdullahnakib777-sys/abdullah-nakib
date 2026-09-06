@@ -188,10 +188,10 @@ export const ManualOrderModal: React.FC<{
                   const p = products.find((x) => x.id === pid);
                   if (p) setSellingPrice(p.suggestedSellingPrice);
                 }}
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
               >
                 {products.map((p) => (
-                  <option key={p.id} value={p.id}>
+                  <option key={p.id} value={p.id} className="bg-white text-slate-900">
                     {p.name} (Wholesale: ৳{p.resellerPrice} | Suggested: ৳{p.suggestedSellingPrice})
                   </option>
                 ))}
@@ -207,7 +207,7 @@ export const ManualOrderModal: React.FC<{
                   max={selectedProduct?.stock || 50}
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                 />
               </div>
               <div>
@@ -260,7 +260,7 @@ export const ManualOrderModal: React.FC<{
                   placeholder="e.g. Tanvir Ahmed"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                 />
               </div>
               <div>
@@ -271,7 +271,7 @@ export const ManualOrderModal: React.FC<{
                   placeholder="01XXXXXXXXX"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                 />
               </div>
             </div>
@@ -282,10 +282,10 @@ export const ManualOrderModal: React.FC<{
                 <select
                   value={division}
                   onChange={(e) => handleDivisionChange(e.target.value)}
-                  className="w-full px-2.5 py-2 text-xs bg-white border border-slate-300 rounded-xl"
+                  className="w-full px-2.5 py-2 text-xs bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                 >
                   {Object.keys(BANGLADESH_DIVISIONS).map((div) => (
-                    <option key={div} value={div}>
+                    <option key={div} value={div} className="bg-white text-slate-900">
                       {div} ({BANGLADESH_DIVISIONS[div].nameBn})
                     </option>
                   ))}
@@ -296,10 +296,10 @@ export const ManualOrderModal: React.FC<{
                 <select
                   value={district}
                   onChange={(e) => handleDistrictChange(e.target.value)}
-                  className="w-full px-2.5 py-2 text-xs bg-white border border-slate-300 rounded-xl"
+                  className="w-full px-2.5 py-2 text-xs bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                 >
                   {Object.keys(currentDistricts).map((dist) => (
-                    <option key={dist} value={dist}>
+                    <option key={dist} value={dist} className="bg-white text-slate-900">
                       {currentDistricts[dist].name}
                     </option>
                   ))}
@@ -310,10 +310,10 @@ export const ManualOrderModal: React.FC<{
                 <select
                   value={upazila}
                   onChange={(e) => setUpazila(e.target.value)}
-                  className="w-full px-2.5 py-2 text-xs bg-white border border-slate-300 rounded-xl"
+                  className="w-full px-2.5 py-2 text-xs bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                 >
                   {currentUpazilas.map((u) => (
-                    <option key={u} value={u}>
+                    <option key={u} value={u} className="bg-white text-slate-900">
                       {u}
                     </option>
                   ))}
@@ -329,7 +329,7 @@ export const ManualOrderModal: React.FC<{
                 placeholder="House #, Road #, Sector/Area details for courier rider"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl"
+                className="w-full px-3 py-2 text-sm bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
               />
             </div>
 
@@ -339,10 +339,10 @@ export const ManualOrderModal: React.FC<{
                 <select
                   value={courier}
                   onChange={(e) => setCourier(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-xs bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                 >
                   {COURIER_PROVIDERS.map((c) => (
-                    <option key={c.id} value={c.id}>
+                    <option key={c.id} value={c.id} className="bg-white text-slate-900">
                       {c.name} ({division === 'Dhaka' ? `৳${c.deliveryRateDhaka}` : `৳${c.deliveryRateOutside}`})
                     </option>
                   ))}
@@ -355,7 +355,7 @@ export const ManualOrderModal: React.FC<{
                   placeholder="e.g. Call before delivery"
                   value={resellerNote}
                   onChange={(e) => setResellerNote(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-xs bg-white text-slate-900 font-medium border border-slate-300 rounded-xl"
                 />
               </div>
             </div>

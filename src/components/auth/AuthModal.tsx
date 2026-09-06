@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { BANGLADESH_DIVISIONS } from '../../data/bangladeshGeo';
 import { PrivacyPolicyModal } from '../legal/PrivacyPolicyModal';
@@ -25,6 +25,10 @@ import {
   EyeOff,
   KeyRound,
   RotateCcw,
+  Bot,
+  Send,
+  RefreshCw,
+  Check,
 } from 'lucide-react';
 
 export type AuthTabType =
@@ -48,8 +52,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialTab = 'reseller_login',
   onSuccess,
 }) => {
-  const { loginWithCredentials, resetPin, loginAdmin, loginWithUserId, registerCustomer, registerReseller, submitResellerFee, demoAccounts } =
-    useAuth();
+  const {
+    loginWithCredentials,
+    resetPin,
+    loginAdmin,
+    sendAdminOtp,
+    loginWithUserId,
+    registerCustomer,
+    registerReseller,
+    submitResellerFee,
+    demoAccounts,
+  } = useAuth();
 
   const [activeTab, setActiveTab] = useState<AuthTabType>(initialTab);
 
@@ -94,9 +107,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [paySenderPhone, setPaySenderPhone] = useState('');
   const [payTrxId, setPayTrxId] = useState('');
 
-  // Admin login fields
-  const [adminId, setAdminId] = useState('');
-  const [adminPass, setAdminPass] = useState('');
+  // Admin login fields (Pure Telegram OTP — No PIN)
+  const [adminId, setAdminId] = useState('admin');
+  const [adminOtp, setAdminOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [otpDetails, setOtpDetails] = useState<{
+    message: string;
+    telegramSent: boolean;
+    maskedEmail?: string;
+    devOtp?: string;
+  } | null>(null);
+
+  // Countdown timer for resending OTP
+  useEffect(() => {
+    let timer: any;
+    if (otpCountdown > 0) {
+      timer = setInterval(() => {
+        setOtpCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [otpCountdown]);
 
   // Privacy Policy modal state
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
@@ -258,23 +291,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  const handleSendAdminOtp = async () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setIsSendingOtp(true);
+    try {
+      const res = await sendAdminOtp(adminId.trim() || 'admin');
+      setOtpDetails({
+        message: res.message,
+        telegramSent: res.channelStatus?.telegram || false,
+        maskedEmail: res.maskedEmail,
+        devOtp: res.devOtp,
+      });
+      setOtpSent(true);
+      setOtpCountdown(60);
+      setSuccessMsg('6-Digit OTP dispatched! Please check your Telegram channel.');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to dispatch OTP to Telegram. Please check Telegram Bot settings.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
-    if (!adminId || !adminPass) {
-      setErrorMsg('Admin ID and Password are required');
+    if (!adminOtp.trim()) {
+      setErrorMsg('Telegram 6-digit OTP code is required for Admin Login. (No PIN needed)');
       return;
     }
     setIsLoading(true);
     try {
-      await loginAdmin(adminId, adminPass);
-      setSuccessMsg('Master Admin authenticated successfully!');
+      await loginAdmin(adminId.trim() || 'admin', adminOtp.trim());
+      setSuccessMsg('Master Admin authenticated successfully via Telegram OTP!');
       setTimeout(() => {
         onSuccess?.();
         onClose();
       }, 600);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Access Denied. Invalid Admin Credentials.');
+      setErrorMsg(err.message || 'Access Denied. Invalid or expired Telegram OTP code.');
     } finally {
       setIsLoading(false);
     }
@@ -447,14 +502,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     Registered Mobile / WhatsApp / Email / Referral Code *
                   </label>
                   <div className="relative">
-                    <Phone className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
+                    <Phone className="w-4 h-4 text-cyan-500 absolute left-3.5 top-3 z-10" />
                     <input
                       type="text"
                       required
                       placeholder="e.g. 01333855344, email, or RSL-SABBIR88"
                       value={phoneOrEmail}
                       onChange={(e) => setPhoneOrEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
@@ -481,18 +536,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </button>
                   </div>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
+                    <Lock className="w-4 h-4 text-purple-500 absolute left-3.5 top-3 z-10" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Enter your PIN or leave blank for instant login"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-10 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-white p-0.5"
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 p-0.5 z-10"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -585,7 +640,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     Registered Mobile Number / WhatsApp *
                   </label>
                   <div className="relative">
-                    <Phone className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
+                    <Phone className="w-4 h-4 text-cyan-500 absolute left-3.5 top-3 z-10" />
                     <input
                       type="text"
                       required
@@ -595,7 +650,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         setResetPhone(e.target.value);
                         setPhoneOrEmail(e.target.value);
                       }}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                     />
                   </div>
                 </div>
@@ -605,19 +660,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     New PIN / Password * <span className="text-slate-400 font-normal">(e.g. 4-6 digits or text)</span>
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3" />
+                    <Lock className="w-4 h-4 text-emerald-500 absolute left-3.5 top-3 z-10" />
                     <input
                       type={showNewPin ? 'text' : 'password'}
                       required
                       placeholder="Enter new PIN (e.g. 1234 or your secret PIN)"
                       value={newPin}
                       onChange={(e) => setNewPin(e.target.value)}
-                      className="w-full pl-10 pr-10 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPin(!showNewPin)}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-white p-0.5"
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 p-0.5 z-10"
                     >
                       {showNewPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -672,14 +727,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   Mobile Number / Email *
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
+                  <Phone className="w-4 h-4 text-cyan-500 absolute left-3.5 top-3 z-10" />
                   <input
                     type="text"
                     required
                     placeholder="01XXXXXXXXX or email"
                     value={phoneOrEmail}
                     onChange={(e) => setPhoneOrEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                   />
                 </div>
               </div>
@@ -687,13 +742,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">Password / PIN (Optional)</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
+                  <Lock className="w-4 h-4 text-purple-500 absolute left-3.5 top-3 z-10" />
                   <input
                     type="password"
                     placeholder="Enter password or leave blank for instant login"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                   />
                 </div>
               </div>
@@ -745,14 +800,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">Full Name *</label>
                 <div className="relative">
-                  <UserIcon className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
+                  <UserIcon className="w-4 h-4 text-cyan-500 absolute left-3.5 top-3 z-10" />
                   <input
                     type="text"
                     required
                     placeholder="e.g. Tanvir Ahmed"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                   />
                 </div>
               </div>
@@ -760,14 +815,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">Mobile Phone (Bangladeshi) *</label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
+                  <Phone className="w-4 h-4 text-cyan-500 absolute left-3.5 top-3 z-10" />
                   <input
                     type="tel"
                     required
                     placeholder="01XXXXXXXXX"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                   />
                 </div>
               </div>
@@ -775,13 +830,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">Email Address (Optional)</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
+                  <Mail className="w-4 h-4 text-purple-500 absolute left-3.5 top-3 z-10" />
                   <input
                     type="email"
                     placeholder="name@example.com"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                   />
                 </div>
               </div>
@@ -789,14 +844,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">Create Password / PIN *</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-emerald-400 absolute left-3.5 top-3" />
+                  <Lock className="w-4 h-4 text-emerald-500 absolute left-3.5 top-3 z-10" />
                   <input
                     type="password"
                     required
                     placeholder="Set a password (e.g. 123456)"
                     value={customerPassword}
                     onChange={(e) => setCustomerPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                   />
                 </div>
                 <p className="text-[10px] text-emerald-300 mt-1">
@@ -869,7 +924,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         placeholder="e.g. Abdullah Nakib"
                         value={rName}
                         onChange={(e) => setRName(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                       />
                     </div>
 
@@ -881,7 +936,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         placeholder="01XXXXXXXXX"
                         value={rPhone}
                         onChange={(e) => setRPhone(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                       />
                     </div>
                   </div>
@@ -895,7 +950,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         placeholder="e.g. Trendy BD Mart"
                         value={rStoreName}
                         onChange={(e) => setRStoreName(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                       />
                     </div>
 
@@ -906,7 +961,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         placeholder="facebook.com/yourpage"
                         value={rFacebook}
                         onChange={(e) => setRFacebook(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                       />
                     </div>
                   </div>
@@ -925,10 +980,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             setRDistrict(firstDist);
                           }
                         }}
-                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium bg-[#141226]"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-950 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                       >
                         {Object.keys(BANGLADESH_DIVISIONS).map((divKey) => (
-                          <option key={divKey} value={divKey} className="bg-[#141226] text-white">
+                          <option key={divKey} value={divKey} className="bg-white text-slate-950">
                             {BANGLADESH_DIVISIONS[divKey].name} ({BANGLADESH_DIVISIONS[divKey].nameBn})
                           </option>
                         ))}
@@ -940,10 +995,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <select
                         value={rDistrict}
                         onChange={(e) => setRDistrict(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium bg-[#141226]"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-950 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                       >
                         {Object.keys(BANGLADESH_DIVISIONS[rDivision]?.districts || {}).map((distKey) => (
-                          <option key={distKey} value={distKey} className="bg-[#141226] text-white">
+                          <option key={distKey} value={distKey} className="bg-white text-slate-950">
                             {BANGLADESH_DIVISIONS[rDivision].districts[distKey].name} ({BANGLADESH_DIVISIONS[rDivision].districts[distKey].nameBn})
                           </option>
                         ))}
@@ -960,7 +1015,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         placeholder="Road / House / Area, Upazila"
                         value={rAddress}
                         onChange={(e) => setRAddress(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                       />
                     </div>
 
@@ -972,7 +1027,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         placeholder="Set password for your store"
                         value={rPassword}
                         onChange={(e) => setRPassword(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium border-emerald-500/40"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                       />
                     </div>
                   </div>
@@ -1062,7 +1117,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       placeholder="01XXXXXXXXX"
                       value={paySenderPhone}
                       onChange={(e) => setPaySenderPhone(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                     />
                   </div>
 
@@ -1074,7 +1129,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       placeholder="e.g. 9K72LM8Q"
                       value={payTrxId}
                       onChange={(e) => setPayTrxId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl galaxy-glass-input text-xs font-mono font-bold uppercase tracking-wider"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-mono font-bold uppercase tracking-wider text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition"
                     />
                   </div>
 
@@ -1094,64 +1149,172 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
 
-          {/* TAB 5: MASTER ADMIN LOGIN */}
+          {/* TAB 5: MASTER ADMIN LOGIN (Pure Telegram OTP — No PIN) */}
           {activeTab === 'admin_login' && (
-            <form onSubmit={handleAdminLogin} className="space-y-4">
-              <div className="p-4 rounded-2xl bg-indigo-950/50 border border-indigo-500/40 text-indigo-200 text-xs space-y-1">
-                <div className="flex items-center gap-2 font-bold text-indigo-300">
-                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
-                  <span>Restricted Founder / Admin Access</span>
+            <div className="space-y-4">
+              {/* Telegram 2FA Security Banner */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/80 via-purple-950/60 to-slate-950/90 border border-indigo-500/50 text-indigo-200 text-xs space-y-2 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-bold text-indigo-300">
+                    <Bot className="w-4 h-4 text-sky-400" />
+                    <span>Telegram 2FA Protected Admin Access</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    NO PIN REQUIRED
+                  </span>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
-                  Only authorized admin ID & password can access the central operations control panel, manage wholesale products, create challenges, and upload academy lessons.
+                  Admin login strictly requires a 6-digit one-time passcode dispatched directly to your Telegram Bot. No PIN or static password is needed.
                 </p>
               </div>
 
+              {/* Step 1: Admin ID / Email & Send OTP Trigger */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">Admin ID / Email *</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>Admin ID / Email</span>
+                  {otpSent && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpSent(false);
+                        setAdminOtp('');
+                      }}
+                      className="text-[11px] text-purple-400 hover:text-purple-300 underline font-normal transition"
+                    >
+                      Change ID
+                    </button>
+                  )}
+                </label>
                 <div className="relative">
-                  <UserIcon className="w-4 h-4 text-cyan-400 absolute left-3.5 top-3" />
+                  <UserIcon className="w-4 h-4 text-cyan-500 absolute left-3.5 top-3 z-10" />
                   <input
                     type="text"
                     required
-                    placeholder="Enter authorized Admin email or ID"
+                    disabled={otpSent}
+                    placeholder="Enter Admin ID (e.g. admin or founder email)"
                     value={adminId}
                     onChange={(e) => setAdminId(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-semibold text-xs border border-purple-300/40 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-400/20 shadow-xs transition disabled:bg-slate-100 disabled:text-slate-600"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">Secret Master Password *</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
-                  <input
-                    type="password"
-                    required
-                    placeholder="Enter Admin Password"
-                    value={adminPass}
-                    onChange={(e) => setAdminPass(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl galaxy-glass-input text-xs font-medium"
-                  />
-                </div>
-              </div>
+              {!otpSent ? (
+                /* Button to send OTP to Telegram */
+                <button
+                  type="button"
+                  onClick={handleSendAdminOtp}
+                  disabled={isSendingOtp || !adminId.trim()}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 via-indigo-600 to-purple-600 hover:from-sky-400 hover:to-purple-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(56,189,248,0.4)] transition flex items-center justify-center gap-2"
+                >
+                  {isSendingOtp ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Sending OTP to Telegram...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Send OTP to Telegram</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                /* Step 2: Form with 6-Digit Telegram OTP Input (No PIN) */
+                <form onSubmit={handleAdminLogin} className="space-y-4">
+                  {/* Telegram Dispatch Status Box */}
+                  <div className="p-3.5 rounded-xl bg-sky-950/60 border border-sky-500/40 text-sky-200 text-xs space-y-1.5">
+                    <div className="flex items-center gap-2 font-bold text-sky-300">
+                      <CheckCircle2 className="w-4 h-4 text-sky-400" />
+                      <span>6-Digit OTP Dispatched to Telegram</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      {otpDetails?.telegramSent
+                        ? 'Check your Telegram Bot conversation for the code. Valid for 10 minutes.'
+                        : 'OTP generated! Open your Telegram app or use the preview code below.'}
+                    </p>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(99,102,241,0.5)] transition flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <span>Authenticating...</span>
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4" />
-                    <span>Access Admin Panel</span>
-                  </>
-                )}
-              </button>
-            </form>
+                    {/* Quick-fill preview badge for testing convenience */}
+                    {otpDetails?.devOtp && (
+                      <div className="pt-1 flex items-center justify-between bg-sky-900/40 p-2 rounded-lg border border-sky-400/30">
+                        <span className="text-[11px] text-sky-200 font-medium">Telegram Code:</span>
+                        <button
+                          type="button"
+                          onClick={() => setAdminOtp(otpDetails.devOtp || '')}
+                          className="px-2.5 py-0.5 bg-sky-500/30 hover:bg-sky-500/50 text-sky-200 border border-sky-400/40 rounded text-xs font-mono font-bold transition flex items-center gap-1.5"
+                          title="Click to fill OTP automatically"
+                        >
+                          <span>{otpDetails.devOtp}</span>
+                          <span className="text-[10px] text-sky-300 font-sans font-normal">(Click to fill)</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      Enter 6-Digit Telegram OTP *
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-purple-400 absolute left-3.5 top-3.5 z-10" />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        autoFocus
+                        required
+                        placeholder="● ● ● ● ● ●"
+                        value={adminOtp}
+                        onChange={(e) => setAdminOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-white text-slate-950 placeholder:text-slate-400 font-mono font-extrabold text-base tracking-[0.3em] text-center border-2 border-sky-400 focus:border-cyan-400 focus:ring-4 focus:ring-sky-400/20 shadow-xs transition"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      No PIN or static password required. Fully authenticated via Telegram OTP.
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || adminOtp.length !== 6}
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Verifying Telegram OTP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>Verify OTP & Access Admin Panel</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Resend OTP Row */}
+                  <div className="flex items-center justify-between pt-1 text-xs">
+                    <span className="text-slate-400">Didn't receive the code?</span>
+                    <button
+                      type="button"
+                      disabled={isSendingOtp || otpCountdown > 0}
+                      onClick={handleSendAdminOtp}
+                      className="text-sky-400 hover:text-sky-300 font-bold transition disabled:text-slate-500 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      {otpCountdown > 0 ? (
+                        <span>Resend in {otpCountdown}s</span>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Resend Telegram OTP</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           )}
         </div>
       </div>
