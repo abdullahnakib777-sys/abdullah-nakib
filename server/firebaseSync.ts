@@ -63,10 +63,48 @@ export class FirebaseSyncService {
   private static processedResellerIds = new Set<string>();
   private static isListenersInitialized = false;
 
+  // Quota & Rate-limit management
+  private static quotaExceededUntil: number = 0;
+  private static hasLoggedQuotaWarning: boolean = false;
+  private static debounceTimer: NodeJS.Timeout | null = null;
+  private static latestPendingData: DatabaseSchema | null = null;
+
+  public static isQuotaExceeded(): boolean {
+    return Date.now() < this.quotaExceededUntil;
+  }
+
+  public static markQuotaExceeded(): void {
+    // Free tier limit reached: pause writes for 1 hour (or until next daily reset)
+    this.quotaExceededUntil = Date.now() + 60 * 60 * 1000;
+    if (!this.hasLoggedQuotaWarning) {
+      this.hasLoggedQuotaWarning = true;
+      console.warn(
+        '⚠️ [Firestore Quota] Free daily write quota reached for project gen-lang-client-0183841847. ' +
+        'Cloud Firestore sync is paused to prevent RPC stream errors. The application will continue running with full local persistence.'
+      );
+    }
+  }
+
+  private static checkIsQuotaError(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err);
+    return (
+      msg.includes('RESOURCE_EXHAUSTED') ||
+      msg.includes('Quota limit exceeded') ||
+      msg.includes('quota metric') ||
+      (err as any)?.code === 'resource-exhausted' ||
+      (err as any)?.code === 8
+    );
+  }
+
   /**
    * Loads persisted database snapshot from Cloud Firestore
    */
   public static async loadFromCloud(): Promise<DatabaseSchema | null> {
+    if (this.isQuotaExceeded()) {
+      console.log('[Firestore] Quota exceeded cooldown active, using local database state.');
+      return null;
+    }
+
     try {
       const fsDb = getFirestoreDb();
       const stateDocRef = doc(fsDb, 'app_state', GLOBAL_STATE_DOC);
@@ -82,7 +120,10 @@ export class FirebaseSyncService {
       }
       return null;
     } catch (err) {
-      console.warn('Could not load initial state from Cloud Firestore (will use local fallback):', err);
+      if (this.checkIsQuotaError(err)) {
+        this.markQuotaExceeded();
+      }
+      console.warn('Could not load initial state from Cloud Firestore (will use local fallback):', err instanceof Error ? err.message : err);
       return null;
     }
   }
@@ -160,6 +201,9 @@ export class FirebaseSyncService {
           }
         });
       }, (err) => {
+        if (FirebaseSyncService.checkIsQuotaError(err)) {
+          FirebaseSyncService.markQuotaExceeded();
+        }
         console.warn('[Firestore Trigger] Orders listener warning:', err.message);
       });
 
@@ -202,74 +246,69 @@ export class FirebaseSyncService {
           }
         });
       }, (err) => {
+        if (FirebaseSyncService.checkIsQuotaError(err)) {
+          FirebaseSyncService.markQuotaExceeded();
+        }
         console.warn('[Firestore Trigger] Resellers listener warning:', err.message);
       });
 
     } catch (err) {
+      if (FirebaseSyncService.checkIsQuotaError(err)) {
+        FirebaseSyncService.markQuotaExceeded();
+      }
       console.warn('Failed to start Firestore real-time listeners:', err);
     }
   }
 
   /**
-   * Asynchronously syncs state to Cloud Firestore document collections and global snapshot
+   * Debounced, rate-limited cloud sync to Firestore.
+   * Saves atomic snapshot document (1 write unit) rather than massive multi-collection batch
+   * to strictly stay within Firebase Free Tier (Spark) daily write quotas.
    */
   public static async saveToCloud(data: DatabaseSchema): Promise<void> {
-    if (this.isSyncing) return;
+    this.latestPendingData = data;
+
+    // If quota limit was reached today, bypass Firestore writes to avoid repeating gRPC error loops
+    if (this.isQuotaExceeded()) {
+      return;
+    }
+
+    // Debounce saves by 5 seconds so multiple rapid state changes collapse into a single 1-unit write
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+
+    this.debounceTimer = setTimeout(() => {
+      this.executeCloudSync().catch((err) => {
+        console.warn('[Firestore Sync] Non-blocking cloud sync notice:', err instanceof Error ? err.message : err);
+      });
+    }, 5000);
+  }
+
+  private static async executeCloudSync(): Promise<void> {
+    if (this.isSyncing || this.isQuotaExceeded() || !this.latestPendingData) {
+      return;
+    }
+
     this.isSyncing = true;
+    const dataToSync = this.latestPendingData;
 
     try {
       const fsDb = getFirestoreDb();
 
-      // 1. Save global snapshot for fast atomic restoration
+      // Save atomic global snapshot (1 document write unit)
       const stateDocRef = doc(fsDb, 'app_state', GLOBAL_STATE_DOC);
       await setDoc(stateDocRef, {
         id: GLOBAL_STATE_DOC,
-        payload: JSON.stringify(data),
+        payload: JSON.stringify(dataToSync),
         updatedAt: new Date().toISOString(),
       });
-
-      // 2. Also mirror primary queryable collections into Firestore collections
-      const batch = writeBatch(fsDb);
-
-      // Save users (resellers & customers)
-      data.users.slice(0, 50).forEach((user) => {
-        const ref = doc(fsDb, 'users', user.id);
-        batch.set(ref, cleanForFirestore(user), { merge: true });
-      });
-
-      // Save resellers
-      data.resellers.slice(0, 50).forEach((reseller) => {
-        const ref = doc(fsDb, 'resellers', reseller.id);
-        batch.set(ref, cleanForFirestore(reseller), { merge: true });
-      });
-
-      // Save top products
-      data.products.slice(0, 50).forEach((prod) => {
-        const ref = doc(fsDb, 'products', prod.id);
-        batch.set(ref, cleanForFirestore(prod), { merge: true });
-      });
-
-      // Save orders
-      data.orders.slice(0, 50).forEach((order) => {
-        const ref = doc(fsDb, 'orders', order.id);
-        batch.set(ref, cleanForFirestore(order), { merge: true });
-      });
-
-      // Save wallets
-      Object.values(data.wallets).forEach((wallet) => {
-        const ref = doc(fsDb, 'wallets', wallet.resellerId);
-        batch.set(ref, cleanForFirestore(wallet), { merge: true });
-      });
-
-      // Save withdrawals
-      data.withdrawals.forEach((w) => {
-        const ref = doc(fsDb, 'withdrawals', w.id);
-        batch.set(ref, cleanForFirestore(w), { merge: true });
-      });
-
-      await batch.commit();
     } catch (err) {
-      console.warn('Error saving to Cloud Firestore:', err);
+      if (this.checkIsQuotaError(err)) {
+        this.markQuotaExceeded();
+      } else {
+        console.warn('Cloud Firestore sync notice:', err instanceof Error ? err.message : err);
+      }
     } finally {
       this.isSyncing = false;
     }

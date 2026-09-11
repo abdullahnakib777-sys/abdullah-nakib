@@ -65,6 +65,8 @@ import {
   MessageSquare,
   HelpCircle,
   Key,
+  Database,
+  Copy,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -208,6 +210,32 @@ export const AdminDashboard: React.FC = () => {
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   const [telegramTestResult, setTelegramTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showTelegramGuide, setShowTelegramGuide] = useState(false);
+
+  // Supabase PostgreSQL Settings State
+  const [supabaseStatus, setSupabaseStatus] = useState<{
+    configured: boolean;
+    url: string;
+    lastSyncTime: string | null;
+    lastSyncStatus: string;
+    lastSyncError: string | null;
+  } | null>(null);
+  const [isMigratingSupabase, setIsMigratingSupabase] = useState(false);
+  const [supabaseSyncMessage, setSupabaseSyncMessage] = useState<{ success: boolean; text: string } | null>(null);
+  const [copiedSql, setCopiedSql] = useState(false);
+
+  const handleMigrateToSupabase = async () => {
+    setIsMigratingSupabase(true);
+    setSupabaseSyncMessage(null);
+    try {
+      const res = await api.migrateToSupabase();
+      setSupabaseSyncMessage({ success: res.success, text: res.message });
+      if (res.status) setSupabaseStatus(res.status);
+    } catch (err: any) {
+      setSupabaseSyncMessage({ success: false, text: err.message || 'Failed to sync with Supabase.' });
+    } finally {
+      setIsMigratingSupabase(false);
+    }
+  };
 
   // OTP Countdown timer
   useEffect(() => {
@@ -386,6 +414,8 @@ export const AdminDashboard: React.FC = () => {
       if (alertsRes.status === 'fulfilled') {
         setFraudAlerts(alertsRes.value?.alerts || []);
       }
+
+      api.getSupabaseStatus().then(setSupabaseStatus).catch(() => {});
 
       const allFailed = results.every((r) => r.status === 'rejected');
       if (allFailed) {
@@ -2138,7 +2168,156 @@ export const AdminDashboard: React.FC = () => {
             </form>
           </div>
 
-          {/* 3. Platform Global Parameters */}
+          {/* 3. Supabase (PostgreSQL) Integration */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-xs">
+                  <Database className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <span>Supabase (PostgreSQL) Cloud Database</span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                        supabaseStatus?.configured
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          : 'bg-amber-100 text-amber-800 border-amber-200'
+                      }`}
+                    >
+                      {supabaseStatus?.configured ? 'Connected (PostgreSQL)' : 'Awaiting SUPABASE_KEY'}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Connects Shadhin Reseller BD to your dedicated Supabase PostgreSQL project with no write quota restrictions.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-xs">
+                <div className="bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-[11px] text-slate-700">
+                  <span className="text-slate-400">Project URL: </span>
+                  <span className="font-bold text-emerald-700">
+                    {supabaseStatus?.url || 'https://otxnivolxzxrrtvklegj.supabase.co'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {supabaseSyncMessage && (
+              <div
+                className={`p-4 rounded-2xl border text-xs font-semibold flex items-center gap-2.5 ${
+                  supabaseSyncMessage.success
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}
+              >
+                {supabaseSyncMessage.success ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                )}
+                <span>{supabaseSyncMessage.text}</span>
+              </div>
+            )}
+
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="font-bold text-slate-800">PostgreSQL Cloud Status: </span>
+                  <span className="text-slate-600">
+                    {supabaseStatus?.configured
+                      ? `Active • Last synced: ${
+                          supabaseStatus.lastSyncTime
+                            ? new Date(supabaseStatus.lastSyncTime).toLocaleTimeString()
+                            : 'Pending first sync'
+                        }`
+                      : 'Please add your SUPABASE_KEY to Settings > Secrets or .env to activate automatic continuous sync.'}
+                  </span>
+                </div>
+                {supabaseStatus?.lastSyncStatus && (
+                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white border border-slate-200 text-slate-700">
+                    Sync Status: {supabaseStatus.lastSyncStatus}
+                  </span>
+                )}
+              </div>
+
+              {supabaseStatus?.lastSyncError && (
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Database Notice: </span>
+                    <span>{supabaseStatus.lastSyncError}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-3.5 bg-white rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <span className="font-bold text-slate-800">Quick SQL Setup:</span>
+                  <p className="text-[11px] text-slate-500">
+                    Run this snippet in your Supabase SQL editor to create the required table with full security policies.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sql = `CREATE TABLE IF NOT EXISTS public.app_state (
+  id TEXT PRIMARY KEY,
+  payload JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+ALTER TABLE public.app_state ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow backend full access on app_state" ON public.app_state FOR ALL USING (true) WITH CHECK (true);`;
+                      navigator.clipboard.writeText(sql);
+                      setCopiedSql(true);
+                      setTimeout(() => setCopiedSql(false), 3000);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[11px] border border-slate-300 flex items-center gap-1.5 transition"
+                  >
+                    {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-600" />}
+                    <span>{copiedSql ? 'Copied SQL!' : 'Copy SQL Script'}</span>
+                  </button>
+                  <a
+                    href="https://supabase.com/dashboard/project/otxnivolxzxrrtvklegj/sql/new"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] border border-emerald-200 flex items-center gap-1.5 transition"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Open Supabase SQL Editor</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleMigrateToSupabase}
+                disabled={isMigratingSupabase || !supabaseStatus?.configured}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-2 disabled:opacity-50"
+              >
+                {isMigratingSupabase ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                <span>{isMigratingSupabase ? 'Syncing with Supabase...' : 'Sync All Data to Supabase (PostgreSQL)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => api.getSupabaseStatus().then(setSupabaseStatus).catch(() => {})}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-300 transition"
+              >
+                Refresh Status
+              </button>
+            </div>
+          </div>
+
+          {/* 4. Platform Global Parameters */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
             <h3 className="font-bold text-sm text-slate-900">Platform Global Parameters</h3>
             <div className="grid sm:grid-cols-3 gap-4 text-xs">

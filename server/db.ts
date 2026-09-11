@@ -23,6 +23,7 @@ import {
 } from '../src/types';
 import { ProfitEngine } from './profitEngine';
 import { FirebaseSyncService } from './firebaseSync';
+import { SupabaseService } from './supabaseService';
 import { generateRealisticResellersDataset } from './seedResellers';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -1504,29 +1505,43 @@ class Database {
         const fileContent = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(fileContent);
         this.data = this.mergeParsedData(parsed);
-        this.save();
+        this.saveLocal();
       } else {
         this.data = this.getDefaultData();
-        this.save();
+        this.saveLocal();
       }
       this.isLoaded = true;
 
-      // Attempt async cloud hydration in background and save back merged data
-      FirebaseSyncService.loadFromCloud()
-        .then((cloudData) => {
-          if (cloudData) {
-            this.data = this.mergeParsedData(cloudData);
-            this.save();
-            console.log('Database safely merged and synced with Cloud Firestore');
-          }
-        })
-        .catch((err) => {
-          console.warn('Firebase initial cloud sync skipped:', err);
-        });
+      // Attempt async cloud hydration in background and save back merged data locally without triggering re-upload
+      if (SupabaseService.isConfigured()) {
+        SupabaseService.loadFromSupabase()
+          .then((sbData) => {
+            if (sbData) {
+              this.data = this.mergeParsedData(sbData);
+              this.saveLocal();
+              console.log('Database safely merged and synced with Supabase (PostgreSQL)');
+            }
+          })
+          .catch((err) => {
+            console.warn('Supabase initial hydration skipped:', err);
+          });
+      } else {
+        FirebaseSyncService.loadFromCloud()
+          .then((cloudData) => {
+            if (cloudData) {
+              this.data = this.mergeParsedData(cloudData);
+              this.saveLocal();
+              console.log('Database safely merged and synced with Cloud Firestore');
+            }
+          })
+          .catch((err) => {
+            console.warn('Firebase initial cloud sync skipped:', err);
+          });
+      }
     } catch (err) {
       console.error('Error loading database file, using fallback defaults:', err);
       this.data = this.getDefaultData();
-      this.save();
+      this.saveLocal();
     }
   }
 
@@ -1546,6 +1561,10 @@ class Database {
     // Non-blocking sync to Firebase Cloud Firestore
     FirebaseSyncService.saveToCloud(this.data).catch((err) => {
       console.warn('Background sync to Cloud Firestore skipped:', err);
+    });
+    // Non-blocking sync to Supabase (PostgreSQL)
+    SupabaseService.saveToSupabase(this.data).catch((err) => {
+      console.warn('Background sync to Supabase skipped:', err);
     });
   }
 

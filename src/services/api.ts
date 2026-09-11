@@ -666,4 +666,18 @@ export const api = {
     apiFetch<{ success: boolean; message: string; summary?: any }>('/api/v1/admin/telegram/send-daily-report', {
       method: 'POST',
     }),
+
+  getSupabaseStatus: () =>
+    apiFetch<{
+      configured: boolean;
+      url: string;
+      lastSyncTime: string | null;
+      lastSyncStatus: string;
+      lastSyncError: string | null;
+    }>('/api/v1/admin/supabase/status'),
+
+  migrateToSupabase: () =>
+    apiFetch<{ success: boolean; message: string; status?: any }>('/api/v1/admin/supabase/migrate', {
+      method: 'POST',
+    }),
 };

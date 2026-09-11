@@ -8,6 +8,7 @@ import { AIService } from './server/aiService';
 import { TelegramService } from './server/telegramService';
 import { OtpService } from './server/otpService';
 import { FirebaseSyncService } from './server/firebaseSync';
+import { SupabaseService } from './server/supabaseService';
 import { User } from './src/types';
 
 dotenv.config();
@@ -39,10 +40,49 @@ async function startServer() {
       time: new Date().toISOString(),
       platform: 'Shadhin Reseller BD',
       database: {
-        engine: 'Firebase Cloud Firestore',
-        cloudSync: 'Active',
+        engine: 'Local Persistent Storage + Multi-Cloud Sync',
+        firestoreSync: FirebaseSyncService.isQuotaExceeded()
+          ? 'Paused (Daily Free Tier Write Limit Reached)'
+          : 'Active',
+        supabase: SupabaseService.getStatus(),
       },
     });
+  });
+
+  // Supabase migration and health endpoints
+  app.get('/api/v1/admin/supabase/status', (req: Request, res: Response) => {
+    res.json(SupabaseService.getStatus());
+  });
+
+  app.post('/api/v1/admin/supabase/migrate', async (req: Request, res: Response) => {
+    if (!SupabaseService.isConfigured()) {
+      return res.status(400).json({
+        success: false,
+        message: 'SUPABASE_KEY is not configured in environment variables. Add SUPABASE_KEY to your project settings first.',
+      });
+    }
+
+    try {
+      const success = await SupabaseService.saveToSupabase((db as any).data);
+      if (success) {
+        res.json({
+          success: true,
+          message: 'All application data (products, orders, resellers, wallets) successfully synced to Supabase (PostgreSQL)!',
+          status: SupabaseService.getStatus(),
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: 'Failed to sync to Supabase. Check that table "app_state" exists or check logs.',
+          status: SupabaseService.getStatus(),
+        });
+      }
+    } catch (err: any) {
+      res.status(500).json({
+        success: false,
+        error: err.message,
+      });
+    }
   });
 
   // Auth: Get demo accounts for instant switching
