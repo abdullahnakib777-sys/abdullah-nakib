@@ -11,6 +11,26 @@ let lastSyncError: string | null = null;
 
 export class SupabaseService {
   /**
+   * Sanitizes and normalizes the Supabase URL, auto-correcting .supabase.com typos to .supabase.co
+   */
+  public static getFormattedUrl(): string {
+    let url = (process.env.SUPABASE_URL || '').trim();
+    if (!url) {
+      return DEFAULT_SUPABASE_URL;
+    }
+    // Remove trailing slashes
+    url = url.replace(/\/+$/, '');
+    // Correct common typo: Supabase project API endpoints end in .supabase.co, not .supabase.com
+    if (url.includes('.supabase.com')) {
+      url = url.replace('.supabase.com', '.supabase.co');
+    }
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+    return url;
+  }
+
+  /**
    * Returns true if Supabase URL and Key are configured in environment variables
    */
   public static isConfigured(): boolean {
@@ -27,15 +47,20 @@ export class SupabaseService {
     }
 
     if (!client) {
-      const url = process.env.SUPABASE_URL?.trim() || DEFAULT_SUPABASE_URL;
+      const url = this.getFormattedUrl();
       const key = (process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)!.trim();
 
-      client = createClient(url, key, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      });
+      try {
+        client = createClient(url, key, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+          },
+        });
+      } catch (err) {
+        console.warn('[Supabase] Client initialization error:', err);
+        return null;
+      }
     }
 
     return client;
@@ -46,7 +71,7 @@ export class SupabaseService {
    */
   public static getStatus() {
     const configured = this.isConfigured();
-    const url = process.env.SUPABASE_URL?.trim() || DEFAULT_SUPABASE_URL;
+    const url = this.getFormattedUrl();
     return {
       configured,
       url,
@@ -72,19 +97,33 @@ export class SupabaseService {
 
       if (error) {
         // Table might not exist yet or no row found
-        console.log('[Supabase] Note on load:', error.message);
+        if (error.code === 'PGRST116') {
+          console.log('[Supabase] Initial app_state snapshot row not found yet (will be created on first sync)');
+        } else if (error.message?.includes('fetch failed')) {
+          console.warn('[Supabase] Note: Network connection to Supabase endpoint was unavailable; using local persistence.');
+        } else {
+          console.log('[Supabase] Note on load:', error.message);
+        }
         return null;
       }
 
       if (data?.payload) {
         const parsed = typeof data.payload === 'string' ? JSON.parse(data.payload) : data.payload;
         console.log('[Supabase] Successfully loaded cloud state snapshot from Supabase');
+        lastSyncStatus = 'SUCCESS';
+        lastSyncError = null;
+        lastSyncTime = new Date().toISOString();
         return parsed as DatabaseSchema;
       }
 
       return null;
     } catch (err) {
-      console.warn('[Supabase] Error loading snapshot from Supabase:', err instanceof Error ? err.message : err);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('fetch failed')) {
+        console.warn('[Supabase] Network notice: Supabase endpoint unreachable; fallback to local storage active.');
+      } else {
+        console.warn('[Supabase] Error loading snapshot from Supabase:', msg);
+      }
       return null;
     }
   }

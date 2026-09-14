@@ -53,7 +53,7 @@ export const StorefrontView: React.FC<{
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTrending, setFilterTrending] = useState(false);
-  const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high' | 'trending'>('trending');
+  const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high' | 'trending'>('newest');
 
   const isResellerOrAdmin = user?.role === 'RESELLER' || user?.role === 'ADMIN';
 
@@ -75,7 +75,7 @@ export const StorefrontView: React.FC<{
     return true;
   });
 
-  // Apply sorting
+  // Apply sorting - default newest first (those uploaded first are on the bottom)
   filtered = [...filtered].sort((a, b) => {
     if (sortBy === 'price_low') {
       return a.suggestedSellingPrice - b.suggestedSellingPrice;
@@ -84,9 +84,11 @@ export const StorefrontView: React.FC<{
     } else if (sortBy === 'newest') {
       return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     } else if (sortBy === 'trending') {
-      return (b.isTrending ? 1 : 0) - (a.isTrending ? 1 : 0);
+      const diff = (b.isTrending ? 1 : 0) - (a.isTrending ? 1 : 0);
+      if (diff !== 0) return diff;
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     }
-    return 0;
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
   });
 
   // Cosmic Highlights / Stories for Mobile

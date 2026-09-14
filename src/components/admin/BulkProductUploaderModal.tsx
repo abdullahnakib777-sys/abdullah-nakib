@@ -188,38 +188,46 @@ export function parseUniversalCsvWithMeta(
     };
   }
 
-  // Check if row 0 is a header row
+  // Check if row 0 is a genuine header row
   const isHeaderRow = (r: string[]) => {
-    const combined = r.join(' ').toLowerCase();
-    return (
-      combined.includes('resell') ||
-      combined.includes('wholesale') ||
-      combined.includes('পাইকারি') ||
-      combined.includes('পাইকারী') ||
-      combined.includes('রিসেল') ||
-      combined.includes('customer') ||
-      combined.includes('retail') ||
-      combined.includes('selling') ||
-      combined.includes('mrp') ||
-      combined.includes('খুচরা') ||
-      combined.includes('বিক্র') ||
-      combined.includes('product') ||
-      combined.includes('item') ||
-      combined.includes('name') ||
-      combined.includes('title') ||
-      combined.includes('দাম') ||
-      combined.includes('মূল্য') ||
-      combined.includes('price') ||
-      combined.includes('image') ||
-      combined.includes('photo') ||
-      combined.includes('link') ||
-      combined.includes('ছবি') ||
-      combined.includes('sl') ||
-      combined.includes('serial') ||
-      combined.includes('ক্রমিক') ||
-      combined.includes('desc') ||
-      combined.includes('বিবরণ')
-    );
+    if (!r || r.length === 0) return false;
+
+    // Never a header row if any cell is an image link or file URL
+    const hasUrl = r.some((c) => {
+      const s = c.toLowerCase().trim();
+      return (
+        s.startsWith('http://') ||
+        s.startsWith('https://') ||
+        s.includes('.jpg') ||
+        s.includes('.png') ||
+        s.includes('.webp') ||
+        s.includes('storage/')
+      );
+    });
+    if (hasUrl) return false;
+
+    // Never a header row if the first cell is a price (> 20)
+    const firstClean = parseCleanNumber(r[0]);
+    if (firstClean > 20) return false;
+
+    let headerMatchCount = 0;
+    for (const cell of r) {
+      const h = cell.toLowerCase().trim();
+      if (!h) continue;
+      if (
+        h === 'sl' || h === 'no' || h === '#' || h === 'id' || h === 'serial' || h === 'ক্রম' || h === 'ক্রমিক' || h === 'নং' ||
+        h.includes('wholesale') || h.includes('resell') || h.includes('পাইকারি') || h.includes('পাইকারী') || h.includes('ক্রয়') || h.includes('কেনা') || h.includes('cost') || h.includes('tp') ||
+        h.includes('customer') || h.includes('retail') || h.includes('selling') || h.includes('mrp') || h.includes('বিক্র') || h.includes('খুচরা') || h.includes('গ্রাহক') ||
+        h.includes('product') || h.includes('title') || h.includes('item') || h.includes('পণ্য') || h.includes('নাম') ||
+        h.includes('image') || h.includes('photo') || h.includes('picture') || h.includes('pic') || h.includes('url') || h.includes('ছবি') ||
+        h.includes('old price') || h.includes('regular price') || h.includes('compare') || h.includes('strikethrough') || h.includes('পূর্বের') || h.includes('আগের') ||
+        h.includes('discount') || h.includes('ছাড়') || h.includes('ছাড়') || h.includes('ডিসকাউন্ট') ||
+        h.includes('description') || h.includes('desc') || h.includes('বিবরণ') || h.includes('বর্ণনা')
+      ) {
+        headerMatchCount++;
+      }
+    }
+    return headerMatchCount >= Math.min(2, r.length);
   };
 
   let startIndex = 0;
@@ -250,7 +258,7 @@ export function parseUniversalCsvWithMeta(
         return;
       }
       // Discount
-      if (h.includes('discount') || h.includes('off') || h.includes('ছাড়') || h.includes('ডিসকাউন্ট')) {
+      if (h.includes('discount') || h.includes('off') || h.includes('ছাড়') || h.includes('ছাড়') || h.includes('ডিসকাউন্ট')) {
         if (headerDiscountIdx === -1) headerDiscountIdx = idx;
         return;
       }
@@ -271,16 +279,6 @@ export function parseUniversalCsvWithMeta(
         if (headerCustomerIdx === -1) headerCustomerIdx = idx;
         return;
       }
-      // Generic Price / মূল্য / দাম / রেট
-      if (h.includes('price') || h.includes('মূল্য') || h.includes('দাম') || h.includes('rate') || h.includes('রেট')) {
-        if (headerCustomerIdx === -1 && headerResellerIdx !== -1) {
-          headerCustomerIdx = idx;
-          return;
-        } else if (headerResellerIdx === -1) {
-          headerCustomerIdx = idx;
-          return;
-        }
-      }
       // Image
       if (h.includes('image') || h.includes('img') || h.includes('link') || h.includes('src') || h.includes('photo') || h.includes('pic') || h.includes('url') || h.includes('ছবি')) {
         if (headerImageIdx === -1) headerImageIdx = idx;
@@ -300,7 +298,7 @@ export function parseUniversalCsvWithMeta(
   }
 
   // Profile actual data rows to verify / auto-discover column roles
-  const dataRows = rows.slice(startIndex, startIndex + 30).filter((r) => r.length > 1);
+  const dataRows = rows.slice(startIndex, startIndex + 50).filter((r) => r.length > 1);
   const maxCols = Math.max(...rows.map((r) => r.length));
 
   const samplesByCol: string[] = [];
@@ -314,6 +312,7 @@ export function parseUniversalCsvWithMeta(
     isSerial: boolean;
     isUrl: boolean;
     isText: boolean;
+    isLongText: boolean;
     isNumeric: boolean;
     avgNum: number;
     avgLen: number;
@@ -323,16 +322,16 @@ export function parseUniversalCsvWithMeta(
     const rawVals = dataRows.map((r) => (r[c] || '').trim()).filter((v) => v.length > 0);
     const numVals = rawVals.map(parseCleanNumber).filter((n) => n > 0);
     const urlCount = rawVals.filter((v) => v.startsWith('http') || v.includes('.jpg') || v.includes('.png') || v.includes('.webp') || v.includes('storage/')).length;
-    const isUrl = rawVals.length > 0 && urlCount >= rawVals.length * 0.4;
+    const isUrl = rawVals.length > 0 && urlCount >= rawVals.length * 0.35;
 
     // Check if column is a Serial Number / Row Counter (e.g. 1, 2, 3...)
     let isSerial = false;
     if (headerSlIdx === c) {
       isSerial = true;
-    } else if (rawVals.length >= 2 && numVals.length === rawVals.length) {
+    } else if (c === 0 && rawVals.length >= 2 && numVals.length === rawVals.length) {
       const isSequential = numVals.every((n, i) => (i === 0 ? n === 1 || n === 0 : n === numVals[i - 1] + 1));
       const isSmallInts = numVals.every((n) => n > 0 && n <= rows.length + 20 && Number.isInteger(n));
-      if (isSequential || (isSmallInts && c === 0)) {
+      if (isSequential || isSmallInts) {
         isSerial = true;
       }
     }
@@ -342,79 +341,96 @@ export function parseUniversalCsvWithMeta(
     const avgNum = numVals.length > 0 ? numVals.reduce((a, b) => a + b, 0) / numVals.length : 0;
     const avgLen = rawVals.length > 0 ? rawVals.reduce((a, b) => a + b.length, 0) / rawVals.length : 0;
     const isText = !isUrl && !isNumeric && !isSerial && avgLen > 2;
+    const isLongText = isText && avgLen > 35;
 
-    colProfiles.push({ col: c, isSerial, isUrl, isText, isNumeric, avgNum, avgLen });
+    colProfiles.push({ col: c, isSerial, isUrl, isText, isLongText, isNumeric, avgNum, avgLen });
   }
 
-  const serialCol = colProfiles.find((p) => p.isSerial)?.col ?? (headerSlIdx !== -1 ? headerSlIdx : -1);
+  const detectedSerialCol = colProfiles.find((p) => p.isSerial)?.col ?? (headerSlIdx !== -1 ? headerSlIdx : -1);
+  const detectedUrlCol = colProfiles.find((p) => p.isUrl)?.col ?? headerImageIdx;
 
-  // Initialize candidate indices from headers or overrides
   let finalResellerIdx = overrides?.resellerIdx ?? headerResellerIdx;
   let finalCustomerIdx = overrides?.customerIdx ?? headerCustomerIdx;
-  let finalImageIdx = overrides?.imageIdx ?? headerImageIdx;
+  let finalImageIdx = overrides?.imageIdx ?? (headerImageIdx !== -1 ? headerImageIdx : (detectedUrlCol !== undefined && detectedUrlCol !== -1 ? detectedUrlCol : -1));
   let finalNameIdx = overrides?.nameIdx ?? headerNameIdx;
   let finalOldPriceIdx = overrides?.oldPriceIdx ?? headerOldPriceIdx;
   let finalDiscountIdx = overrides?.discountIdx ?? headerDiscountIdx;
   let finalDescIdx = overrides?.descIdx ?? headerDescIdx;
 
-  // SAFETY RULE 1: Never let Serial Number column be wholesale, retail, or product name!
-  if (serialCol !== -1) {
-    if (finalResellerIdx === serialCol) finalResellerIdx = -1;
-    if (finalCustomerIdx === serialCol) finalCustomerIdx = -1;
-    if (finalNameIdx === serialCol) finalNameIdx = -1;
+  // Layout-aware Auto Detection
+  if (finalResellerIdx === -1 || finalCustomerIdx === -1 || finalNameIdx === -1) {
+    if (detectedSerialCol === 0) {
+      // 8-column schemas with SL at col 0
+      if (finalImageIdx === 4) {
+        // Col 0: SL, Col 1: Name, Col 2: Wholesale, Col 3: Customer, Col 4: Image, Col 5: Old, Col 6: Disc, Col 7: Desc
+        if (finalNameIdx === -1) finalNameIdx = 1;
+        if (finalResellerIdx === -1) finalResellerIdx = 2;
+        if (finalCustomerIdx === -1) finalCustomerIdx = 3;
+        if (finalOldPriceIdx === -1) finalOldPriceIdx = 5;
+        if (finalDiscountIdx === -1) finalDiscountIdx = 6;
+        if (finalDescIdx === -1) finalDescIdx = 7;
+      } else if (finalImageIdx === 3 || finalImageIdx === 2) {
+        // Col 0: SL, Col 1: Wholesale, Col 2: Customer, Col 3: Image, Col 4: Name
+        if (finalResellerIdx === -1) finalResellerIdx = 1;
+        if (finalCustomerIdx === -1) finalCustomerIdx = 2;
+        if (finalNameIdx === -1) finalNameIdx = 4;
+        if (finalOldPriceIdx === -1) finalOldPriceIdx = 5;
+        if (finalDiscountIdx === -1) finalDiscountIdx = 6;
+        if (finalDescIdx === -1) finalDescIdx = 7;
+      }
+    } else {
+      // No SL column at col 0
+      if (finalImageIdx === 2) {
+        // Standard advertised 7-column schema:
+        // Col 0: Wholesale, Col 1: Customer, Col 2: Image, Col 3: Name, Col 4: Old, Col 5: Disc, Col 6: Desc
+        if (finalResellerIdx === -1) finalResellerIdx = 0;
+        if (finalCustomerIdx === -1) finalCustomerIdx = 1;
+        if (finalNameIdx === -1) finalNameIdx = 3;
+        if (finalOldPriceIdx === -1) finalOldPriceIdx = 4;
+        if (finalDiscountIdx === -1) finalDiscountIdx = 5;
+        if (finalDescIdx === -1) finalDescIdx = 6;
+      } else if (finalImageIdx === 3) {
+        // Col 0: Name, Col 1: Wholesale, Col 2: Customer, Col 3: Image, Col 4: Old, Col 5: Disc, Col 6: Desc
+        if (finalNameIdx === -1) finalNameIdx = 0;
+        if (finalResellerIdx === -1) finalResellerIdx = 1;
+        if (finalCustomerIdx === -1) finalCustomerIdx = 2;
+        if (finalOldPriceIdx === -1) finalOldPriceIdx = 4;
+        if (finalDiscountIdx === -1) finalDiscountIdx = 5;
+        if (finalDescIdx === -1) finalDescIdx = 6;
+      } else if (finalImageIdx === 4) {
+        // Col 0: Code, Col 1: Name, Col 2: Wholesale, Col 3: Customer, Col 4: Image
+        if (finalNameIdx === -1) finalNameIdx = 1;
+        if (finalResellerIdx === -1) finalResellerIdx = 2;
+        if (finalCustomerIdx === -1) finalCustomerIdx = 3;
+        if (finalOldPriceIdx === -1) finalOldPriceIdx = 5;
+        if (finalDiscountIdx === -1) finalDiscountIdx = 6;
+        if (finalDescIdx === -1) finalDescIdx = 7;
+      }
+    }
   }
 
-  // Find image column if not set
+  // Final fallbacks for any remaining unmapped columns
+  if (finalNameIdx === -1) {
+    const textCol = colProfiles.find((p) => p.isText && !p.isLongText && p.col !== finalDescIdx && p.col !== finalImageIdx && p.col !== detectedSerialCol);
+    if (textCol) finalNameIdx = textCol.col;
+    else finalNameIdx = detectedSerialCol === 0 ? 1 : 0;
+  }
+  if (finalResellerIdx === -1) {
+    const numCol = colProfiles.find((p) => p.isNumeric && p.col !== detectedSerialCol && p.col !== finalImageIdx && p.col !== finalCustomerIdx);
+    if (numCol) finalResellerIdx = numCol.col;
+    else finalResellerIdx = detectedSerialCol === 0 ? 2 : 0;
+  }
+  if (finalCustomerIdx === -1) {
+    const numCol = colProfiles.find((p) => p.isNumeric && p.col !== detectedSerialCol && p.col !== finalImageIdx && p.col !== finalResellerIdx);
+    if (numCol) finalCustomerIdx = numCol.col;
+    else finalCustomerIdx = detectedSerialCol === 0 ? 3 : 1;
+  }
   if (finalImageIdx === -1) {
-    const urlCol = colProfiles.find((p) => p.isUrl)?.col;
-    if (urlCol !== undefined) finalImageIdx = urlCol;
+    finalImageIdx = detectedSerialCol === 0 ? 4 : 2;
   }
-
-  // Identify price candidate columns (excluding serial numbers and images)
-  const candidatePriceCols = colProfiles
-    .filter((p) => p.isNumeric && p.col !== serialCol && p.col !== finalImageIdx)
-    .sort((a, b) => a.avgNum - b.avgNum);
-
-  // Auto-assign prices if missing:
-  // Wholesale price is the LOWER price; Customer price is the HIGHER price!
-  if (candidatePriceCols.length >= 2) {
-    if (finalResellerIdx === -1 && finalCustomerIdx === -1) {
-      finalResellerIdx = candidatePriceCols[0].col;
-      finalCustomerIdx = candidatePriceCols[1].col;
-    } else if (finalResellerIdx === -1 && finalCustomerIdx !== -1) {
-      const remaining = candidatePriceCols.find((c) => c.col !== finalCustomerIdx);
-      if (remaining) finalResellerIdx = remaining.col;
-    } else if (finalCustomerIdx === -1 && finalResellerIdx !== -1) {
-      const remaining = candidatePriceCols.find((c) => c.col !== finalResellerIdx);
-      if (remaining) finalCustomerIdx = remaining.col;
-    }
-
-    // If a 3rd higher price column exists, it is old/strikethrough price
-    if (candidatePriceCols.length >= 3 && finalOldPriceIdx === -1) {
-      const remainingOld = candidatePriceCols.find(
-        (c) => c.col !== finalResellerIdx && c.col !== finalCustomerIdx && c.avgNum > candidatePriceCols[1].avgNum
-      );
-      if (remainingOld) finalOldPriceIdx = remainingOld.col;
-    }
-  } else if (candidatePriceCols.length === 1) {
-    if (finalResellerIdx === -1 && finalCustomerIdx === -1) {
-      finalResellerIdx = candidatePriceCols[0].col;
-    }
-  }
-
-  // Fallback defaults for 7-column schema if no columns matched and no serial
-  if (finalResellerIdx === -1) finalResellerIdx = serialCol === 0 ? 1 : 0;
-  if (finalCustomerIdx === -1) finalCustomerIdx = serialCol === 0 ? 2 : 1;
-  if (finalImageIdx === -1) finalImageIdx = serialCol === 0 ? 3 : 2;
-  if (finalNameIdx === -1) finalNameIdx = serialCol === 0 ? 4 : 3;
-  if (finalOldPriceIdx === -1) finalOldPriceIdx = serialCol === 0 ? 5 : 4;
-  if (finalDiscountIdx === -1) finalDiscountIdx = serialCol === 0 ? 6 : 5;
-  if (finalDescIdx === -1) finalDescIdx = serialCol === 0 ? 7 : 6;
-
-  // If name column is still resolving to serial or price, pick best text column
-  if (finalNameIdx === serialCol || finalNameIdx === finalResellerIdx || finalNameIdx === finalCustomerIdx) {
-    const bestText = colProfiles.find((p) => p.isText && p.col !== finalDescIdx && p.col !== finalImageIdx);
-    if (bestText) finalNameIdx = bestText.col;
+  if (finalDescIdx === -1) {
+    const longCol = colProfiles.find((p) => p.isLongText && p.col !== finalNameIdx);
+    if (longCol) finalDescIdx = longCol.col;
   }
 
   const warnings: string[] = [];
@@ -430,11 +446,17 @@ export function parseUniversalCsvWithMeta(
     const oldPrice = finalOldPriceIdx !== -1 && row[finalOldPriceIdx] ? Math.round(parseCleanNumber(row[finalOldPriceIdx])) : undefined;
     const discountAmount = finalDiscountIdx !== -1 && row[finalDiscountIdx] ? Math.round(parseCleanNumber(row[finalDiscountIdx])) : undefined;
 
-    // Sanity checks on prices
+    // Sanity checks on prices:
+    // If retail price is missing, auto calculate reasonable retail margin
     if (customerPrice === 0 && resellerPrice > 0) {
       customerPrice = Math.round(resellerPrice * 1.4);
     } else if (resellerPrice === 0 && customerPrice > 0) {
       resellerPrice = Math.round(customerPrice * 0.7);
+    } else if (customerPrice > 0 && resellerPrice > 0 && customerPrice < resellerPrice) {
+      // If customer price is lower than wholesale price, user inverted the two columns
+      const temp = customerPrice;
+      customerPrice = resellerPrice;
+      resellerPrice = temp;
     }
 
     if (resellerPrice > 0 && resellerPrice <= 10) {
@@ -442,12 +464,13 @@ export function parseUniversalCsvWithMeta(
     }
 
     const rawName = row[finalNameIdx] ? row[finalNameIdx].replace(/^"+|"+$/g, '').trim() : '';
-    const name = rawName && rawName.length > 1 && isNaN(Number(rawName)) ? rawName : `Product ${i + 1}`;
+    // Preserve exact product name; only fallback if completely empty
+    const name = rawName && rawName.length > 0 ? rawName : `Product ${i + 1}`;
     const rawImage = row[finalImageIdx] ? row[finalImageIdx].replace(/^"+|"+$/g, '').trim() : '';
     const imageUrl = rawImage.startsWith('http') ? rawImage : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80';
     const description = finalDescIdx !== -1 && row[finalDescIdx] ? row[finalDescIdx].replace(/^"+|"+$/g, '').trim() : '';
 
-    if (resellerPrice > 0 || customerPrice > 0 || name.length > 2) {
+    if (resellerPrice > 0 || customerPrice > 0 || name.length > 1) {
       products.push({
         resellerPrice,
         customerPrice,
@@ -472,7 +495,7 @@ export function parseUniversalCsvWithMeta(
     oldPriceIdx: finalOldPriceIdx,
     discountIdx: finalDiscountIdx,
     descIdx: finalDescIdx,
-    slIdx: serialCol,
+    slIdx: detectedSerialCol,
     headers: rawHeaders,
     totalColumns: maxCols,
     samplesByCol,
@@ -481,7 +504,7 @@ export function parseUniversalCsvWithMeta(
   return {
     products,
     mapping,
-    hasSerialColumn: serialCol !== -1,
+    hasSerialColumn: detectedSerialCol !== -1,
     warnings,
   };
 }
@@ -639,17 +662,29 @@ export const BulkProductUploaderModal: React.FC<BulkProductUploaderModalProps> =
     }
   };
 
-  const downloadSampleTemplate = () => {
-    const sample = `SL,Product Name,Wholesale Price,Customer Price,Image Link,Old Price,Discount,Description
+  const downloadSampleTemplate = (withSerial: boolean = false) => {
+    let sample = '';
+    let filename = '';
+
+    if (withSerial) {
+      filename = 'shadhin_products_template_with_sl.csv';
+      sample = `SL,Product Name,Wholesale Price,Customer Price,Image Link,Old Price,Discount,Description
 1,Cotton Casual T-Shirt,350,600,https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800,750,150,"প্রিমিয়াম সুতি কাপড়ের টি-শার্ট"
 2,Executive Smart Watch,1200,1800,https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800,2200,400,"স্মার্ট কলিং এবং হার্টরেট মনিটর"
 3,Leather Travel Bag,950,1500,https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800,1800,300,"টেকসই ওয়াটারপ্রুফ ট্রাভেল ব্যাগ"`;
+    } else {
+      filename = 'shadhin_products_7col_template.csv';
+      sample = `Wholesale Price,Customer Price,Image Link,Product Name,Old Price,Discount,Description
+350,600,https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800,Cotton Casual T-Shirt,750,150,"প্রিমিয়াম সুতি কাপড়ের টি-শার্ট"
+1200,1800,https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800,Executive Smart Watch,2200,400,"স্মার্ট কলিং এবং হার্টরেট মনিটর"
+950,1500,https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800,Leather Travel Bag,1800,300,"টেকসই ওয়াটারপ্রুফ ট্রাভেল ব্যাগ"`;
+    }
 
     const blob = new Blob([sample], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', 'shadhin_products_bulk_template.csv');
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -668,11 +703,11 @@ export const BulkProductUploaderModal: React.FC<BulkProductUploaderModalProps> =
               <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
                 <span>Bulk Product CSV Uploader</span>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-600 text-white">
-                  7-Column Schema
+                  Universal Format (Up to 1,000+ Items)
                 </span>
               </h2>
               <p className="text-xs text-slate-500">
-                Upload or paste wholesale pricing, customer prices, images, discounts, and Bangla descriptions
+                Upload or paste CSV/TSV from Excel, Google Sheets, or files. Auto-detects column order, English & Bengali numerals.
               </p>
             </div>
           </div>
@@ -689,20 +724,31 @@ export const BulkProductUploaderModal: React.FC<BulkProductUploaderModalProps> =
         <div className="p-6 space-y-6 overflow-y-auto flex-1 text-xs">
           {/* Format Specification Banner */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 text-slate-800 font-bold">
                 <Info className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span>Required 7-Column Order Format:</span>
+                <span>Supported CSV Layouts (Auto-Detected):</span>
               </div>
 
-              <button
-                type="button"
-                onClick={downloadSampleTemplate}
-                className="text-indigo-600 hover:text-indigo-700 font-bold flex items-center gap-1 hover:underline"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download Sample CSV</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => downloadSampleTemplate(false)}
+                  className="text-indigo-600 hover:text-indigo-700 font-bold flex items-center gap-1 hover:underline text-[11px]"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Download 7-Col CSV</span>
+                </button>
+                <span className="text-slate-300">|</span>
+                <button
+                  type="button"
+                  onClick={() => downloadSampleTemplate(true)}
+                  className="text-indigo-600 hover:text-indigo-700 font-bold flex items-center gap-1 hover:underline text-[11px]"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Download CSV with SL / Name First</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 pt-1">
@@ -735,6 +781,9 @@ export const BulkProductUploaderModal: React.FC<BulkProductUploaderModalProps> =
                 <span className="font-bold text-slate-800">Bangla Description</span>
               </div>
             </div>
+            <p className="text-[10px] text-slate-500 pt-0.5">
+              💡 <em>Files with a Serial Number column (SL, 1, 2, 3...) or Product Name first are automatically aligned. You can also adjust mapping manually below if needed.</em>
+            </p>
           </div>
 
           {/* Upload Area / Drag & Drop */}
@@ -1010,7 +1059,7 @@ export const BulkProductUploaderModal: React.FC<BulkProductUploaderModalProps> =
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {parsedItems.slice(0, 30).map((p, idx) => (
+                    {parsedItems.slice(0, 50).map((p, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/50">
                         <td className="p-3 text-slate-400 font-mono text-[11px]">{idx + 1}</td>
                         <td className="p-3 flex items-center gap-2.5 max-w-xs">
@@ -1045,9 +1094,9 @@ export const BulkProductUploaderModal: React.FC<BulkProductUploaderModalProps> =
                 </table>
               </div>
 
-              {parsedItems.length > 30 && (
+              {parsedItems.length > 50 && (
                 <p className="text-center text-[11px] text-slate-400 italic">
-                  Showing first 30 of {parsedItems.length} products. All will be imported to database.
+                  Showing first 50 of {parsedItems.length.toLocaleString()} products. All {parsedItems.length.toLocaleString()} will be imported to database.
                 </p>
               )}
             </div>

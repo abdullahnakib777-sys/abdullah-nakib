@@ -1283,7 +1283,7 @@ export const AdminDashboard: React.FC = () => {
           }
 
           return true;
-        });
+        }).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
         const inStockCount = products.filter((p) => !p.isStockOut && p.stock > 0).length;
         const stockOutCount = products.filter((p) => p.isStockOut || p.stock <= 0).length;

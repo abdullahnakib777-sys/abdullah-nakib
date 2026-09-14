@@ -1490,8 +1490,17 @@ class Database {
     );
     const mergedOrders = [...defaults.orders, ...customUserOrders];
 
-    // 5. Products: respect current database state (including empty array when cleared)
-    const rawProducts = Array.isArray(parsed.products) ? parsed.products : defaults.products;
+    // 5. Products: merge default wholesale catalog products with any custom products/edits
+    let rawProducts = defaults.products;
+    if (Array.isArray(parsed.products) && parsed.products.length > 0) {
+      const defaultProdIds = new Set(defaults.products.map((p) => p.id));
+      const customProducts = parsed.products.filter((p: Product) => !defaultProdIds.has(p.id));
+      const mergedDefaults = defaults.products.map((dp) => {
+        const custom = (parsed.products as Product[]).find((p) => p.id === dp.id);
+        return custom ? { ...dp, ...custom } : dp;
+      });
+      rawProducts = [...mergedDefaults, ...customProducts];
+    }
 
     const mergedProducts = rawProducts.map((p: Product, idx: number) => ({
       ...p,
@@ -2036,7 +2045,9 @@ class Database {
   }
 
   public getProducts() {
-    return this.data.products;
+    return [...this.data.products].sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
   }
 
   public getProductById(id: string) {
@@ -2183,8 +2194,9 @@ class Database {
       }
     }
 
+    const baseTime = Date.now();
     const formattedProducts: Product[] = productsList.map((p, idx) => {
-      const id = p.id || `prod-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
+      const id = p.id || `prod-${baseTime}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
       const productCode = p.productCode || `MM-${maxCodeNum + 1 + idx}`;
       const resellerPrice = Math.round(Number(p.resellerPrice) || 0);
       const suggestedSellingPrice = Math.round(Number(p.suggestedSellingPrice) || (resellerPrice > 0 ? Math.round(resellerPrice * 1.5) : 500));
@@ -2201,10 +2213,15 @@ class Database {
       const slug = (p.name || 'product')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '') || `prod-${Date.now()}`;
+        .replace(/(^-|-$)/g, '') || `prod-${baseTime}-${idx}`;
 
       const stock = p.stock !== undefined ? Number(p.stock) : 100;
       const isStockOut = p.isStockOut !== undefined ? p.isStockOut : stock <= 0;
+
+      // Incremental milliseconds: item 0 gets baseTime, item idx gets baseTime + idx
+      // When sorted descending by createdAt, item 0 (first in upload) is at the bottom of the batch
+      // and earlier batches from previous uploads are even further below it
+      const createdAt = p.createdAt || new Date(baseTime + idx).toISOString();
 
       return {
         id,
@@ -2235,21 +2252,26 @@ class Database {
           'ওয়ারেন্টি': '৭ দিনের চেক ও রিপ্লেসমেন্ট ওয়ারেন্টি',
         },
         rating: p.rating || 5.0,
-        reviewCount: p.reviewCount || Math.floor(Math.random() * 25) + 5,
-        successfulSalesCount: p.successfulSalesCount || Math.floor(Math.random() * 50) + 12,
+        reviewCount: p.reviewCount || 10,
+        successfulSalesCount: p.successfulSalesCount || 25,
         returnRatePercent: p.returnRatePercent || 1.2,
-        isTrending: p.isTrending !== undefined ? p.isTrending : Math.random() > 0.65,
-        isBestSeller: p.isBestSeller !== undefined ? p.isBestSeller : Math.random() > 0.7,
+        isTrending: p.isTrending !== undefined ? p.isTrending : false,
+        isBestSeller: p.isBestSeller !== undefined ? p.isBestSeller : false,
         deliveryDaysMin: p.deliveryDaysMin || 2,
         deliveryDaysMax: p.deliveryDaysMax || 4,
-        createdAt: p.createdAt || new Date().toISOString(),
+        createdAt,
       };
     });
 
     if (replaceAll) {
-      this.data.products = formattedProducts;
+      this.data.products = [...formattedProducts].sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
     } else {
-      this.data.products = [...formattedProducts, ...this.data.products];
+      const combined = [...formattedProducts, ...this.data.products];
+      this.data.products = combined.sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
     }
 
     // Refresh Category counts

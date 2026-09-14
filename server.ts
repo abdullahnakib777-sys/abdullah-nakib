@@ -17,7 +17,8 @@ const PORT = 3000;
 
 async function startServer() {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   // Simple authentication helper
   const getAuthenticatedUser = (req: Request): User => {
@@ -398,6 +399,11 @@ async function startServer() {
       products.sort((a, b) => b.resellerPrice - a.resellerPrice);
     } else if (sort === 'popularity') {
       products.sort((a, b) => b.successfulSalesCount - a.successfulSalesCount);
+    } else {
+      // Default: Newest first (those uploaded first remain at the bottom)
+      products.sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
     }
 
     res.json({ products, total: products.length });

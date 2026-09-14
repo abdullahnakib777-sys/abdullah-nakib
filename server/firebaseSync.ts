@@ -326,10 +326,38 @@ export class FirebaseSyncService {
       const fsDb = getFirestoreDb();
 
       // Save atomic global snapshot (1 document write unit)
+      let jsonPayload = JSON.stringify(dataToSync);
+      // Firestore document hard limit is 1,048,576 bytes. If 1000+ products exceed 900KB, optimize fields for cloud snapshot
+      if (jsonPayload.length > 900000 && Array.isArray(dataToSync.products)) {
+        const compactData = {
+          ...dataToSync,
+          products: dataToSync.products.map((p: any) => ({
+            id: p.id,
+            productCode: p.productCode,
+            name: p.name,
+            nameBn: p.nameBn,
+            slug: p.slug,
+            category: p.category,
+            categorySlug: p.categorySlug,
+            baseCost: p.baseCost,
+            resellerPrice: p.resellerPrice,
+            suggestedSellingPrice: p.suggestedSellingPrice,
+            oldPrice: p.oldPrice,
+            discountAmount: p.discountAmount,
+            stock: p.stock,
+            isStockOut: p.isStockOut,
+            images: Array.isArray(p.images) ? p.images.slice(0, 2) : [],
+            description: typeof p.description === 'string' ? p.description.slice(0, 250) : '',
+            createdAt: p.createdAt,
+          })),
+        };
+        jsonPayload = JSON.stringify(compactData);
+      }
+
       const stateDocRef = doc(fsDb, 'app_state', GLOBAL_STATE_DOC);
       await setDoc(stateDocRef, {
         id: GLOBAL_STATE_DOC,
-        payload: JSON.stringify(dataToSync),
+        payload: jsonPayload,
         updatedAt: new Date().toISOString(),
       });
     } catch (err) {
