@@ -190,9 +190,9 @@ export const ResellerProductsView: React.FC<{
           >
             All Categories ({products.length})
           </button>
-          {categories.map((cat) => (
+          {categories.map((cat, idx) => (
             <button
-              key={cat.id}
+              key={cat.id ? `${cat.id}-${cat.slug || idx}` : `cat-${idx}`}
               onClick={() => setSelectedCategory(cat.slug)}
               className={`px-3.5 py-1.5 rounded-full font-bold transition shrink-0 flex items-center gap-1.5 ${
                 selectedCategory === cat.slug

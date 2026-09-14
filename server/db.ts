@@ -1390,6 +1390,41 @@ class Database {
     };
   }
 
+  private sanitizeCategories(categories: ProductCategory[]): ProductCategory[] {
+    if (!Array.isArray(categories) || categories.length === 0) {
+      return [...INITIAL_CATEGORIES];
+    }
+    const seenIds = new Set<string>();
+    const seenSlugs = new Set<string>();
+
+    return categories.map((cat, idx) => {
+      const fallbackSlug = (cat.slug || cat.name || `category-${idx + 1}`)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || `category-${idx + 1}`;
+
+      let slug = fallbackSlug;
+      if (seenSlugs.has(slug)) {
+        slug = `${fallbackSlug}-${idx + 1}`;
+      }
+      seenSlugs.add(slug);
+
+      // Avoid ambiguous generic IDs like "cat-1" that easily collide; derive from slug
+      let id = cat.id && cat.id !== 'cat-1' && !seenIds.has(cat.id) ? cat.id : `cat-${slug}`;
+      if (seenIds.has(id)) {
+        id = `cat-${slug}-${idx + 1}`;
+      }
+      seenIds.add(id);
+
+      return {
+        ...cat,
+        id,
+        slug,
+        itemCount: typeof cat.itemCount === 'number' ? cat.itemCount : 0,
+      };
+    });
+  }
+
   private mergeParsedData(parsed: Partial<DatabaseSchema>): DatabaseSchema {
     const defaults = this.getDefaultData();
     if (!parsed) return defaults;
@@ -1455,8 +1490,10 @@ class Database {
     );
     const mergedOrders = [...defaults.orders, ...customUserOrders];
 
-    // 5. Products
-    const mergedProducts = (parsed.products && parsed.products.length > 0 ? parsed.products : defaults.products).map((p: Product, idx: number) => ({
+    // 5. Products: respect current database state (including empty array when cleared)
+    const rawProducts = Array.isArray(parsed.products) ? parsed.products : defaults.products;
+
+    const mergedProducts = rawProducts.map((p: Product, idx: number) => ({
       ...p,
       productCode: p.productCode || `MM-${1001 + idx}`,
       isStockOut: p.isStockOut !== undefined ? p.isStockOut : (p.stock !== undefined && p.stock <= 0),
@@ -1485,6 +1522,7 @@ class Database {
     return {
       ...defaults,
       ...parsed,
+      categories: this.sanitizeCategories(parsed.categories || defaults.categories),
       users: [...finalUsers, ...customUsers],
       resellers: [...finalResellers, ...customResellers],
       products: mergedProducts,
@@ -1994,7 +2032,7 @@ class Database {
 
   // --- Products & Categories ---
   public getCategories() {
-    return this.data.categories;
+    return this.sanitizeCategories(this.data.categories);
   }
 
   public getProducts() {
@@ -2085,33 +2123,69 @@ class Database {
     return { success: true, deletedId: id, product: removed };
   }
 
+  public deleteAllProducts(actor: User) {
+    const previousCount = this.data.products ? this.data.products.length : 0;
+    this.data.products = [];
+
+    // Reset category item counts to 0
+    if (Array.isArray(this.data.categories)) {
+      this.data.categories = this.data.categories.map((c) => ({
+        ...c,
+        itemCount: 0,
+      }));
+    }
+
+    this.logAudit({
+      action: 'DELETE_ALL_PRODUCTS',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'PRODUCT',
+      targetId: 'all',
+      details: `Deleted all ${previousCount} products from catalog`,
+    });
+
+    this.save();
+    return { success: true, count: previousCount, message: `Successfully deleted all ${previousCount} products` };
+  }
+
   public bulkCreateProducts(productsList: Array<Partial<Product>>, actor: User, replaceAll = false) {
     const inferCategory = (name: string): { category: string; slug: string } => {
       const lower = name.toLowerCase();
-      if (lower.includes('ac ') || lower.includes('inverter') || lower.includes('refrigerator') || lower.includes('tv') || lower.includes('fan') || lower.includes('heater') || lower.includes('torch') || lower.includes('light') || lower.includes('camera') || lower.includes('headphone') || lower.includes('ear bud') || lower.includes('watch') || lower.includes('power bank') || lower.includes('speaker') || lower.includes('nebulizer') || lower.includes('usb')) {
+      if (lower.includes('ac ') || lower.includes('inverter') || lower.includes('refrigerator') || lower.includes('tv') || lower.includes('fan') || lower.includes('heater') || lower.includes('torch') || lower.includes('light') || lower.includes('camera') || lower.includes('headphone') || lower.includes('ear bud') || lower.includes('watch') || lower.includes('power bank') || lower.includes('speaker') || lower.includes('nebulizer') || lower.includes('usb') || lower.includes('gadget') || lower.includes('electronic')) {
         return { category: 'Electronics & Gadgets', slug: 'gadgets' };
       }
-      if (lower.includes('grinder') || lower.includes('blender') || lower.includes('cooker') || lower.includes('kettle') || lower.includes('chopper') || lower.includes('slicer') || lower.includes('kitchen') || lower.includes('rack') || lower.includes('storage') || lower.includes('bottle') || lower.includes('box') || lower.includes('pot') || lower.includes('peeler') || lower.includes('egg') || lower.includes('dispenser')) {
-        return { category: 'Kitchen & Dining', slug: 'kitchen' };
+      if (lower.includes('grinder') || lower.includes('blender') || lower.includes('cooker') || lower.includes('kettle') || lower.includes('chopper') || lower.includes('slicer') || lower.includes('kitchen') || lower.includes('rack') || lower.includes('storage') || lower.includes('bottle') || lower.includes('box') || lower.includes('pot') || lower.includes('peeler') || lower.includes('egg') || lower.includes('dispenser') || lower.includes('pan') || lower.includes('organizer')) {
+        return { category: 'Smart Kitchen & Living', slug: 'kitchen' };
       }
-      if (lower.includes('shaver') || lower.includes('trimmer') || lower.includes('massager') || lower.includes('hair') || lower.includes('facial') || lower.includes('face') || lower.includes('skin') || lower.includes('cream') || lower.includes('shampoo') || lower.includes('soap') || lower.includes('pedicure') || lower.includes('manicure') || lower.includes('spa') || lower.includes('oil') || lower.includes('therapy')) {
-        return { category: 'Health & Beauty', slug: 'beauty' };
+      if (lower.includes('shaver') || lower.includes('trimmer') || lower.includes('massager') || lower.includes('hair') || lower.includes('facial') || lower.includes('face') || lower.includes('skin') || lower.includes('cream') || lower.includes('shampoo') || lower.includes('soap') || lower.includes('pedicure') || lower.includes('manicure') || lower.includes('spa') || lower.includes('oil') || lower.includes('therapy') || lower.includes('beauty') || lower.includes('serum')) {
+        return { category: 'Health, Beauty & Care', slug: 'beauty' };
       }
-      if (lower.includes('bag') || lower.includes('backpack') || lower.includes('wallet') || lower.includes('locket') || lower.includes('bracelet') || lower.includes('necklace') || lower.includes('ring') || lower.includes('umbrella') || lower.includes('shoe') || lower.includes('towel') || lower.includes('earring')) {
-        return { category: 'Fashion & Accessories', slug: 'fashion' };
-      }
-      if (lower.includes('cleaner') || lower.includes('tape') || lower.includes('glue') || lower.includes('tool') || lower.includes('wrench') || lower.includes('screwdriver') || lower.includes('mop') || lower.includes('brush') || lower.includes('spray') || lower.includes('hook') || lower.includes('mat') || lower.includes('lock') || lower.includes('pipe') || lower.includes('patch')) {
-        return { category: 'Home Improvement & Tools', slug: 'tools' };
+      if (lower.includes('bag') || lower.includes('backpack') || lower.includes('wallet') || lower.includes('locket') || lower.includes('bracelet') || lower.includes('necklace') || lower.includes('ring') || lower.includes('umbrella') || lower.includes('shoe') || lower.includes('towel') || lower.includes('earring') || lower.includes('sharee') || lower.includes('cloth') || lower.includes('shirt') || lower.includes('pant') || lower.includes('hijab')) {
+        return { category: 'Fashion & Lifestyle', slug: 'fashion' };
       }
       if (lower.includes('baby') || lower.includes('kids') || lower.includes('toy') || lower.includes('potty') || lower.includes('bouncer') || lower.includes('diaper') || lower.includes('stroller')) {
-        return { category: 'Baby & Kids', slug: 'kids' };
+        return { category: 'Kids & Baby', slug: 'baby' };
       }
-      return { category: 'Home & Living', slug: 'home' };
+      return { category: 'Smart Kitchen & Living', slug: 'kitchen' };
     };
+
+    // Calculate start product code to avoid collisions with existing products
+    let maxCodeNum = 1000;
+    if (!replaceAll && Array.isArray(this.data.products)) {
+      for (const prod of this.data.products) {
+        if (prod.productCode && prod.productCode.startsWith('MM-')) {
+          const num = parseInt(prod.productCode.replace('MM-', ''), 10);
+          if (!isNaN(num) && num > maxCodeNum) {
+            maxCodeNum = num;
+          }
+        }
+      }
+    }
 
     const formattedProducts: Product[] = productsList.map((p, idx) => {
       const id = p.id || `prod-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
-      const productCode = p.productCode || `MM-${1001 + idx}`;
+      const productCode = p.productCode || `MM-${maxCodeNum + 1 + idx}`;
       const resellerPrice = Math.round(Number(p.resellerPrice) || 0);
       const suggestedSellingPrice = Math.round(Number(p.suggestedSellingPrice) || (resellerPrice > 0 ? Math.round(resellerPrice * 1.5) : 500));
       const baseCost = Math.round(Number(p.baseCost) || Math.round(resellerPrice * 0.85));
@@ -2186,17 +2260,20 @@ class Database {
       categoryMap.set(p.category, current);
     });
 
-    this.data.categories = Array.from(categoryMap.entries()).map(([name, val], index) => {
+    const newCategories: ProductCategory[] = Array.from(categoryMap.entries()).map(([name, val], index) => {
       const existing = this.data.categories.find((c) => c.name === name);
+      const baseSlug = val.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       return {
-        id: existing?.id || `cat-${index + 1}`,
+        id: existing?.id && existing.id !== 'cat-1' ? existing.id : `cat-${baseSlug}`,
         name,
         nameBn: existing?.nameBn || name,
-        slug: val.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: baseSlug,
         icon: existing?.icon || 'Package',
         itemCount: val.count,
       };
     });
+
+    this.data.categories = this.sanitizeCategories(newCategories);
 
     this.logAudit({
       action: 'BULK_CREATE_PRODUCTS',

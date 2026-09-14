@@ -364,9 +364,9 @@ export const StorefrontView: React.FC<{
           >
             {t('all_categories', 'All Categories')} ({products.length})
           </button>
-          {categories.map((cat) => (
+          {categories.map((cat, idx) => (
             <button
-              key={cat.id}
+              key={cat.id ? `${cat.id}-${cat.slug || idx}` : `cat-${idx}`}
               onClick={() => setSelectedCategory(cat.slug)}
               className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold transition shrink-0 cursor-pointer ${
                 selectedCategory === cat.slug

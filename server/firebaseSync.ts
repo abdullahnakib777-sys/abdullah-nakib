@@ -11,11 +11,20 @@ import {
   query,
   where,
   DocumentData,
+  disableNetwork,
+  setLogLevel,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { DatabaseSchema, db } from './db';
 import { TelegramService } from './telegramService';
 import { Order, ResellerProfile } from '../src/types';
+
+// Silence verbose internal Firebase gRPC stream retries
+try {
+  setLogLevel('silent');
+} catch {
+  // Ignore
+}
 
 let firestoreInstance: ReturnType<typeof getFirestore> | null = null;
 
@@ -69,18 +78,38 @@ export class FirebaseSyncService {
   private static debounceTimer: NodeJS.Timeout | null = null;
   private static latestPendingData: DatabaseSchema | null = null;
 
+  private static unsubscribeOrders: (() => void) | null = null;
+  private static unsubscribeResellers: (() => void) | null = null;
+
   public static isQuotaExceeded(): boolean {
     return Date.now() < this.quotaExceededUntil;
   }
 
   public static markQuotaExceeded(): void {
-    // Free tier limit reached: pause writes for 1 hour (or until next daily reset)
-    this.quotaExceededUntil = Date.now() + 60 * 60 * 1000;
+    // Free tier limit reached: pause writes for 12 hours
+    this.quotaExceededUntil = Date.now() + 12 * 60 * 60 * 1000;
+    this.latestPendingData = null;
+
+    // Immediately teardown active listeners to avoid gRPC RPC stream thrashing
+    if (this.unsubscribeOrders) {
+      try { this.unsubscribeOrders(); } catch {}
+      this.unsubscribeOrders = null;
+    }
+    if (this.unsubscribeResellers) {
+      try { this.unsubscribeResellers(); } catch {}
+      this.unsubscribeResellers = null;
+    }
+
+    // Disconnect Firestore network connection so pending write streams stop retrying
+    if (firestoreInstance) {
+      disableNetwork(firestoreInstance).catch(() => {});
+    }
+
     if (!this.hasLoggedQuotaWarning) {
       this.hasLoggedQuotaWarning = true;
       console.warn(
-        '⚠️ [Firestore Quota] Free daily write quota reached for project gen-lang-client-0183841847. ' +
-        'Cloud Firestore sync is paused to prevent RPC stream errors. The application will continue running with full local persistence.'
+        '⚠️ [Firestore Quota] Free daily write quota reached for project. ' +
+        'Cloud Firestore write streams safely disconnected to prevent gRPC retry loops. The application continues running smoothly with local storage and Supabase persistence.'
       );
     }
   }
@@ -146,7 +175,7 @@ export class FirebaseSyncService {
 
       // 1. Watch for new Orders in Firestore
       const ordersCol = collection(fsDb, 'orders');
-      onSnapshot(ordersCol, (snapshot) => {
+      this.unsubscribeOrders = onSnapshot(ordersCol, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
             const orderData = change.doc.data() as any;
@@ -209,7 +238,7 @@ export class FirebaseSyncService {
 
       // 2. Watch for new Resellers in Firestore
       const resellersCol = collection(fsDb, 'resellers');
-      onSnapshot(resellersCol, (snapshot) => {
+      this.unsubscribeResellers = onSnapshot(resellersCol, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
             const resData = change.doc.data() as any;

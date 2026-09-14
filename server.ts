@@ -13,7 +13,7 @@ import { User } from './src/types';
 
 dotenv.config();
 
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
 
 async function startServer() {
   const app = express();
@@ -1377,6 +1377,20 @@ async function startServer() {
       }
       const product = db.updateProduct(req.params.id, req.body, user);
       res.json({ product });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Admin: Delete All Products
+  app.delete('/api/v1/admin/products', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const result = db.deleteAllProducts(user);
+      res.json(result);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }

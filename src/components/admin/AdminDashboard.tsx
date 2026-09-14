@@ -67,6 +67,7 @@ import {
   Key,
   Database,
   Copy,
+  Loader2,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -120,6 +121,8 @@ export const AdminDashboard: React.FC = () => {
   const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] = useState(false);
+  const [isDeleteAllProductsModalOpen, setIsDeleteAllProductsModalOpen] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
@@ -569,6 +572,20 @@ export const AdminDashboard: React.FC = () => {
       loadAllAdminData();
     } catch (err: any) {
       alert(err.message || 'Failed to delete product');
+    }
+  };
+
+  const handleDeleteAllProducts = async () => {
+    try {
+      setIsDeletingAll(true);
+      const res = await api.deleteAllProducts();
+      setIsDeleteAllProductsModalOpen(false);
+      alert(res.message || 'All products deleted successfully from catalog!');
+      await loadAllAdminData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete all products');
+    } finally {
+      setIsDeletingAll(false);
     }
   };
 
@@ -1288,6 +1305,18 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                {products.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteAllProductsModalOpen(true)}
+                    className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+                    title="Delete all products from catalog"
+                  >
+                    <Trash2 className="w-4 h-4 text-rose-600" />
+                    <span>Delete All</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setIsBulkUploaderOpen(true)}
@@ -2905,6 +2934,68 @@ CREATE POLICY "Allow backend full access on app_state" ON public.app_state FOR A
                 >
                   <Trash2 className="w-4 h-4" />
                   <span>Yes, Delete Product</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Delete All Products Confirmation */}
+      {isDeleteAllProductsModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" onClick={() => !isDeletingAll && setIsDeleteAllProductsModalOpen(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 my-8">
+            <div className="px-6 py-5 bg-rose-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-200" />
+                <h3 className="font-bold text-sm">Delete All Products</h3>
+              </div>
+              <button disabled={isDeletingAll} onClick={() => setIsDeleteAllProductsModalOpen(false)} className="text-white/80 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900">
+                <p className="font-bold text-sm mb-1 text-rose-700 flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-rose-600" />
+                  Irreversible Catalog Wipe
+                </p>
+                <p className="text-xs text-rose-700/90 leading-relaxed">
+                  This will permanently delete all <strong>{products.length}</strong> products from the store and wholesale catalog.
+                </p>
+              </div>
+
+              <p className="text-slate-600 leading-relaxed">
+                Are you sure you want to clear the entire product catalog? You can re-upload new products anytime using the <strong>Bulk CSV Upload</strong> feature.
+              </p>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={isDeletingAll}
+                  onClick={() => setIsDeleteAllProductsModalOpen(false)}
+                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingAll}
+                  onClick={handleDeleteAllProducts}
+                  className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-xs transition flex items-center gap-2"
+                >
+                  {isDeletingAll ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Yes, Delete All {products.length} Products</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

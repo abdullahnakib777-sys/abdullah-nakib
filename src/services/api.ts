@@ -430,6 +430,11 @@ export const api = {
       method: 'DELETE',
     }),
 
+  deleteAllProducts: () =>
+    apiFetch<{ success: boolean; count: number; message: string }>('/api/v1/admin/products', {
+      method: 'DELETE',
+    }),
+
   updateSettings: (body: Partial<PlatformSettings>) =>
     apiFetch<{ settings: PlatformSettings; message?: string }>('/api/v1/admin/settings', {
       method: 'POST',
