@@ -1433,27 +1433,67 @@ class Database {
     const finalResellers = defaults.resellers.map((defReseller) => {
       const existing = (parsed.resellers || []).find((r: ResellerProfile) => r.id === defReseller.id);
       if (existing) {
+        const deliveredOrdersCount = existing.deliveredOrdersCount !== undefined ? Math.max(existing.deliveredOrdersCount, defReseller.deliveredOrdersCount || 0) : defReseller.deliveredOrdersCount;
+        const totalOrdersCount = existing.totalOrdersCount !== undefined ? Math.max(existing.totalOrdersCount, defReseller.totalOrdersCount || 0) : defReseller.totalOrdersCount;
+        const totalProfitEarned = existing.totalProfitEarned !== undefined ? Math.max(existing.totalProfitEarned, defReseller.totalProfitEarned || 0) : defReseller.totalProfitEarned;
+        const totalProfitEarnedBdt = existing.totalProfitEarnedBdt !== undefined ? Math.max(existing.totalProfitEarnedBdt, defReseller.totalProfitEarnedBdt || 0) : defReseller.totalProfitEarnedBdt;
+        const totalSalesBdt = existing.totalSalesBdt !== undefined ? Math.max(existing.totalSalesBdt, defReseller.totalSalesBdt || 0) : defReseller.totalSalesBdt;
+        
+        // 200+ Active resellers with orders and earned money are guaranteed verified & active
+        const hasOrdersOrProfit = (deliveredOrdersCount || 0) > 0 ||
+                                  (totalOrdersCount || 0) > 0 ||
+                                  (totalProfitEarned || 0) > 0 ||
+                                  (totalProfitEarnedBdt || 0) > 0 ||
+                                  (totalSalesBdt || 0) > 0 ||
+                                  defReseller.isVerified ||
+                                  defReseller.verificationFeePaid;
+
+        const isVerified = Boolean(existing.isVerified || existing.verificationFeePaid || (existing as any).adminApprovedFree || hasOrdersOrProfit);
+        const verificationFeePaid = Boolean(existing.verificationFeePaid || isVerified);
+        const status = hasOrdersOrProfit ? 'ACTIVE' : (existing.status || defReseller.status);
+
         return {
           ...defReseller,
           ...existing,
           xp: existing.xp !== undefined ? existing.xp : defReseller.xp,
           level: existing.level !== undefined ? existing.level : (defReseller.level || this.calculateResellerLevel(existing.xp !== undefined ? existing.xp : defReseller.xp)),
-          deliveredOrdersCount: existing.deliveredOrdersCount !== undefined ? Math.max(existing.deliveredOrdersCount, defReseller.deliveredOrdersCount || 0) : defReseller.deliveredOrdersCount,
-          totalOrdersCount: existing.totalOrdersCount !== undefined ? Math.max(existing.totalOrdersCount, defReseller.totalOrdersCount || 0) : defReseller.totalOrdersCount,
-          totalProfitEarned: existing.totalProfitEarned !== undefined ? Math.max(existing.totalProfitEarned, defReseller.totalProfitEarned || 0) : defReseller.totalProfitEarned,
-          totalProfitEarnedBdt: existing.totalProfitEarnedBdt !== undefined ? Math.max(existing.totalProfitEarnedBdt, defReseller.totalProfitEarnedBdt || 0) : defReseller.totalProfitEarnedBdt,
-          totalSalesBdt: existing.totalSalesBdt !== undefined ? Math.max(existing.totalSalesBdt, defReseller.totalSalesBdt || 0) : defReseller.totalSalesBdt,
-          status: existing.status || defReseller.status,
-          isVerified: existing.isVerified !== undefined ? existing.isVerified : defReseller.isVerified,
-          verificationFeePaid: existing.verificationFeePaid !== undefined ? existing.verificationFeePaid : defReseller.verificationFeePaid,
+          deliveredOrdersCount,
+          totalOrdersCount,
+          totalProfitEarned,
+          totalProfitEarnedBdt,
+          totalSalesBdt,
+          status,
+          isVerified,
+          verificationFeePaid,
+          adminApprovedFree: Boolean((existing as any).adminApprovedFree || defReseller.adminApprovedFree),
         };
       }
-      return defReseller;
+      const hasDefOrdersOrProfit = (defReseller.deliveredOrdersCount || 0) > 0 ||
+                                   (defReseller.totalOrdersCount || 0) > 0 ||
+                                   (defReseller.totalProfitEarned || 0) > 0;
+      return {
+        ...defReseller,
+        isVerified: Boolean(defReseller.isVerified || defReseller.verificationFeePaid || hasDefOrdersOrProfit),
+        verificationFeePaid: Boolean(defReseller.verificationFeePaid || defReseller.isVerified || hasDefOrdersOrProfit),
+        status: hasDefOrdersOrProfit ? 'ACTIVE' : defReseller.status,
+      };
     });
 
     const customResellers = (parsed.resellers || []).filter(
       (r: ResellerProfile) => !defaults.resellers.some((dr) => dr.id === r.id)
-    );
+    ).map((r) => {
+      const hasOrdersOrProfit = (r.deliveredOrdersCount || 0) > 0 ||
+                                (r.totalOrdersCount || 0) > 0 ||
+                                (r.totalProfitEarned || 0) > 0 ||
+                                ((r as any).totalProfitEarnedBdt || 0) > 0;
+      const isVerified = Boolean(r.isVerified || r.verificationFeePaid || (r as any).adminApprovedFree || hasOrdersOrProfit);
+      return {
+        ...r,
+        isVerified,
+        verificationFeePaid: Boolean(r.verificationFeePaid || isVerified),
+        status: hasOrdersOrProfit ? 'ACTIVE' : r.status,
+      };
+    });
 
     // 2. Users
     const finalUsers = defaults.users.map((defUser) => {
@@ -1557,6 +1597,7 @@ class Database {
         this.data = this.getDefaultData();
         this.saveLocal();
       }
+      this.ensureActiveResellersVerified();
       this.isLoaded = true;
 
       // Attempt async cloud hydration in background and save back merged data locally without triggering re-upload
@@ -1590,6 +1631,59 @@ class Database {
       this.data = this.getDefaultData();
       this.saveLocal();
     }
+  }
+
+  public ensureActiveResellersVerified(): number {
+    let updatedCount = 0;
+    if (!this.data || !Array.isArray(this.data.resellers)) return 0;
+    for (const r of this.data.resellers) {
+      const hasActivity = (r.deliveredOrdersCount || 0) > 0 ||
+                          (r.totalOrdersCount || 0) > 0 ||
+                          (r.totalProfitEarned || 0) > 0 ||
+                          ((r as any).totalProfitEarnedBdt || 0) > 0 ||
+                          ((r as any).totalSalesBdt || 0) > 0 ||
+                          r.status === 'ACTIVE' ||
+                          (r.xp || 0) > 50;
+      if (hasActivity) {
+        let changed = false;
+        if (!r.isVerified) {
+          r.isVerified = true;
+          changed = true;
+        }
+        if (!r.verificationFeePaid) {
+          r.verificationFeePaid = true;
+          changed = true;
+        }
+        if (r.status !== 'ACTIVE') {
+          r.status = 'ACTIVE';
+          changed = true;
+        }
+        if (!(r as any).adminApprovedFree && !(r as any).verificationPayment) {
+          (r as any).adminApprovedFree = true;
+          changed = true;
+        }
+        if (changed) updatedCount++;
+      }
+    }
+    if (updatedCount > 0) {
+      this.saveLocal();
+    }
+    return updatedCount;
+  }
+
+  public bulkVerifyActiveResellers(actor: User): number {
+    const count = this.ensureActiveResellersVerified();
+    this.logAudit({
+      action: 'BULK_VERIFY_ACTIVE_RESELLERS',
+      actorId: actor.id,
+      actorName: actor.name,
+      actorRole: actor.role,
+      targetType: 'RESELLER',
+      targetId: 'ALL',
+      details: `Admin bulk-verified all active resellers with existing orders and earned profit (total: ${count})`,
+    });
+    this.save();
+    return count;
   }
 
   private saveLocal() {
@@ -1833,6 +1927,11 @@ class Database {
         });
       }
 
+      const hasActivity = finalDelivered > 0 || finalProfit > 0 || finalTotalOrders > 0 || r.status === 'ACTIVE' || (xp || 0) > 50;
+      const isVerified = Boolean(r.isVerified || r.verificationFeePaid || (r as any).adminApprovedFree || hasActivity);
+      const verificationFeePaid = Boolean(r.verificationFeePaid || isVerified);
+      const status = (hasActivity || isVerified) ? 'ACTIVE' : r.status;
+
       return {
         ...r,
         user,
@@ -1844,9 +1943,10 @@ class Database {
         upazila: r.upazila || r.district || 'Dhaka',
         address: r.address || '',
         salesIntent: r.salesIntent || 'Social Media & WhatsApp',
-        status: r.status,
-        verificationFeePaid: r.verificationFeePaid || false,
-        adminApprovedFree: (r as any).adminApprovedFree || false,
+        status,
+        isVerified,
+        verificationFeePaid,
+        adminApprovedFree: Boolean((r as any).adminApprovedFree || (isVerified && !(r as any).verificationPayment)),
         verificationPayment: (r as any).verificationPayment,
         balanceBdt: availableBalance,
         totalProfitEarnedBdt: finalProfit,
@@ -2964,6 +3064,14 @@ class Database {
       }
 
       const currentRankLvl = r.level || this.calculateResellerLevel(r.xp || 100);
+      const isResellerVerified = Boolean(
+        r.isVerified ||
+        r.verificationFeePaid ||
+        (r as any).adminApprovedFree ||
+        deliveredCount > 0 ||
+        profit > 0 ||
+        r.status === 'ACTIVE'
+      );
       const defaultBadges =
         currentRankLvl >= 7
           ? ['👑 Legend', '⭐ Verified', '🏆 Top Seller', '⚡ Elite']
@@ -2975,6 +3083,8 @@ class Database {
           ? ['🔥 Ultra Better', '⭐ Verified']
           : currentRankLvl >= 2
           ? ['⚡ Better', '⭐ Verified']
+          : isResellerVerified
+          ? ['🐣 Rookie', '⭐ Verified']
           : ['🐣 Rookie'];
 
       const userName = r.ownerName || r.user?.name || r.storeName;
@@ -3002,7 +3112,8 @@ class Database {
         isFounder: Boolean(r.user?.isFounder || r.id === 'rsl-founder' || (r as any).isFounder),
         streakDays: Math.min(30, Math.max(1, Math.floor(deliveredCount / 12) + (currentRankLvl >= 3 ? 3 : 1))),
         badges: defaultBadges,
-        status: r.status,
+        status: isResellerVerified ? 'ACTIVE' : r.status,
+        isVerified: isResellerVerified,
       };
 
       // Apply Manual Admin Overrides if present
@@ -3690,6 +3801,7 @@ class Database {
 
     reseller.status = 'ACTIVE';
     reseller.isVerified = true;
+    reseller.verificationFeePaid = true;
     reseller.adminApprovedFree = true;
 
     this.logAudit({
@@ -3722,9 +3834,22 @@ class Database {
       if (reseller.verificationPayment) {
         reseller.verificationPayment.verifiedAt = new Date().toISOString();
         reseller.verificationPayment.adminNote = adminNote || 'Verified 500 TK payment received';
+      } else {
+        reseller.verificationPayment = {
+          method: 'BKASH',
+          senderPhone: reseller.whatsappNumber || '01700000000',
+          trxId: `ADMIN-VERIFIED-${Date.now().toString().slice(-6)}`,
+          amount: 500,
+          submittedAt: new Date().toISOString(),
+          verifiedAt: new Date().toISOString(),
+          adminNote: adminNote || 'Verified 500 TK payment received',
+        };
       }
     } else {
       reseller.status = 'VERIFICATION_REQUIRED';
+      reseller.isVerified = false;
+      reseller.verificationFeePaid = false;
+      reseller.adminApprovedFree = false;
       if (reseller.verificationPayment) {
         reseller.verificationPayment.adminNote = adminNote || 'Payment verification failed / invalid TrxID';
       }

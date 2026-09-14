@@ -1196,6 +1196,24 @@ async function startServer() {
     }
   });
 
+  // Admin: Bulk Verify All Active Resellers With Orders / Earned Profit
+  app.post('/api/v1/admin/resellers/bulk-verify-active', (req: Request, res: Response) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      if (user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Admin permissions required' });
+      }
+      const count = db.bulkVerifyActiveResellers(user);
+      res.json({
+        success: true,
+        count,
+        message: `Successfully verified and marked active ${count} resellers with orders/earnings!`,
+      });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   // Admin: Create Challenge (Daily, Weekly, Monthly) with Custom XP
   app.post('/api/v1/admin/challenges', (req: Request, res: Response) => {
     try {

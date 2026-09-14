@@ -574,6 +574,11 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  adminBulkVerifyActiveResellers: () =>
+    apiFetch<{ success: boolean; count: number; message: string }>('/api/v1/admin/resellers/bulk-verify-active', {
+      method: 'POST',
+    }),
+
   adminCreateChallenge: (body: Partial<WeeklyChallenge>) =>
     apiFetch<{ challenge: WeeklyChallenge }>('/api/v1/admin/challenges', {
       method: 'POST',

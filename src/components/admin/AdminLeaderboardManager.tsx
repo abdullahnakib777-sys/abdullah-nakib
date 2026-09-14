@@ -28,9 +28,18 @@ import {
   Check,
   X,
   AlertCircle,
+  Clock,
 } from 'lucide-react';
 
-export const AdminLeaderboardManager: React.FC = () => {
+export interface AdminLeaderboardManagerProps {
+  initialResellerId?: string | null;
+  onClearInitialReseller?: () => void;
+}
+
+export const AdminLeaderboardManager: React.FC<AdminLeaderboardManagerProps> = ({
+  initialResellerId,
+  onClearInitialReseller,
+}) => {
   const [period, setPeriod] = useState<'allTime' | 'monthly' | 'weekly'>('allTime');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [allResellers, setAllResellers] = useState<ResellerProfile[]>([]);
@@ -41,6 +50,7 @@ export const AdminLeaderboardManager: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [resellerSearchQuery, setResellerSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'overrides' | 'custom' | 'settings'>('leaderboard');
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
@@ -89,6 +99,13 @@ export const AdminLeaderboardManager: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [period]);
+
+  useEffect(() => {
+    if (initialResellerId && (leaderboard.length > 0 || allResellers.length > 0)) {
+      handleOpenEditOverride(initialResellerId);
+      if (onClearInitialReseller) onClearInitialReseller();
+    }
+  }, [initialResellerId, leaderboard.length, allResellers.length]);
 
   const showSuccess = (msg: string) => {
     setSuccessBanner(msg);
@@ -449,6 +466,11 @@ export const AdminLeaderboardManager: React.FC = () => {
                               <span className="font-black text-slate-900 text-sm">
                                 {entry.storeName}
                               </span>
+                              {(entry.isVerified || entry.badges?.some((b) => b.toLowerCase().includes('verified'))) && (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center gap-0.5 border border-emerald-300">
+                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> VERIFIED
+                                </span>
+                              )}
                               {entry.isFounder && (
                                 <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 text-[10px] font-black">
                                   👑 FOUNDER
@@ -560,87 +582,166 @@ export const AdminLeaderboardManager: React.FC = () => {
       )}
 
       {/* TAB 2: All Resellers Directory for Quick Ranking Control */}
-      {activeTab === 'overrides' && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <div>
-              <h3 className="font-black text-slate-900 text-base">All Registered Resellers</h3>
-              <p className="text-xs text-slate-500">
-                Select any registered reseller to pin them to the top of the leaderboard, change their rank, or override their stats.
-              </p>
+      {activeTab === 'overrides' && (() => {
+        const filteredAllResellers = allResellers.filter((r) => {
+          if (!resellerSearchQuery) return true;
+          const q = resellerSearchQuery.toLowerCase().trim();
+          return (
+            r.storeName?.toLowerCase().includes(q) ||
+            r.ownerName?.toLowerCase().includes(q) ||
+            r.whatsappNumber?.includes(q) ||
+            r.district?.toLowerCase().includes(q) ||
+            r.id.toLowerCase().includes(q)
+          );
+        });
+
+        return (
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-black text-slate-900 text-base">All Registered Resellers</h3>
+                <p className="text-xs text-slate-500">
+                  Select any registered reseller to pin them to the top of the leaderboard, change their rank, or override their stats.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl">
+                  {filteredAllResellers.length} of {allResellers.length} Resellers
+                </span>
+              </div>
             </div>
-            <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-xl">
-              {allResellers.length} Resellers
-            </span>
-          </div>
 
-          <div className="divide-y divide-slate-100">
-            {allResellers.map((r) => {
-              const hasOverride = Boolean(config.manualOverrides?.[r.id]);
-              const ov = config.manualOverrides?.[r.id];
-
-              return (
-                <div
-                  key={r.id}
-                  className="p-4 sm:p-5 hover:bg-slate-50/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs"
+            {/* Search Bar */}
+            <div className="p-3.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+              <Search className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+              <input
+                type="text"
+                placeholder="Search resellers by store name, owner, phone, district..."
+                value={resellerSearchQuery}
+                onChange={(e) => setResellerSearchQuery(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              {resellerSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setResellerSearchQuery('')}
+                  className="px-2 py-1 text-slate-400 hover:text-slate-600 text-xs font-bold"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-black text-base flex items-center justify-center shrink-0">
-                      {r.storeName?.charAt(0) || 'R'}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black text-slate-900 text-sm">{r.storeName}</span>
-                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-extrabold text-[10px]">
-                          Lvl {r.level || 1} • {r.xp || 100} XP
-                        </span>
-                        {hasOverride && (
-                          <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-black flex items-center gap-1">
-                            <Zap className="w-2.5 h-2.5" /> OVERRIDE ACTIVE
-                          </span>
-                        )}
-                        {ov?.isPinned && (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black flex items-center gap-1">
-                            <Pin className="w-2.5 h-2.5" /> PINNED #{ov.pinnedRank || 1}
-                          </span>
-                        )}
-                        {ov?.isHidden && (
-                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-black flex items-center gap-1">
-                            <EyeOff className="w-2.5 h-2.5" /> HIDDEN
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-slate-500 text-[11px] mt-0.5">
-                        Owner: <strong>{r.ownerName}</strong> • Phone: {r.whatsappNumber} • {r.district}, {r.division} • {r.deliveredOrdersCount || 0} Delivered
-                      </p>
-                    </div>
-                  </div>
+                  Clear
+                </button>
+              )}
+            </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditOverride(r.id)}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                      <span>{hasOverride ? 'Edit Override' : 'Configure Leaderboard'}</span>
-                    </button>
-                    {hasOverride && (
+            <div className="divide-y divide-slate-100">
+              {filteredAllResellers.map((r) => {
+                const hasOverride = Boolean(config.manualOverrides?.[r.id]);
+                const ov = config.manualOverrides?.[r.id];
+                const isVerified = Boolean(r.isVerified || r.verificationFeePaid || (r as any).adminApprovedFree);
+
+                return (
+                  <div
+                    key={r.id}
+                    className="p-4 sm:p-5 hover:bg-slate-50/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-black text-base flex items-center justify-center shrink-0">
+                        {r.storeName?.charAt(0) || 'R'}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-slate-900 text-sm">{r.storeName}</span>
+                          {isVerified ? (
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-black text-[10px] flex items-center gap-1 border border-emerald-300">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> VERIFIED
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-black text-[10px] flex items-center gap-1 border border-amber-300">
+                              <Clock className="w-3 h-3 text-amber-600" /> PENDING
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-extrabold text-[10px]">
+                            Lvl {r.level || 1} • {r.xp || 100} XP
+                          </span>
+                          {hasOverride && (
+                            <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-black flex items-center gap-1">
+                              <Zap className="w-2.5 h-2.5" /> OVERRIDE ACTIVE
+                            </span>
+                          )}
+                          {ov?.isPinned && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black flex items-center gap-1">
+                              <Pin className="w-2.5 h-2.5" /> PINNED #{ov.pinnedRank || 1}
+                            </span>
+                          )}
+                          {ov?.isHidden && (
+                            <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-black flex items-center gap-1">
+                              <EyeOff className="w-2.5 h-2.5" /> HIDDEN
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-slate-500 text-[11px] mt-0.5">
+                          Owner: <strong>{r.ownerName}</strong> • Phone: {r.whatsappNumber} • {r.district}, {r.division} • {r.deliveredOrdersCount || 0} Delivered • ৳{(r.totalProfitEarned || (r as any).totalProfitEarnedBdt || 0).toLocaleString()} Profit
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                      {!isVerified && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await api.adminVerifyResellerPayment(r.id, { approved: true, adminNote: 'Verified from Leaderboard Directory' });
+                              setAllResellers((prev) =>
+                                prev.map((item) =>
+                                  item.id === r.id
+                                    ? { ...item, isVerified: true, verificationFeePaid: true, status: 'ACTIVE' }
+                                    : item
+                                )
+                              );
+                              showSuccess(`Marked ${r.storeName} as Verified!`);
+                            } catch (err: any) {
+                              alert(err.message || 'Failed to verify');
+                            }
+                          }}
+                          className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center gap-1 shadow-xs"
+                          title="Verify 500৳ fee and activate reseller"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Verify 500৳</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
-                        onClick={() => handleDeleteOverride(r.id)}
-                        className="px-3 py-2 bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-600 font-bold rounded-xl text-xs transition cursor-pointer"
+                        onClick={() => handleOpenEditOverride(r.id)}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                       >
-                        Reset
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>{hasOverride ? 'Edit Override' : 'Configure Leaderboard'}</span>
                       </button>
-                    )}
+                      {hasOverride && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteOverride(r.id)}
+                          className="px-3 py-2 bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-600 font-bold rounded-xl text-xs transition cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+
+              {filteredAllResellers.length === 0 && (
+                <div className="p-8 text-center text-slate-400">
+                  <p className="font-bold text-slate-600">No resellers match "{resellerSearchQuery}"</p>
                 </div>
-              );
-            })}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* TAB 3: Custom Showcase / VIP Entries */}
       {activeTab === 'custom' && (
@@ -798,6 +899,74 @@ export const AdminLeaderboardManager: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveOverride} className="p-6 space-y-4 text-xs">
+              {/* Reseller Verification Quick Status */}
+              {(() => {
+                const targetReseller = allResellers.find((r) => r.id === editingResellerId);
+                const isVerified = Boolean(
+                  targetReseller?.isVerified ||
+                  targetReseller?.verificationFeePaid ||
+                  (targetReseller as any)?.adminApprovedFree
+                );
+
+                return (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      {isVerified ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      ) : (
+                        <Clock className="w-5 h-5 text-amber-500 shrink-0" />
+                      )}
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-800">Verification Status:</span>
+                          {isVerified ? (
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-extrabold text-[10px]">
+                              VERIFIED & ACTIVE
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-extrabold text-[10px]">
+                              PENDING 500৳
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {isVerified
+                            ? 'This reseller is fully approved and appears with a verified badge.'
+                            : 'This reseller has not completed verification. You can grant verified status below.'}
+                        </p>
+                      </div>
+                    </div>
+                    {!isVerified && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await api.adminVerifyResellerPayment(editingResellerId, {
+                              approved: true,
+                              adminNote: 'Verified from Leaderboard Override Modal',
+                            });
+                            setAllResellers((prev) =>
+                              prev.map((r) =>
+                                r.id === editingResellerId
+                                  ? { ...r, isVerified: true, verificationFeePaid: true, status: 'ACTIVE' }
+                                  : r
+                              )
+                            );
+                            showSuccess('Reseller successfully marked as Verified!');
+                          } catch (err: any) {
+                            alert(err.message || 'Failed to verify reseller');
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs shrink-0 flex items-center gap-1"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Verify Now</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Pin & Visibility Controls */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

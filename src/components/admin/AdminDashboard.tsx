@@ -16,6 +16,7 @@ import { StatusBadge } from '../common/Badge';
 import { triggerLevelUpCelebration } from '../common/ConfettiTrigger';
 import { BulkProductUploaderModal } from './BulkProductUploaderModal';
 import { AdminNotificationsManager } from './AdminNotificationsManager';
+import { AdminLeaderboardManager } from './AdminLeaderboardManager';
 import {
   ShieldCheck,
   TrendingUp,
@@ -72,8 +73,10 @@ import {
 
 export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'orders' | 'resellers' | 'products' | 'notifications' | 'challenges' | 'academy' | 'withdrawals' | 'fraud' | 'settings'
+    'overview' | 'orders' | 'resellers' | 'leaderboard' | 'products' | 'notifications' | 'challenges' | 'academy' | 'withdrawals' | 'fraud' | 'settings'
   >('overview');
+  const [selectedLeaderboardResellerId, setSelectedLeaderboardResellerId] = useState<string | null>(null);
+  const [isBulkVerifying, setIsBulkVerifying] = useState(false);
 
   const [statsData, setStatsData] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -454,25 +457,104 @@ export const AdminDashboard: React.FC = () => {
 
   const handleResellerApproveFree = async (resellerId: string) => {
     try {
+      // Optimistic update
+      setAllResellers((prev) =>
+        prev.map((r) =>
+          r.id === resellerId
+            ? { ...r, isVerified: true, verificationFeePaid: true, adminApprovedFree: true, status: 'ACTIVE' }
+            : r
+        )
+      );
+      setResellers((prev) =>
+        prev.map((r) =>
+          r.id === resellerId
+            ? { ...r, isVerified: true, verificationFeePaid: true, adminApprovedFree: true, status: 'ACTIVE' }
+            : r
+        )
+      );
       await api.adminApproveResellerFree(resellerId);
       triggerLevelUpCelebration();
       alert('Reseller approved and verified for free!');
-      loadAllAdminData();
+      await loadAllAdminData();
     } catch (err: any) {
       alert(err.message || 'Failed to approve reseller');
+      await loadAllAdminData();
     }
   };
 
   const handleResellerVerifyPayment = async (resellerId: string, approved: boolean) => {
     try {
+      // Optimistic update
+      setAllResellers((prev) =>
+        prev.map((r) =>
+          r.id === resellerId
+            ? {
+                ...r,
+                isVerified: approved,
+                verificationFeePaid: approved,
+                status: approved ? 'ACTIVE' : 'VERIFICATION_REQUIRED',
+                adminApprovedFree: approved ? (r.adminApprovedFree || false) : false,
+              }
+            : r
+        )
+      );
+      setResellers((prev) =>
+        prev.map((r) =>
+          r.id === resellerId
+            ? {
+                ...r,
+                isVerified: approved,
+                verificationFeePaid: approved,
+                status: approved ? 'ACTIVE' : 'VERIFICATION_REQUIRED',
+                adminApprovedFree: approved ? (r.adminApprovedFree || false) : false,
+              }
+            : r
+        )
+      );
       await api.adminVerifyResellerPayment(resellerId, {
         approved,
         adminNote: approved ? '500 TK payment verified by Admin' : 'Payment verification rejected',
       });
       if (approved) triggerLevelUpCelebration();
-      loadAllAdminData();
+      await loadAllAdminData();
     } catch (err: any) {
       alert(err.message || 'Failed to verify payment');
+      await loadAllAdminData();
+    }
+  };
+
+  const handleBulkVerifyActiveResellers = async () => {
+    if (!window.confirm('Mark and show all active resellers with existing orders and earned profit as Verified?')) return;
+    setIsBulkVerifying(true);
+    try {
+      const res = await api.adminBulkVerifyActiveResellers();
+      triggerLevelUpCelebration();
+      // Optimistically update all resellers with orders or profit
+      setAllResellers((prev) =>
+        prev.map((r) => {
+          const hasOrdersOrProfit = (r.deliveredOrdersCount || 0) > 0 ||
+                                    (r.totalOrdersCount || 0) > 0 ||
+                                    (r.totalProfitEarned || 0) > 0 ||
+                                    (r.totalProfitEarnedBdt || 0) > 0 ||
+                                    r.status === 'ACTIVE';
+          if (hasOrdersOrProfit) {
+            return {
+              ...r,
+              isVerified: true,
+              verificationFeePaid: true,
+              status: 'ACTIVE',
+              adminApprovedFree: true,
+            };
+          }
+          return r;
+        })
+      );
+      alert(res.message || 'All active resellers verified successfully!');
+      await loadAllAdminData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to bulk verify resellers');
+    } finally {
+      setIsBulkVerifying(false);
     }
   };
 
@@ -706,10 +788,11 @@ export const AdminDashboard: React.FC = () => {
         {[
           { id: 'overview', label: '📊 Analytics' },
           { id: 'orders', label: `📦 Orders (${orders.length})` },
-          { id: 'resellers', label: `👥 Resellers & XP (${allResellers.length > 0 ? allResellers.length : resellers.length})` },
+          { id: 'resellers', label: `👥 Resellers & Verification (${allResellers.length > 0 ? allResellers.length : resellers.length})` },
+          { id: 'leaderboard', label: '🏆 Leaderboard & Ranks' },
           { id: 'products', label: `🏷️ Products (${products.length})` },
           { id: 'notifications', label: '📢 Notifications & Posters' },
-          { id: 'challenges', label: `🏆 Challenges & XP (${challenges.length})` },
+          { id: 'challenges', label: `🎯 Challenges & XP (${challenges.length})` },
           { id: 'academy', label: `📺 Academy Videos (${academyLessons.length})` },
           { id: 'withdrawals', label: `💰 Withdrawals (${withdrawals.length})` },
           { id: 'fraud', label: `🛡️ Anti-Fraud (${fraudAlerts.length})` },
@@ -1058,6 +1141,30 @@ export const AdminDashboard: React.FC = () => {
                     {f.label}
                   </button>
                 ))}
+
+                <button
+                  type="button"
+                  onClick={handleBulkVerifyActiveResellers}
+                  disabled={isBulkVerifying}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition whitespace-nowrap flex items-center gap-1.5 shadow-xs"
+                  title="Automatically mark all resellers with orders or profit as Verified"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{isBulkVerifying ? 'Verifying...' : '⚡ Verify 200+ Active'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedLeaderboardResellerId(null);
+                    setActiveTab('leaderboard');
+                  }}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition whitespace-nowrap flex items-center gap-1.5 shadow-xs"
+                  title="Open Leaderboard and Ranking Configuration"
+                >
+                  <Trophy className="w-3.5 h-3.5" />
+                  <span>Leaderboard Ranks</span>
+                </button>
               </div>
             </div>
 
@@ -1170,33 +1277,68 @@ export const AdminDashboard: React.FC = () => {
 
                         {/* 500 TK Verification */}
                         <td className="p-4">
-                          {r.adminApprovedFree ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>Free Pass Approved</span>
-                            </span>
-                          ) : r.verificationFeePaid || r.verificationPayment ? (
-                            <div>
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>৳500 Verified</span>
+                          {(() => {
+                            const isVerified = Boolean(
+                              r.isVerified ||
+                              r.verificationFeePaid ||
+                              r.adminApprovedFree ||
+                              (r.deliveredOrdersCount || 0) > 0 ||
+                              (r.totalOrdersCount || 0) > 0 ||
+                              (r.totalProfitEarned || 0) > 0 ||
+                              (r.totalProfitEarnedBdt || 0) > 0 ||
+                              r.status === 'ACTIVE'
+                            );
+
+                            if (r.adminApprovedFree) {
+                              return (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-300">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>Free Pass Verified</span>
+                                </span>
+                              );
+                            }
+
+                            if (isVerified) {
+                              return (
+                                <div>
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-300">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>৳500 Verified</span>
+                                  </span>
+                                  {r.verificationPayment?.trxId && (
+                                    <p className="text-[10px] font-mono text-slate-500 mt-1">
+                                      Trx: <strong>{r.verificationPayment.trxId}</strong>
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]">
+                                <Clock className="w-3 h-3 text-amber-600" />
+                                <span>500৳ Pending</span>
                               </span>
-                              {r.verificationPayment?.trxId && (
-                                <p className="text-[10px] font-mono text-slate-500 mt-1">
-                                  Trx: <strong>{r.verificationPayment.trxId}</strong>
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]">
-                              <Clock className="w-3 h-3 text-amber-600" />
-                              <span>500৳ Pending</span>
-                            </span>
-                          )}
+                            );
+                          })()}
                         </td>
 
                         {/* Actions */}
                         <td className="p-4 text-right space-y-1 sm:space-y-0 sm:space-x-1.5 whitespace-nowrap">
+                          {/* Leaderboard Rank & Override Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedLeaderboardResellerId(r.id);
+                              setActiveTab('leaderboard');
+                            }}
+                            className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-[11px] transition inline-flex items-center gap-1 shadow-2xs"
+                            title="Open Leaderboard and customize rank / stats for this reseller"
+                          >
+                            <Trophy className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Leaderboard</span>
+                          </button>
+
                           {/* Award XP Button */}
                           <button
                             type="button"
@@ -1209,31 +1351,50 @@ export const AdminDashboard: React.FC = () => {
                           </button>
 
                           {/* Approval Actions */}
-                          <button
-                            type="button"
-                            onClick={() => handleResellerApproveFree(r.id)}
-                            className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-[11px] transition inline-block"
-                            title="Allow freely without 500 TK payment"
-                          >
-                            Free Pass
-                          </button>
+                          {Boolean(
+                            r.isVerified ||
+                            r.verificationFeePaid ||
+                            r.adminApprovedFree ||
+                            (r.deliveredOrdersCount || 0) > 0 ||
+                            (r.totalOrdersCount || 0) > 0 ||
+                            (r.totalProfitEarned || 0) > 0 ||
+                            (r.totalProfitEarnedBdt || 0) > 0 ||
+                            r.status === 'ACTIVE'
+                          ) ? (
+                            <span className="px-2.5 py-1.5 bg-emerald-50 text-emerald-800 rounded-xl font-black text-[11px] inline-flex items-center gap-1 border border-emerald-200">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Verified ✅</span>
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleResellerVerifyPayment(r.id, true)}
+                                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs"
+                                title="Approve 500 TK Verification"
+                              >
+                                <CheckCircle2 className="w-3 h-3 text-white" />
+                                <span>Verify 500৳</span>
+                              </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleResellerVerifyPayment(r.id, true)}
-                            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-[11px] transition inline-block"
-                            title="Approve 500 TK Verification"
-                          >
-                            Verify 500৳
-                          </button>
+                              <button
+                                type="button"
+                                onClick={() => handleResellerApproveFree(r.id)}
+                                className="px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-[11px] transition inline-block"
+                                title="Allow freely without 500 TK payment"
+                              >
+                                Free Pass
+                              </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleResellerVerifyPayment(r.id, false)}
-                            className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-semibold text-[11px] transition inline-block"
-                          >
-                            Reject
-                          </button>
+                              <button
+                                type="button"
+                                onClick={() => handleResellerVerifyPayment(r.id, false)}
+                                className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-semibold text-[11px] transition inline-block"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1254,6 +1415,16 @@ export const AdminDashboard: React.FC = () => {
           </div>
         );
       })()}
+
+      {/* TAB: LEADERBOARD MANAGER */}
+      {activeTab === 'leaderboard' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <AdminLeaderboardManager
+            initialResellerId={selectedLeaderboardResellerId}
+            onClearInitialReseller={() => setSelectedLeaderboardResellerId(null)}
+          />
+        </div>
+      )}
 
       {/* TAB 4: PRODUCTS MANAGER */}
       {activeTab === 'products' && (() => {

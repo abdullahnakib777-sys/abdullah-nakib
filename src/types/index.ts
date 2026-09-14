@@ -284,6 +284,8 @@ export interface LeaderboardEntry {
   streakDays: number;
   badges: string[];
   status?: string;
+  isVerified?: boolean;
+  verificationFeePaid?: boolean;
   pinnedRank?: number;
   isPinned?: boolean;
   hasManualOverride?: boolean;
